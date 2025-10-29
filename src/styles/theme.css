@@ -1,0 +1,99 @@
+:root {
+	--background: 0 0% 100%;
+	--foreground: 0 0% 15%;
+
+	--card: 0 0% 98%;
+	--card-foreground: 0 0% 15%;
+	--popover: 0 0% 99%;
+	--popover-foreground: 0 0% 15%;
+	--modal: 0 0% 100%;
+	--modal-foreground: 0 0% 15%;
+
+	--primary: 0 0% 15%;
+	--primary-foreground: 0 0% 100%;
+	--primary-hover: 0 0% 25%;
+	--secondary: 0 0% 92%;
+	--secondary-foreground: 0 0% 15%;
+	--secondary-hover: 0 0% 88%;
+
+	--muted: 0 0% 92%;
+	--muted-foreground: 0 0% 40%;
+	--accent: 0 0% 90%;
+	--accent-foreground: 0 0% 15%;
+	--accent-hover: 0 0% 85%;
+
+	--destructive: 0 84% 60%;
+	--destructive-foreground: 0 0% 100%;
+	--destructive-hover: 0 84% 55%;
+	--success: 142 76% 36%;
+	--success-foreground: 0 0% 100%;
+	--success-hover: 142 76% 31%;
+	--warning: 38 92% 50%;
+	--warning-foreground: 0 0% 15%;
+	--info: 221 83% 53%;
+	--info-foreground: 0 0% 100%;
+
+	--border: 0 0% 85%;
+	--border-hover: 0 0% 75%;
+	--input: 0 0% 85%;
+	--input-focus: 0 0% 75%;
+	--ring: 0 0% 15%;
+	--radius: 0.25rem;
+
+	--chart-1: 0 0% 25%;
+	--chart-2: 0 0% 40%;
+	--chart-3: 0 0% 55%;
+	--chart-4: 0 0% 70%;
+	--chart-5: 0 0% 85%;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: 0 0% 10%;
+		--foreground: 0 0% 90%;
+
+		--card: 0 0% 12%;
+		--card-foreground: 0 0% 90%;
+		--popover: 0 0% 14%;
+		--popover-foreground: 0 0% 90%;
+		--modal: 0 0% 12%;
+		--modal-foreground: 0 0% 90%;
+
+		--primary: 0 0% 90%;
+		--primary-foreground: 0 0% 10%;
+		--primary-hover: 0 0% 85%;
+		--secondary: 0 0% 18%;
+		--secondary-foreground: 0 0% 90%;
+		--secondary-hover: 0 0% 22%;
+
+		--muted: 0 0% 18%;
+		--muted-foreground: 0 0% 65%;
+		--accent: 0 0% 20%;
+		--accent-foreground: 0 0% 90%;
+		--accent-hover: 0 0% 25%;
+
+		--destructive: 0 62% 50%;
+		--destructive-foreground: 0 0% 100%;
+		--destructive-hover: 0 62% 45%;
+		--success: 142 69% 58%;
+		--success-foreground: 142 100% 10%;
+		--success-hover: 142 69% 53%;
+		--warning: 38 92% 60%;
+		--warning-foreground: 38 100% 10%;
+		--info: 221 83% 65%;
+		--info-foreground: 221 100% 10%;
+
+		--border: 0 0% 20%;
+		--border-hover: 0 0% 25%;
+		--input: 0 0% 20%;
+		--input-focus: 0 0% 25%;
+		--ring: 0 0% 80%;
+		--radius: 0.25rem;
+
+		--chart-1: 0 0% 75%;
+		--chart-2: 0 0% 60%;
+		--chart-3: 0 0% 45%;
+		--chart-4: 0 0% 30%;
+		--chart-5: 0 0% 15%;
+	}
+}
