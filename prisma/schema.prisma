@@ -48,8 +48,8 @@ model User {
     emailVerified DateTime?
     accounts      Account[]
     sessions      Session[]
-    role          UserRole
-    status        UserStatus
+    role          UserRole   @default(MEMBER)
+    status        UserStatus @default(PENDING)
     rsvps         RSVP[]
     seasonId      String?
     season        Season?    @relation(fields: [seasonId], references: [id])
