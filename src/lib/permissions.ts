@@ -12,7 +12,7 @@ export enum Permission {
 
 	// rsvp
 	ReadRSVPs,
-	UpdateOwnRSVP,
+	UpdateOwnRSVPs,
 	DeleteRSVPs,
 
 	// events
@@ -25,11 +25,23 @@ export enum Permission {
 	ReadUsers,
 	UpdateUsers,
 	DeleteUsers,
+
+	// seasons
+	ReadCurrentSeason,
+	CreateSeasons,
+	ReadSeasons,
+	UpdateSeasons,
+	DeleteSeasons,
 }
 
 const PENDING = [Permission.ReadOwnProfile];
 const ALUMNI = [...PENDING, Permission.UpdateOwnProfile, Permission.ReadEvents];
-const ACTIVE = [...ALUMNI, Permission.UpdateOwnRSVP, Permission.ReadRSVPs];
+const ACTIVE = [
+	...ALUMNI,
+	Permission.UpdateOwnRSVPs,
+	Permission.ReadRSVPs,
+	Permission.ReadCurrentSeason,
+];
 
 const MEMBER = [...ACTIVE];
 
