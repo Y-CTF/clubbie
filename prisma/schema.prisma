@@ -42,18 +42,19 @@ model Session {
 }
 
 model User {
-    id            String     @id @default(cuid())
-    name          String?
-    email         String?    @unique
-    emailVerified DateTime?
-    accounts      Account[]
-    sessions      Session[]
-    role          UserRole   @default(MEMBER)
-    status        UserStatus @default(PENDING)
-    rsvps         RSVP[]
-    events        Event[]
-    seasonId      String?
-    season        Season?    @relation(fields: [seasonId], references: [id])
+    id               String     @id @default(cuid())
+    name             String?
+    email            String?    @unique
+    emailVerified    DateTime?
+    accounts         Account[]
+    sessions         Session[]
+    role             UserRole   @default(MEMBER)
+    status           UserStatus @default(PENDING)
+    hiddenAttendance Boolean    @default(false)
+    rsvps            RSVP[]
+    events           Event[]
+    seasonId         String?
+    season           Season?    @relation(fields: [seasonId], references: [id])
 }
 
 model VerificationToken {
