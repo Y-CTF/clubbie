@@ -58,10 +58,7 @@ export const eventsRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const res = await ctx.db.event.update({
 				where: { id: input.id },
-				data: {
-					...input,
-					seasonId: input.seasonId,
-				},
+				data: input,
 			});
 			return res;
 		}),
@@ -71,6 +68,15 @@ export const eventsRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const res = await ctx.db.event.delete({
 				where: { id: input.id },
+			});
+			return res;
+		}),
+
+	deleteMany: permissionProcedure(Permission.DeleteEvents)
+		.input(z.object({ ids: z.array(z.string()) }))
+		.mutation(async ({ ctx, input }) => {
+			const res = await ctx.db.event.deleteMany({
+				where: { id: { in: input.ids } },
 			});
 			return res;
 		}),
