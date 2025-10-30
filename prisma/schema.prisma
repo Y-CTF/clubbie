@@ -2,10 +2,10 @@ generator client {
     provider = "prisma-client-js"
 }
 
-// schema.prisma
 generator zod {
-    provider   = "prisma-zod-generator"
-    pureModels = true
+    provider         = "prisma-zod-generator"
+    useMultipleFiles = true
+    config           = "./zod-generator.config.json"
 }
 
 datasource db {
@@ -51,6 +51,7 @@ model User {
     role          UserRole   @default(MEMBER)
     status        UserStatus @default(PENDING)
     rsvps         RSVP[]
+    events        Event[]
     seasonId      String?
     season        Season?    @relation(fields: [seasonId], references: [id])
 }
@@ -81,6 +82,8 @@ model Event {
     rsvps       RSVP[]
     season      Season? @relation(fields: [seasonId], references: [id])
     seasonId    String?
+    createdById String
+    createdBy   User    @relation(fields: [createdById], references: [id])
 }
 
 model RSVP {
@@ -90,7 +93,15 @@ model RSVP {
     userId  String
     user    User   @relation(fields: [userId], references: [id])
 
+    status RSVPStatus
+
     @@unique([eventId, userId])
+}
+
+enum RSVPStatus {
+    GOING
+    MAYBE
+    NOT_GOING
 }
 
 model Season {
