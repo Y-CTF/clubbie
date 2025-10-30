@@ -1,6 +1,6 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
-
+import type { UserRole, UserStatus } from "prisma/generated/schemas";
 import { db } from "@/server/db";
 import { EduIDProvider } from "./eduid";
 
@@ -14,6 +14,8 @@ declare module "next-auth" {
 	interface Session extends DefaultSession {
 		user: {
 			id: string;
+			role: UserRole;
+			status: UserStatus;
 		} & DefaultSession["user"];
 	}
 
