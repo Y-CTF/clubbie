@@ -93,7 +93,15 @@ model RSVP {
     userId  String
     user    User   @relation(fields: [userId], references: [id])
 
+    status RSVPStatus
+
     @@unique([eventId, userId])
+}
+
+enum RSVPStatus {
+    GOING
+    MAYBE
+    NOT_GOING
 }
 
 model Season {
