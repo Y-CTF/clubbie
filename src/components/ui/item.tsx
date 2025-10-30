@@ -4,10 +4,9 @@ import type * as React from "react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
+function ItemGroup({ className, ...props }: React.ComponentProps<"ul">) {
 	return (
-		<div
-			role="list"
+		<ul
 			data-slot="item-group"
 			className={cn("group/item-group flex flex-col", className)}
 			{...props}
@@ -30,7 +29,7 @@ function ItemSeparator({
 }
 
 const itemVariants = cva(
-	"group/item flex flex-wrap items-center rounded-md border border-transparent text-sm outline-none transition-colors duration-100 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-accent/50",
+	"group/item flex flex-wrap items-center border border-transparent text-sm outline-none transition-colors duration-100 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-accent/50",
 	{
 		variants: {
 			variant: {
@@ -76,9 +75,8 @@ const itemMediaVariants = cva(
 		variants: {
 			variant: {
 				default: "bg-transparent",
-				icon: "size-8 rounded-sm border bg-muted [&_svg:not([class*='size-'])]:size-4",
-				image:
-					"size-10 overflow-hidden rounded-sm [&_img]:size-full [&_img]:object-cover",
+				icon: "size-8 border bg-muted [&_svg:not([class*='size-'])]:size-4",
+				image: "size-10 overflow-hidden [&_img]:size-full [&_img]:object-cover",
 			},
 		},
 		defaultVariants: {
