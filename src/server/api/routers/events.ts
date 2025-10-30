@@ -28,7 +28,7 @@ export const eventsRouter = createTRPCRouter({
 			return res;
 		}),
 
-	read: permissionProcedure(Permission.ReadEvents).query(async ({ ctx }) => {
+	list: permissionProcedure(Permission.ReadEvents).query(async ({ ctx }) => {
 		const events = await ctx.db.event.findMany({
 			include: {
 				season: true,
@@ -38,6 +38,20 @@ export const eventsRouter = createTRPCRouter({
 		});
 		return events;
 	}),
+
+	get: permissionProcedure(Permission.ReadEvents)
+		.input(z.object({ id: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const event = await ctx.db.event.findUnique({
+				where: { id: input.id },
+				include: {
+					season: true,
+					createdBy: true,
+					rsvps: true,
+				},
+			});
+			return event;
+		}),
 
 	update: permissionProcedure(Permission.UpdateEvents)
 		.input(ZUpdateEvent)
