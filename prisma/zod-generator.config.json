@@ -1,0 +1,24 @@
+{
+	"mode": "custom",
+	"pureModels": false,
+	"optionalFieldBehavior": "optional",
+	"globalExclusions": {
+		"input": ["id", "createdAt", "updatedAt", "createdBy", "createdById"],
+		"result": [],
+		"pure": []
+	},
+	"variants": {
+		"pure": {
+			"enabled": true,
+			"suffix": ".model"
+		},
+		"input": {
+			"enabled": true,
+			"suffix": ".input"
+		},
+		"result": {
+			"enabled": true,
+			"suffix": ".output"
+		}
+	}
+}
