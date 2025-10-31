@@ -31,7 +31,7 @@ export default async function SignInPage({
 	}
 
 	return (
-		<div className="flex h-[calc(100vh-4rem)] items-center justify-center px-4">
+		<div className="flex h-[calc(100vh-12rem)] items-center justify-center px-4">
 			<Card className="w-full max-w-md">
 				<CardHeader className="space-y-4 text-center">
 					<Logo variant="banner" size="lg" className="mx-auto shadow-lg" />
@@ -55,7 +55,7 @@ export default async function SignInPage({
 						action={async () => {
 							"use server";
 							await signIn("eduid", {
-								redirectTo: params.callbackUrl ?? "/",
+								redirectTo: `/?auth=true`,
 							});
 						}}
 					>

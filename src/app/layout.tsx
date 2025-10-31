@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 
 import { NavbarWrapper } from "@/components/navbar";
 import { TRPCReactProvider } from "@/trpc/react";
+import Footer from "@/components/footer";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
 	title: "clubbie",
@@ -24,7 +26,9 @@ export default function RootLayout({
 			<body>
 				<TRPCReactProvider>
 					<NavbarWrapper />
-					{children}
+					<div className="min-h-[calc(100svh-14rem)]">{children}</div>
+					<Footer />
+					<Toaster position="top-center" />
 				</TRPCReactProvider>
 			</body>
 		</html>
