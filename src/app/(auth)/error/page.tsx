@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-
+import { Emoticon } from "@/components/emoticon";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,7 +9,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Emoticon } from "@/components/emoticon";
 
 export const metadata: Metadata = {
 	title: "Authentication Error - clubbie",

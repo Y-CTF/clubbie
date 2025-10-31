@@ -330,7 +330,7 @@ async function createSeasonEvents(
 
 		// Spread events across the next 2 months, roughly 1 per week
 		const eventDate = new Date(now);
-		eventDate.setDate(eventDate.getDate() + (i * 7));
+		eventDate.setDate(eventDate.getDate() + i * 7);
 		eventDate.setHours(18, 0, 0, 0); // 6 PM
 
 		const endDate = new Date(eventDate);

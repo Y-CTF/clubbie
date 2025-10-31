@@ -1,11 +1,10 @@
 import "@/styles/globals.css";
 
 import type { Metadata } from "next";
-
-import { NavbarWrapper } from "@/components/navbar";
-import { TRPCReactProvider } from "@/trpc/react";
 import Footer from "@/components/footer";
+import { NavbarWrapper } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
+import { TRPCReactProvider } from "@/trpc/react";
 
 export const metadata: Metadata = {
 	title: "clubbie",

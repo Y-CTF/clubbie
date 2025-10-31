@@ -1,9 +1,4 @@
-import {
-	type UserPureType,
-	type UserRole,
-	UserRoleSchema,
-	type UserStatus,
-} from "prisma/generated/schemas";
+import { type User, UserRole, type UserStatus } from "@prisma/client";
 
 export enum Permission {
 	// profile
@@ -61,10 +56,13 @@ export const PERMISSIONS: {
 };
 
 export function hasPermission(
-	user: Pick<UserPureType, "role" | "status">,
+	user: Pick<User, "role" | "status"> | null | undefined,
 	permission: Permission,
 ): boolean {
-	if (user.role === UserRoleSchema.enum.ADMIN) {
+	if (!user) {
+		return false;
+	}
+	if (user.role === UserRole.ADMIN) {
 		return true;
 	}
 
@@ -75,4 +73,24 @@ export function hasPermission(
 		rolePermissions.includes(permission) ||
 		statusPermissions.includes(permission)
 	);
+}
+
+export const usePermission =
+	(user: Pick<User, "role" | "status"> | null | undefined) =>
+	(permission: Permission): boolean => {
+		if (!user) {
+			return false;
+		}
+		return hasPermission(user, permission);
+	};
+
+export async function getServerPermissions(permission: Permission) {
+	const { auth } = await import("@/server/auth");
+	const session = await auth();
+
+	if (!session?.user) {
+		return false;
+	}
+
+	return hasPermission(session.user, permission);
 }
