@@ -7,6 +7,7 @@ import type { NextConfig } from "next";
 
 const config = {
 	serverExternalPackages: ["pino", "pino-pretty"],
+	output: "standalone",
 } satisfies NextConfig;
 
 export default config;

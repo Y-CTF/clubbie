@@ -3,10 +3,12 @@ import type { DefaultSession, NextAuthConfig } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
 import {
 	UserRoleSchema,
-	UserStatusSchema,
 	type UserRole,
+} from "prisma/generated/schemas/enums/UserRole.schema";
+import {
+	UserStatusSchema,
 	type UserStatus,
-} from "prisma/generated/schemas";
+} from "prisma/generated/schemas/enums/UserStatus.schema";
 import { db } from "@/server/db";
 import { EduIDProvider } from "./eduid";
 import { logger } from "@/lib/logger";
@@ -37,7 +39,8 @@ function adminFirstUserAdapter(): Adapter {
 
 	return {
 		...base,
-		createUser: async (data) => {
+		// biome-ignore lint/suspicious/noExplicitAny: AdapterUser doesn't have all fields defined
+		createUser: async (data: any) => {
 			const userCount = await db.user.count();
 			const isFirstUser = userCount === 0;
 

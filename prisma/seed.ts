@@ -103,6 +103,7 @@ async function createAdmin(seasonId?: string) {
 			status: UserStatus.ACTIVE,
 			emailVerified: new Date(),
 			seasonId,
+			homeOrganization: "test.eduid.ch",
 		},
 	});
 	console.log("👤 Created admin:", admin.email);
@@ -194,9 +195,9 @@ async function createMembers(count: number, seasonId?: string) {
 				role: UserRole.MEMBER,
 				status: memberData.status,
 				emailVerified: new Date(),
-				// Alumni don't get assigned to current season
 				seasonId:
 					memberData.status !== UserStatus.ALUMNI ? seasonId : undefined,
+				homeOrganization: "test.eduid.ch",
 			},
 		});
 		members.push(member);
@@ -212,6 +213,7 @@ async function createMembers(count: number, seasonId?: string) {
 				status: UserStatus.ACTIVE,
 				emailVerified: new Date(),
 				seasonId,
+				homeOrganization: "test.eduid.ch",
 			},
 		});
 		members.push(member);
