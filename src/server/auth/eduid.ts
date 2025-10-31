@@ -30,6 +30,7 @@ export const EduIDProvider = ({
 			id: p.sub,
 			name: p.name,
 			email: p.email,
+			homeOrganization: p.swissEduPersonHomeOrganization,
 		};
 	},
 });

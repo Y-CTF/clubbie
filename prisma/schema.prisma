@@ -51,6 +51,7 @@ model User {
     role             UserRole   @default(MEMBER)
     status           UserStatus @default(PENDING)
     hiddenAttendance Boolean    @default(false)
+    homeOrganization String
     rsvps            RSVP[]
     events           Event[]
     seasonId         String?
