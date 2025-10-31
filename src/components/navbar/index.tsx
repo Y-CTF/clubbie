@@ -1,5 +1,5 @@
 import { auth } from "@/server/auth";
-import { navigationConfig } from "./nav-config";
+import { navigationConfig } from "./config";
 import { Navbar } from "./navbar";
 
 export async function NavbarWrapper() {
@@ -8,5 +8,5 @@ export async function NavbarWrapper() {
 	return <Navbar items={navigationConfig} session={session} />;
 }
 
-export type { NavItem } from "./nav-config";
-export { navigationConfig } from "./nav-config";
+export type { NavItem } from "./config";
+export { navigationConfig } from "./config";

@@ -5,10 +5,9 @@ import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
-
-import { MobileNav } from "./mobile-nav";
-import type { NavItem } from "./nav-config";
-import { UserMenu } from "./user-menu";
+import type { NavItem } from "./config";
+import { MobileNav } from "./mobile";
+import { UserMenu } from "./user";
 
 interface NavbarProps {
 	items: NavItem[];
@@ -51,7 +50,7 @@ export function Navbar({ items, session, className }: NavbarProps) {
 									{item.icon && <item.icon className="size-4" />}
 									{item.label}
 									{isActive && (
-										<span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-primary" />
+										<span className="absolute inset-x-1 bottom-0 h-0.5 bg-primary" />
 									)}
 								</Link>
 							);
