@@ -1,4 +1,3 @@
-import { AlertCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -10,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Emoticon } from "@/components/emoticon";
 
 export const metadata: Metadata = {
 	title: "Authentication Error - clubbie",
@@ -36,8 +36,11 @@ export default async function AuthErrorPage({
 		<div className="flex h-[calc(100vh-4rem)] items-center justify-center px-4">
 			<Card className="w-full max-w-md">
 				<CardHeader className="space-y-4 text-center">
-					<div className="mx-auto flex size-16 items-center justify-center rounded bg-destructive/10 text-destructive">
-						<AlertCircle className="size-8" />
+					<div className="mx-auto flex size-16 items-center justify-center bg-destructive/10 text-destructive">
+						<Emoticon
+							className="-translate-y-1 size-8 font-normal text-4xl"
+							type="cross"
+						/>
 					</div>
 					<div className="space-y-2">
 						<CardTitle className="font-bold text-3xl tracking-tight">

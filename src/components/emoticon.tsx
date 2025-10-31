@@ -7,7 +7,11 @@ type EmoticonType =
 	| "info"
 	| "check"
 	| "cross"
-	| "smile";
+	| "smile"
+	| "question"
+	| "settings"
+	| "chevron"
+	| "error";
 
 interface EmoticonProps {
 	type: EmoticonType;
@@ -21,7 +25,26 @@ const emoticons: Record<EmoticonType, { icon: string; style: string }> = {
 	info: { icon: "[i]", style: "text-info font-semibold" },
 	cross: { icon: "×", style: "text-destructive font-bold" },
 	check: { icon: "✓", style: "text-success font-bold" },
-	smile: { icon: ":-)", style: "text-green-500" },
+	error: {
+		icon: "✗",
+		style: "text-destructive font-bold",
+	},
+	question: {
+		icon: "?",
+		style: "text-muted-foreground text-bold -translate-y-0.5",
+	},
+	settings: {
+		icon: "⚙",
+		style: "text-muted-foreground font-bold text-2xl -translate-y-2.5",
+	},
+	smile: {
+		icon: ":^)",
+		style: "text-success/90 rotate-90 font-bold -translate-y-1",
+	},
+	chevron: {
+		icon: ">",
+		style: "text-destructive font-bold text-lg -translate-y-[.38em]",
+	},
 };
 
 export function Emoticon({ type, className }: EmoticonProps) {

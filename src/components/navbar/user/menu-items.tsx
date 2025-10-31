@@ -1,8 +1,8 @@
 "use client";
 
-import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { Emoticon } from "@/components/emoticon";
 
 interface UserMenuItemsProps {
 	onItemClick?: () => void;
@@ -26,11 +26,11 @@ export function UserMenuItems({
 	return (
 		<>
 			<Link href="/profile" onClick={onItemClick} className={linkClassName}>
-				<User className="size-4" />
+				<Emoticon type="smile" className="size-4" />
 				Profile
 			</Link>
 			<Link href="/settings" onClick={onItemClick} className={linkClassName}>
-				<Settings className="size-4" />
+				<Emoticon type="settings" className="size-4" />
 				Settings
 			</Link>
 			<button
@@ -41,7 +41,8 @@ export function UserMenuItems({
 				className={buttonClassName}
 				type="button"
 			>
-				<LogOut className="size-4" />
+				{/* <LogOut className="size-4" /> */}
+				<Emoticon type="chevron" className="size-4" />
 				Sign Out
 			</button>
 		</>

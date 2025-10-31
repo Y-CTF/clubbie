@@ -1,4 +1,3 @@
-import { LogIn } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -61,8 +60,7 @@ export default async function SignInPage({
 						}}
 					>
 						<Button type="submit" className="w-full gap-2 shadow-md" size="lg">
-							<LogIn className="size-5" />
-							Continue with EduID
+							{"> "}Continue with edu-ID
 						</Button>
 					</form>
 				</CardContent>
