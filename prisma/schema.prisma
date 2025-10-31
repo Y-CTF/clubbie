@@ -15,7 +15,7 @@ datasource db {
 
 // Necessary for Next auth
 model Account {
-    id                       String  @id @default(cuid())
+    id                       String   @id @default(cuid())
     userId                   String
     type                     String
     provider                 String
@@ -27,8 +27,10 @@ model Account {
     scope                    String?
     id_token                 String? // @db.Text
     session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     refresh_token_expires_in Int?
+    createdAt                DateTime @default(now())
+    updatedAt                DateTime @updatedAt
 
     @@unique([provider, providerAccountId])
 }
@@ -39,6 +41,8 @@ model Session {
     userId       String
     expires      DateTime
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
 }
 
 model User {
@@ -56,12 +60,16 @@ model User {
     events           Event[]
     seasonId         String?
     season           Season?    @relation(fields: [seasonId], references: [id])
+    createdAt        DateTime   @default(now())
+    updatedAt        DateTime   @updatedAt
 }
 
 model VerificationToken {
     identifier String
     token      String   @unique
     expires    DateTime
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
 
     @@unique([identifier, token])
 }
@@ -78,24 +86,41 @@ enum UserStatus {
 }
 
 model Event {
-    id          String  @id @default(cuid())
+    id          String    @id @default(cuid())
     name        String
     description String?
+    start       DateTime
+    end         DateTime?
+    deadline    DateTime?
+    location    String?
+    kind        EventKind
     rsvps       RSVP[]
-    season      Season? @relation(fields: [seasonId], references: [id])
+    season      Season?   @relation(fields: [seasonId], references: [id])
     seasonId    String?
     createdById String
-    createdBy   User    @relation(fields: [createdById], references: [id])
+    createdBy   User      @relation(fields: [createdById], references: [id])
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+}
+
+enum EventKind {
+    COMPETITION
+    SOCIAL
+    MEETING
+    WORKSHOP
+    CONFERENCE
+    OTHER
 }
 
 model RSVP {
-    id      String @id @default(cuid())
-    eventId String
-    event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-    userId  String
-    user    User   @relation(fields: [userId], references: [id])
-
-    status RSVPStatus
+    id        String     @id @default(cuid())
+    eventId   String
+    event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+    userId    String
+    user      User       @relation(fields: [userId], references: [id])
+    status    RSVPStatus
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
 
     @@unique([eventId, userId])
 }
@@ -107,11 +132,13 @@ enum RSVPStatus {
 }
 
 model Season {
-    id     String   @id @default(cuid())
-    name   String
-    start  DateTime
-    end    DateTime
-    active Boolean
-    users  User[]
-    events Event[]
+    id        String   @id @default(cuid())
+    name      String
+    start     DateTime
+    end       DateTime
+    active    Boolean
+    users     User[]
+    events    Event[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }

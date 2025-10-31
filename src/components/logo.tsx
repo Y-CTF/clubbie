@@ -35,7 +35,7 @@ export function Logo({ variant = "icon", size = "sm", className }: LogoProps) {
 
 	if (variant === "inline") {
 		const iconClasses = cn(
-			"flex items-center justify-center bg-primary font-bold text-primary-foreground",
+			"mr-1 flex items-center justify-center bg-primary font-bold text-primary-foreground",
 			iconSizeClasses[size],
 		);
 

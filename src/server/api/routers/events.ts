@@ -28,16 +28,42 @@ export const eventsRouter = createTRPCRouter({
 			return res;
 		}),
 
-	list: permissionProcedure(Permission.ReadEvents).query(async ({ ctx }) => {
-		const events = await ctx.db.event.findMany({
-			include: {
-				season: true,
-				createdBy: true,
-				rsvps: true,
-			},
-		});
-		return events;
-	}),
+	list: permissionProcedure(Permission.ReadEvents)
+		.input(
+			z.object({
+				page: z.number().int().positive().default(1),
+				limit: z.number().int().positive().default(9),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const skip = (input.page - 1) * input.limit;
+
+			const [events, total] = await Promise.all([
+				ctx.db.event.findMany({
+					include: {
+						season: true,
+						createdBy: true,
+						rsvps: true,
+					},
+					skip,
+					take: input.limit,
+					orderBy: { start: "asc" },
+				}),
+				ctx.db.event.count(),
+			]);
+
+			const totalPages = Math.ceil(total / input.limit);
+
+			return {
+				events,
+				pagination: {
+					page: input.page,
+					limit: input.limit,
+					total,
+					totalPages,
+				},
+			};
+		}),
 
 	get: permissionProcedure(Permission.ReadEvents)
 		.input(z.object({ id: z.string() }))

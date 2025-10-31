@@ -2,16 +2,16 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
 import {
-	UserRoleSchema,
 	type UserRole,
+	UserRoleSchema,
 } from "prisma/generated/schemas/enums/UserRole.schema";
 import {
-	UserStatusSchema,
 	type UserStatus,
+	UserStatusSchema,
 } from "prisma/generated/schemas/enums/UserStatus.schema";
+import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { EduIDProvider } from "./eduid";
-import { logger } from "@/lib/logger";
 
 const log = logger.child({ module: "auth/config" });
 
