@@ -1,4 +1,10 @@
-import { PrismaClient, RSVPStatus, UserRole, UserStatus } from "@prisma/client";
+import {
+	EventKind,
+	PrismaClient,
+	RSVPStatus,
+	UserRole,
+	UserStatus,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -256,57 +262,86 @@ async function createSeasonEvents(
 			name: "Kickoff Meeting",
 			description:
 				"Welcome to the new season! Let's discuss our goals and plans.",
+			kind: EventKind.MEETING,
 		},
 		{
 			name: "Workshop: Web Security Basics",
 			description: "Learn the fundamentals of web application security.",
+			kind: EventKind.WORKSHOP,
 		},
 		{
 			name: "CTF Competition Practice",
 			description: "Practice for the upcoming CTF competition.",
+			kind: EventKind.COMPETITION,
 		},
 		{
 			name: "Guest Speaker: Industry Professional",
 			description: "Special talk from a cybersecurity industry professional.",
+			kind: EventKind.CONFERENCE,
 		},
 		{
 			name: "Binary Exploitation Workshop",
 			description: "Deep dive into binary exploitation techniques.",
+			kind: EventKind.WORKSHOP,
 		},
 		{
 			name: "Crypto Challenge Night",
 			description: "Solve cryptography challenges together.",
+			kind: EventKind.COMPETITION,
 		},
 		{
 			name: "Reverse Engineering Session",
 			description: "Learn reverse engineering fundamentals.",
+			kind: EventKind.WORKSHOP,
 		},
 		{
 			name: "Web Exploitation Lab",
 			description: "Hands-on practice with web vulnerabilities.",
+			kind: EventKind.WORKSHOP,
 		},
 		{
 			name: "Forensics Workshop",
 			description: "Digital forensics and incident response.",
+			kind: EventKind.WORKSHOP,
 		},
 		{
 			name: "Network Security Session",
 			description: "Understanding network protocols and security.",
+			kind: EventKind.WORKSHOP,
 		},
 		{
 			name: "Mid-Season Social",
 			description: "Casual hangout with club members.",
+			kind: EventKind.SOCIAL,
 		},
 		{
 			name: "Final Competition Prep",
 			description: "Last practice before the big competition.",
+			kind: EventKind.COMPETITION,
 		},
 	];
 
 	const events = [];
+	const now = new Date();
+
 	for (let i = 0; i < count; i++) {
 		const template = eventTemplates[i % eventTemplates.length]!;
 		const creatorId = creatorIds[i % creatorIds.length]!;
+
+		// Spread events across the next 2 months, roughly 1 per week
+		const eventDate = new Date(now);
+		eventDate.setDate(eventDate.getDate() + (i * 7));
+		eventDate.setHours(18, 0, 0, 0); // 6 PM
+
+		const endDate = new Date(eventDate);
+		endDate.setHours(20, 0, 0, 0); // 2 hours later
+
+		// Set deadline 3 days before event for competitions, 1 day for others
+		const deadlineDate = new Date(eventDate);
+		deadlineDate.setDate(
+			deadlineDate.getDate() - (template.kind === "COMPETITION" ? 3 : 1),
+		);
+		deadlineDate.setHours(23, 59, 59, 999); // End of day
 
 		const event = await prisma.event.create({
 			data: {
@@ -315,6 +350,10 @@ async function createSeasonEvents(
 						? `${template.name} ${Math.floor(i / eventTemplates.length) + 1}`
 						: template.name,
 				description: template.description,
+				kind: template.kind,
+				start: eventDate,
+				end: endDate,
+				deadline: deadlineDate,
 				seasonId,
 				createdById: creatorId,
 			},
@@ -330,29 +369,49 @@ async function createStandaloneEvents(count: number, creatorIds: string[]) {
 		{
 			name: "Summer Social Event",
 			description: "Informal meetup over the summer break.",
+			kind: EventKind.SOCIAL,
 		},
 		{
 			name: "Alumni Networking Night",
 			description: "Connect with alumni and learn about career opportunities.",
+			kind: EventKind.SOCIAL,
 		},
 		{
 			name: "Open House",
 			description: "Welcome new members and showcase the club.",
+			kind: EventKind.MEETING,
 		},
 		{
 			name: "Off-Season Workshop",
 			description: "Keep skills sharp during the break.",
+			kind: EventKind.WORKSHOP,
 		},
 		{
 			name: "Community Outreach",
 			description: "Cybersecurity awareness event for the community.",
+			kind: EventKind.CONFERENCE,
 		},
 	];
 
 	const events = [];
+	const now = new Date();
+
 	for (let i = 0; i < count; i++) {
 		const template = eventTemplates[i % eventTemplates.length]!;
 		const creatorId = creatorIds[i % creatorIds.length]!;
+
+		// Spread standalone events across the next 3 months
+		const eventDate = new Date(now);
+		eventDate.setDate(eventDate.getDate() + (30 + i * 20));
+		eventDate.setHours(17, 0, 0, 0); // 5 PM
+
+		const endDate = new Date(eventDate);
+		endDate.setHours(19, 30, 0, 0); // 2.5 hours later
+
+		// Set deadline 2 days before event
+		const deadlineDate = new Date(eventDate);
+		deadlineDate.setDate(deadlineDate.getDate() - 2);
+		deadlineDate.setHours(23, 59, 59, 999); // End of day
 
 		const event = await prisma.event.create({
 			data: {
@@ -361,6 +420,10 @@ async function createStandaloneEvents(count: number, creatorIds: string[]) {
 						? `${template.name} ${Math.floor(i / eventTemplates.length) + 1}`
 						: template.name,
 				description: template.description,
+				kind: template.kind,
+				start: eventDate,
+				end: endDate,
+				deadline: deadlineDate,
 				createdById: creatorId,
 			},
 		});

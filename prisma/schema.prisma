@@ -89,6 +89,10 @@ model Event {
     id          String    @id @default(cuid())
     name        String
     description String?
+    start       DateTime
+    end         DateTime?
+    deadline    DateTime?
+    location    String?
     kind        EventKind
     rsvps       RSVP[]
     season      Season?   @relation(fields: [seasonId], references: [id])
