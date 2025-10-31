@@ -8,6 +8,7 @@ import {
 	EmptyDescription,
 	EmptyTitle,
 } from "@/components/ui/empty";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
 import { EventCard } from "./card";
@@ -73,9 +74,17 @@ export async function EventsList({
 
 	return (
 		<Suspense
-			fallback={<div className="py-12 text-center">Loading events...</div>}
+			fallback={
+				<div className="flex justify-center py-12">
+					<ProgressBar label="Loading events..." showPercentage={false} />
+				</div>
+			}
 		>
-			<EventsListContent page={page} canCreateEvents={canCreateEvents} userId={userId} />
+			<EventsListContent
+				page={page}
+				canCreateEvents={canCreateEvents}
+				userId={userId}
+			/>
 		</Suspense>
 	);
 }

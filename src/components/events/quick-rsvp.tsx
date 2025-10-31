@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { RSVPStatus } from "@prisma/client";
+import { useState } from "react";
 import { Emoticon } from "@/components/emoticon";
 import { api } from "@/trpc/react";
 
@@ -49,40 +49,43 @@ export function QuickRsvp({ eventId, currentStatus }: QuickRsvpProps) {
 	};
 
 	return (
-		<div className="flex items-center gap-1">
+		<div className="flex items-center gap-1.5 md:gap-1">
 			<button
 				onClick={(e) => handleRsvp(e, "GOING")}
 				disabled={isLoading}
-				className={`flex items-center gap-1 px-2 py-1 transition-all cursor-pointer ${
+				className={`flex cursor-pointer items-center gap-1 px-3 py-2 transition-all md:px-2 md:py-1 ${
 					optimisticStatus === "GOING"
-						? "text-success bg-success/10"
-						: "text-muted-foreground hover:text-success hover:bg-success/5"
+						? "bg-success/10 text-success"
+						: "text-muted-foreground hover:bg-success/5 hover:text-success"
 				} disabled:cursor-not-allowed`}
 				title="Going"
+				type="button"
 			>
 				<Emoticon type="check" />
 			</button>
 			<button
 				onClick={(e) => handleRsvp(e, "MAYBE")}
 				disabled={isLoading}
-				className={`flex items-center gap-1 px-2 py-1 transition-all cursor-pointer ${
+				className={`flex cursor-pointer items-center gap-1 px-3 py-2 transition-all md:px-2 md:py-1 ${
 					optimisticStatus === "MAYBE"
-						? "text-warning bg-warning/10"
-						: "text-muted-foreground hover:text-warning hover:bg-warning/5"
+						? "bg-warning/10 text-warning"
+						: "text-muted-foreground hover:bg-warning/5 hover:text-warning"
 				} disabled:cursor-not-allowed`}
 				title="Maybe"
+				type="button"
 			>
 				<Emoticon type="question" className="scale-75" />
 			</button>
 			<button
 				onClick={(e) => handleRsvp(e, "NOT_GOING")}
 				disabled={isLoading}
-				className={`flex items-center gap-1 px-2 py-1 transition-all cursor-pointer ${
+				className={`flex cursor-pointer items-center gap-1 px-3 py-2 transition-all md:px-2 md:py-1 ${
 					optimisticStatus === "NOT_GOING"
-						? "text-destructive bg-destructive/10"
-						: "text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+						? "bg-destructive/10 text-destructive"
+						: "text-muted-foreground hover:bg-destructive/5 hover:text-destructive"
 				} disabled:cursor-not-allowed`}
 				title="Not Going"
+				type="button"
 			>
 				<Emoticon type="cross" />
 			</button>
