@@ -44,6 +44,8 @@
 		"next": "^16",
 		"next-auth": "5.0.0-beta.25",
 		"next-themes": "^0.4.6",
+		"pino": "^10.1.0",
+		"pino-pretty": "^13.1.2",
 		"prisma-zod-generator": "^1.30.2",
 		"react": "^19.0.0",
 		"react-day-picker": "^9.11.1",

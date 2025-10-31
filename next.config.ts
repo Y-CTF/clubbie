@@ -5,6 +5,8 @@
 import "./src/env";
 import type { NextConfig } from "next";
 
-const config = {} satisfies NextConfig;
+const config = {
+	serverExternalPackages: ["pino", "pino-pretty"],
+} satisfies NextConfig;
 
 export default config;
