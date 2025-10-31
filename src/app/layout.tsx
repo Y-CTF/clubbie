@@ -2,8 +2,8 @@ import "@/styles/globals.css";
 
 import type { Metadata } from "next";
 
+import { NavbarWrapper } from "@/components/navbar";
 import { TRPCReactProvider } from "@/trpc/react";
-import { LogoutButton } from "./_components/logout";
 
 export const metadata: Metadata = {
 	title: "clubbie",
@@ -18,8 +18,7 @@ export default function RootLayout({
 		<html lang="en">
 			<body>
 				<TRPCReactProvider>
-					{/* TODO: remove this, currently for testing purposes */}
-					<LogoutButton />
+					<NavbarWrapper />
 					{children}
 				</TRPCReactProvider>
 			</body>
