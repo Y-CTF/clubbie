@@ -8,7 +8,12 @@ import { TRPCReactProvider } from "@/trpc/react";
 export const metadata: Metadata = {
 	title: "clubbie",
 	description: "Club management made easy!",
-	icons: [{ rel: "icon", url: "/favicon.ico" }],
+	icons: {
+		icon: [
+			{ url: "/logo.png", type: "image/png" },
+			{ url: "/favicon.ico", sizes: "any" },
+		],
+	},
 };
 
 export default function RootLayout({
