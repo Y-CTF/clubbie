@@ -47,7 +47,6 @@ export function Navbar({ items, session, className }: NavbarProps) {
 										isActive ? "text-foreground" : "text-muted-foreground",
 									)}
 								>
-									{item.icon && <item.icon className="size-4" />}
 									{item.label}
 									{isActive && (
 										<span className="absolute inset-x-1 bottom-0 h-0.5 bg-primary" />

@@ -8,6 +8,7 @@ import {
 	EmptyDescription,
 	EmptyTitle,
 } from "@/components/ui/empty";
+import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
 import { EventCard } from "./card";
 
@@ -16,9 +17,11 @@ const ITEMS_PER_PAGE = 9;
 async function EventsListContent({
 	page,
 	canCreateEvents,
+	userId,
 }: {
 	page: number;
 	canCreateEvents: boolean;
+	userId: string;
 }) {
 	const data = await api.events.list({ page, limit: ITEMS_PER_PAGE });
 	const { events, pagination } = data || { events: [], pagination: null };
@@ -46,7 +49,7 @@ async function EventsListContent({
 		<div className="space-y-8">
 			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{events.map((event) => (
-					<EventCard key={event.id} event={event} />
+					<EventCard key={event.id} event={event} userId={userId} />
 				))}
 			</div>
 
@@ -62,6 +65,9 @@ export async function EventsList({
 	searchParams: Promise<{ page?: string }>;
 	canCreateEvents: boolean;
 }) {
+	const session = await auth();
+	const userId = session?.user?.id || "";
+
 	const params = await searchParams;
 	const page = Math.max(1, parseInt(params.page || "1", 10));
 
@@ -69,7 +75,7 @@ export async function EventsList({
 		<Suspense
 			fallback={<div className="py-12 text-center">Loading events...</div>}
 		>
-			<EventsListContent page={page} canCreateEvents={canCreateEvents} />
+			<EventsListContent page={page} canCreateEvents={canCreateEvents} userId={userId} />
 		</Suspense>
 	);
 }
