@@ -23,3 +23,27 @@ Find more about us on our [website](https://yctf.ch/).
 
 ### Docker Compose (recommended)
 
+1. Clone this repository:
+
+    ```bash
+    git clone https://github.com/Y-CTF/clubbie.git
+    cd clubbie
+    ```
+2. Copy the example environment file and modify it to your needs:
+
+    ```bash
+    cp .env.example .env
+    ```
+3. Get it up and running:
+    ```bash
+    docker compose up -d
+    ```
+
+4. Access the interface at `http://localhost:3000`.
+
+> [!WARNING]
+> The first user to register will automatically become an admin.
+
+### Manual installation
+
+TODO
