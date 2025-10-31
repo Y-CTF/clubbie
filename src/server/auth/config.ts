@@ -1,8 +1,17 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
-import type { UserRole, UserStatus } from "prisma/generated/schemas";
+import type { Adapter } from "next-auth/adapters";
+import {
+	UserRoleSchema,
+	UserStatusSchema,
+	type UserRole,
+	type UserStatus,
+} from "prisma/generated/schemas";
 import { db } from "@/server/db";
 import { EduIDProvider } from "./eduid";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "auth/config" });
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -23,6 +32,40 @@ declare module "next-auth" {
 	}
 }
 
+function adminFirstUserAdapter(): Adapter {
+	const base = PrismaAdapter(db);
+
+	return {
+		...base,
+		createUser: async (data) => {
+			const userCount = await db.user.count();
+			const isFirstUser = userCount === 0;
+
+			const user = await db.user.create({
+				data: {
+					...data,
+					...(isFirstUser && {
+						role: UserRoleSchema.enum.ADMIN,
+						status: UserStatusSchema.enum.ACTIVE,
+					}),
+				},
+			});
+
+			// log the creation of the first user
+			if (isFirstUser) {
+				log.info(`First user created with ADMIN role: ${user.email}`);
+			}
+
+			return {
+				id: user.id,
+				name: user.name,
+				email: user.email!,
+				emailVerified: user.emailVerified,
+			};
+		},
+	};
+}
+
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -36,7 +79,7 @@ export const authConfig = {
 			test: process.env.AUTH_EDUID_TEST === "true",
 		}),
 	],
-	adapter: PrismaAdapter(db),
+	adapter: adminFirstUserAdapter(),
 	pages: {
 		signIn: "/signin",
 		error: "/error",
