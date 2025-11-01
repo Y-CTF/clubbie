@@ -11,8 +11,8 @@ type EmoticonType =
 	| "question"
 	| "settings"
 	| "chevron"
-	| "error";
-
+	| "error"
+	| "alertcircle";
 interface EmoticonProps {
 	type: EmoticonType;
 	className?: string;
@@ -31,7 +31,7 @@ const emoticons: Record<EmoticonType, { icon: string; style: string }> = {
 	},
 	question: {
 		icon: "?",
-		style: "text-muted-foreground text-bold -translate-y-0.5",
+		style: "text-muted-foreground font-bold",
 	},
 	settings: {
 		icon: "⚙",
@@ -44,6 +44,10 @@ const emoticons: Record<EmoticonType, { icon: string; style: string }> = {
 	chevron: {
 		icon: ">",
 		style: "text-destructive font-bold text-lg -translate-y-[.38em]",
+	},
+	alertcircle: {
+		icon: "(!)",
+		style: "text-yellow-500 font-bold",
 	},
 };
 
