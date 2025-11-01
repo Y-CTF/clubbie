@@ -47,7 +47,13 @@ export const rsvpsRouter = createTRPCRouter({
 				where: { eventId: input.eventId },
 				include: { user: true },
 			});
-			return rsvps;
+			// filter out users with hiddenAttendance, but keep the RSVPs for counting
+			return rsvps.map((rsvp) => ({
+				...rsvp,
+				user: rsvp.user.hiddenAttendance
+					? { ...rsvp.user, name: null }
+					: rsvp.user,
+			}));
 		}),
 
 	listMe: permissionProcedure(Permission.ReadRSVPs).query(async ({ ctx }) => {
@@ -57,4 +63,18 @@ export const rsvpsRouter = createTRPCRouter({
 		});
 		return rsvps;
 	}),
+
+	deleteMe: permissionProcedure(Permission.UpdateOwnRSVPs)
+		.input(z.object({ eventId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const res = await ctx.db.rSVP.delete({
+				where: {
+					eventId_userId: {
+						eventId: input.eventId,
+						userId: ctx.session.user.id,
+					},
+				},
+			});
+			return res;
+		}),
 });

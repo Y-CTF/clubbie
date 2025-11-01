@@ -1,14 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import { UserRole, UserStatus } from "@prisma/client";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
-import {
-	type UserRole,
-	UserRoleSchema,
-} from "prisma/generated/schemas/enums/UserRole.schema";
-import {
-	type UserStatus,
-	UserStatusSchema,
-} from "prisma/generated/schemas/enums/UserStatus.schema";
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { EduIDProvider } from "./eduid";
@@ -41,22 +34,24 @@ function adminFirstUserAdapter(): Adapter {
 		...base,
 		// biome-ignore lint/suspicious/noExplicitAny: AdapterUser doesn't have all fields defined
 		createUser: async (data: any) => {
-			const userCount = await db.user.count();
-			const isFirstUser = userCount === 0;
+			const user = await db.$transaction(async (tx) => {
+				const hasAdmin = await tx.user.findFirst({
+					where: { role: UserRole.ADMIN },
+				});
 
-			const user = await db.user.create({
-				data: {
-					...data,
-					...(isFirstUser && {
-						role: UserRoleSchema.enum.ADMIN,
-						status: UserStatusSchema.enum.ACTIVE,
-					}),
-				},
+				return tx.user.create({
+					data: {
+						...data,
+						...(!hasAdmin && {
+							role: UserRole.ADMIN,
+							status: UserStatus.ACTIVE,
+						}),
+					},
+				});
 			});
 
-			// log the creation of the first user
-			if (isFirstUser) {
-				log.info(`First user created with ADMIN role: ${user.email}`);
+			if (user.role === UserRole.ADMIN && data.role !== UserRole.ADMIN) {
+				log.info(`No admin found, created user with ADMIN role: ${user.email}`);
 			}
 
 			return {

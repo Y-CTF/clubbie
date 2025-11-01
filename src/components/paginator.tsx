@@ -29,7 +29,7 @@ function renderPaginationItems(
 ) {
 	const items: React.ReactNode[] = [];
 
-	// Previous button
+	// prev
 	items.push(
 		<PaginationItem key="previous">
 			<PaginationPrevious
@@ -41,7 +41,6 @@ function renderPaginationItems(
 		</PaginationItem>,
 	);
 
-	// Page numbers with ellipsis
 	if (totalPages <= maxVisible) {
 		for (let i = 1; i <= totalPages; i++) {
 			items.push(
@@ -56,7 +55,7 @@ function renderPaginationItems(
 			);
 		}
 	} else {
-		// First page
+		// first
 		items.push(
 			<PaginationItem key={1}>
 				<PaginationLink href={`${baseUrl}?page=1`} isActive={currentPage === 1}>
@@ -65,7 +64,7 @@ function renderPaginationItems(
 			</PaginationItem>,
 		);
 
-		// Ellipsis if needed
+		// ...
 		if (currentPage > 3) {
 			items.push(
 				<PaginationItem key="ellipsis-start">
@@ -74,7 +73,7 @@ function renderPaginationItems(
 			);
 		}
 
-		// Current page and neighbors
+		// current + neigh
 		const start = Math.max(2, currentPage - 1);
 		const end = Math.min(totalPages - 1, currentPage + 1);
 
@@ -91,7 +90,7 @@ function renderPaginationItems(
 			);
 		}
 
-		// Ellipsis if needed
+		// ...
 		if (currentPage < totalPages - 2) {
 			items.push(
 				<PaginationItem key="ellipsis-end">
@@ -100,7 +99,7 @@ function renderPaginationItems(
 			);
 		}
 
-		// Last page
+		// last
 		items.push(
 			<PaginationItem key={totalPages}>
 				<PaginationLink
@@ -113,7 +112,7 @@ function renderPaginationItems(
 		);
 	}
 
-	// Next button
+	// next
 	items.push(
 		<PaginationItem key="next">
 			<PaginationNext

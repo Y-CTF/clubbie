@@ -18,7 +18,7 @@ const PaginationContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<ul
 		ref={ref}
-		className={cn("flex flex-row items-center gap-1", className)}
+		className={cn("flex flex-row items-center gap-2 md:gap-1", className)}
 		{...props}
 	/>
 ));
@@ -40,7 +40,7 @@ type PaginationLinkProps = React.ComponentProps<typeof Button> & {
 const PaginationLink = ({
 	className,
 	isActive,
-	size = "icon",
+	size = "sm",
 	href,
 	disabled,
 	...props
@@ -52,7 +52,7 @@ const PaginationLink = ({
 					aria-current={isActive ? "page" : undefined}
 					variant={isActive ? "default" : "outline"}
 					size={size}
-					className={cn("", className)}
+					className={cn("min-w-10", className)}
 					asChild
 					{...props}
 				>
@@ -67,7 +67,7 @@ const PaginationLink = ({
 			aria-current={isActive ? "page" : undefined}
 			variant={isActive ? "default" : "outline"}
 			size={size}
-			className={cn("", className)}
+			className={cn("min-w-10", className)}
 			disabled={disabled}
 			{...props}
 		/>
@@ -86,14 +86,13 @@ const PaginationPrevious = ({
 			<Link href={href}>
 				<Button
 					aria-label="Go to previous page"
-					size="default"
+					size="sm"
 					variant="outline"
-					className={cn("gap-1 pr-2.5", className)}
+					className={cn("min-w-10", className)}
 					asChild
 				>
 					<span>
 						<ChevronLeft className="h-4 w-4" />
-						<span>Previous</span>
 					</span>
 				</Button>
 			</Link>
@@ -103,14 +102,13 @@ const PaginationPrevious = ({
 	return (
 		<Button
 			aria-label="Go to previous page"
-			size="default"
+			size="sm"
 			variant="outline"
-			className={cn("gap-1 pr-2.5", className)}
+			className={cn("min-w-10", className)}
 			disabled={disabled}
 			{...props}
 		>
 			<ChevronLeft className="h-4 w-4" />
-			<span>Previous</span>
 		</Button>
 	);
 };
@@ -127,13 +125,12 @@ const PaginationNext = ({
 			<Link href={href}>
 				<Button
 					aria-label="Go to next page"
-					size="default"
+					size="sm"
 					variant="outline"
-					className={cn("gap-1 pl-2.5", className)}
+					className={cn("min-w-10", className)}
 					asChild
 				>
 					<span>
-						<span>Next</span>
 						<ChevronRight className="h-4 w-4" />
 					</span>
 				</Button>
@@ -144,13 +141,12 @@ const PaginationNext = ({
 	return (
 		<Button
 			aria-label="Go to next page"
-			size="default"
+			size="sm"
 			variant="outline"
-			className={cn("gap-1 pl-2.5", className)}
+			className={cn("min-w-10", className)}
 			disabled={disabled}
 			{...props}
 		>
-			<span>Next</span>
 			<ChevronRight className="h-4 w-4" />
 		</Button>
 	);

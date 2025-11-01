@@ -43,7 +43,9 @@ export const eventsRouter = createTRPCRouter({
 					include: {
 						season: true,
 						createdBy: true,
-						rsvps: true,
+						rsvps: {
+							include: { user: true },
+						},
 					},
 					skip,
 					take: input.limit,
@@ -55,7 +57,15 @@ export const eventsRouter = createTRPCRouter({
 			const totalPages = Math.ceil(total / input.limit);
 
 			return {
-				events,
+				events: events.map((event) => ({
+					...event,
+					rsvps: event.rsvps.map((rsvp) => ({
+						...rsvp,
+						user: rsvp.user.hiddenAttendance
+							? { ...rsvp.user, name: null }
+							: rsvp.user,
+					})),
+				})),
 				pagination: {
 					page: input.page,
 					limit: input.limit,
@@ -73,10 +83,23 @@ export const eventsRouter = createTRPCRouter({
 				include: {
 					season: true,
 					createdBy: true,
-					rsvps: true,
+					rsvps: {
+						include: { user: true },
+					},
 				},
 			});
-			return event;
+
+			if (!event) return null;
+
+			return {
+				...event,
+				rsvps: event.rsvps.map((rsvp) => ({
+					...rsvp,
+					user: rsvp.user.hiddenAttendance
+						? { ...rsvp.user, name: null }
+						: rsvp.user,
+				})),
+			};
 		}),
 
 	update: permissionProcedure(Permission.UpdateEvents)
