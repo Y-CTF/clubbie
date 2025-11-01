@@ -204,6 +204,7 @@ async function createMembers(count: number, seasonId?: string) {
 				seasonId:
 					memberData.status !== UserStatus.ALUMNI ? seasonId : undefined,
 				homeOrganization: "test.eduid.ch",
+				hiddenAttendance: Math.random() < 0.2, // 20% chance to hide attendance
 			},
 		});
 		members.push(member);
@@ -220,6 +221,7 @@ async function createMembers(count: number, seasonId?: string) {
 				emailVerified: new Date(),
 				seasonId,
 				homeOrganization: "test.eduid.ch",
+				hiddenAttendance: Math.random() < 0.2, // 20% chance to hide attendance
 			},
 		});
 		members.push(member);
