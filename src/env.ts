@@ -14,6 +14,9 @@ export const env = createEnv({
 		AUTH_EDUID_ID: z.string(),
 		AUTH_EDUID_SECRET: z.string(),
 		AUTH_EDUID_TEST: z.enum(["true", "false"]).default("false"),
+		AUTH_EDUID_ORGANIZATIONS: z
+			.string()
+			.transform((val) => val.split(",").map((s) => s.trim())),
 		DATABASE_URL: z.url(),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])
@@ -38,6 +41,7 @@ export const env = createEnv({
 		AUTH_EDUID_ID: process.env.AUTH_EDUID_ID,
 		AUTH_EDUID_SECRET: process.env.AUTH_EDUID_SECRET,
 		AUTH_EDUID_TEST: process.env.AUTH_EDUID_TEST,
+		AUTH_EDUID_ORGANIZATIONS: process.env.AUTH_EDUID_ORGANIZATIONS,
 		DATABASE_URL: process.env.DATABASE_URL,
 		NODE_ENV: process.env.NODE_ENV,
 	},

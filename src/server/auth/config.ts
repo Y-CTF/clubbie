@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { UserRole, UserStatus } from "@prisma/client";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
+import { env } from "@/env";
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
 import { EduIDProvider } from "./eduid";
@@ -59,6 +60,9 @@ function adminFirstUserAdapter(): Adapter {
 				name: user.name,
 				email: user.email!,
 				emailVerified: user.emailVerified,
+				homeOrganization: user.homeOrganization,
+				role: user.role,
+				status: user.status,
 			};
 		},
 	};
@@ -72,9 +76,9 @@ function adminFirstUserAdapter(): Adapter {
 export const authConfig = {
 	providers: [
 		EduIDProvider({
-			clientId: process.env.AUTH_EDUID_ID!,
-			clientSecret: process.env.AUTH_EDUID_SECRET!,
-			test: process.env.AUTH_EDUID_TEST === "true",
+			clientId: env.AUTH_EDUID_ID!,
+			clientSecret: env.AUTH_EDUID_SECRET!,
+			test: env.AUTH_EDUID_TEST === "true",
 		}),
 	],
 	adapter: adminFirstUserAdapter(),
@@ -90,5 +94,29 @@ export const authConfig = {
 				id: user.id,
 			},
 		}),
+		signIn: async ({ user, profile }) => {
+			log.debug(
+				`User signed in: ${user.email} (ID: ${user.id}, Org: ${profile?.swissEduPersonHomeOrganization})`,
+			);
+
+			if (env.AUTH_EDUID_ORGANIZATIONS.length === 0) {
+				log.warn(
+					"No allowed organizations configured for edu-ID authentication.",
+				);
+				return true;
+			}
+			if (
+				profile?.swissEduPersonHomeOrganization &&
+				env.AUTH_EDUID_ORGANIZATIONS.includes(
+					profile.swissEduPersonHomeOrganization as string,
+				)
+			) {
+				return true;
+			}
+			log.info(
+				`User's home organization not allowed: ${profile?.swissEduPersonHomeOrganization}`,
+			);
+			return false;
+		},
 	},
 } satisfies NextAuthConfig;
