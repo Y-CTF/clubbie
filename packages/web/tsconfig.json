@@ -1,0 +1,58 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "vite/client",
+      "bun"
+    ],
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "paths": {
+      "@clubbie/core": [
+        "../core/src/index.ts"
+      ],
+      "@clubbie/store": [
+        "../store/src/index.ts"
+      ],
+      "@clubbie/auth": [
+        "../auth/src/index.ts"
+      ],
+      "@clubbie/api": [
+        "../api/src/index.ts"
+      ],
+      "@clubbie/bot": [
+        "../bot/src/index.ts"
+      ],
+      "@clubbie/server": [
+        "../server/src/index.ts"
+      ],
+      "@clubbie/term": [
+        "../term/src/index.ts"
+      ],
+      "@clubbie/log": [
+        "../log/src/index.ts"
+      ],
+      "@clubbie/diag": [
+        "../diag/src/index.ts"
+      ],
+      "$lib/*": [
+        "./src/lib/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

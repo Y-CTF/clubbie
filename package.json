@@ -1,0 +1,42 @@
+{
+  "name": "clubbie",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun scripts/dev.ts",
+    "dev:server": "bun --watch packages/server/src/main.ts serve",
+    "dev:web": "vite --config packages/web/vite.config.ts",
+    "build": "bun scripts/build.ts",
+    "migrate": "bun packages/server/src/main.ts migrate",
+    "seed": "bun packages/server/src/main.ts seed",
+    "typecheck": "tsc --noEmit && bunx svelte-check --tsconfig packages/web/tsconfig.json",
+    "lint": "biome check",
+    "fmt": "biome format --write",
+    "fix": "biome check --write",
+    "test": "bun test",
+    "check": "bun run typecheck && bun run lint && bun test"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "@hono/valibot-validator": "^0.6.1",
+    "arctic": "^3.7.0",
+    "grammy": "^1.45.1",
+    "hono": "^4.13.4",
+    "kysely": "^0.29.5",
+    "valibot": "^1.4.2"
+  },
+  "optionalDependencies": {
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.10",
+    "@types/bun": "latest",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.9.3"
+  }
+}

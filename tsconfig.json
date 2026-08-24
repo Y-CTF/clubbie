@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "types": ["bun"],
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@clubbie/api": ["./packages/api/src/index.ts"],
+      "@clubbie/auth": ["./packages/auth/src/index.ts"],
+      "@clubbie/bot": ["./packages/bot/src/index.ts"],
+      "@clubbie/core": ["./packages/core/src/index.ts"],
+      "@clubbie/diag": ["./packages/diag/src/index.ts"],
+      "@clubbie/log": ["./packages/log/src/index.ts"],
+      "@clubbie/notify": ["./packages/notify/src/index.ts"],
+      "@clubbie/server": ["./packages/server/src/index.ts"],
+      "@clubbie/store": ["./packages/store/src/index.ts"],
+      "@clubbie/term": ["./packages/term/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist", "packages/web"]
+}

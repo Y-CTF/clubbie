@@ -1,0 +1,7 @@
+# Coverage is measured on every `bun test`, and the gate is a floor rather than a target: it is
+# there to catch a change that quietly stops testing a package, not to be chased upwards.
+[test]
+coverage = true
+coverageThreshold = { line = 0.6, function = 0.6 }
+coverageSkipTestFiles = true
+coverageReporter = ["text"]

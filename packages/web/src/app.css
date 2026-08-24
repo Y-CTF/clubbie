@@ -1,0 +1,773 @@
+@import 'tailwindcss';
+
+/**
+ * One restrained palette, defined once. Everything else in the app reaches for these tokens, so a
+ * club that changes its colour on the design page changes one property and nothing else.
+ */
+@theme {
+  /**
+   * The neutrals are mixed rather than written. `--hue-club` is the club's own hue and
+   * `--tint-club` is how much of it the greys carry, both set from the design page, so a club can
+   * have warm paper or cold paper without this file knowing which club it is. The defaults here
+   * are what a page renders with before the club's own answer arrives.
+   */
+  --hue-club: 260;
+  --tint-club: 0.02;
+
+  --color-ink: oklch(0.22 var(--tint-club) var(--hue-club));
+  --color-paper: oklch(0.99 calc(var(--tint-club) * 0.2) var(--hue-club));
+  --color-sunk: oklch(0.97 calc(var(--tint-club) * 0.3) var(--hue-club));
+  --color-muted: oklch(0.55 var(--tint-club) var(--hue-club));
+  --color-line: oklch(0.9 calc(var(--tint-club) * 0.5) var(--hue-club));
+  --color-accent: oklch(0.55 0.16 255);
+  --color-going: oklch(0.62 0.14 155);
+  --color-maybe: oklch(0.72 0.13 85);
+  --color-declined: oklch(0.6 0.14 25);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', monospace;
+  /** The measures, as the design page's defaults. Each is overwritten by the club's own value. */
+  --corner-club: 8px;
+  --space-club: 1;
+  --scale-club: 100%;
+  --radius-club: var(--corner-club);
+  /**
+   * What a kind's colour is worth. The hue is derived from the kind's own slug in `hues.ts`, which
+   * means nobody has to pick one; how bright and how saturated every one of them comes out is a
+   * decision, and it is made here, once for the light page and once for the dark one.
+   */
+  --kind-lightness: 0.58;
+  --kind-chroma: 0.14;
+  /** The height of one hour in a day column, which is the whole density of the week grid. */
+  --hour-club: 3rem;
+  /** One stripe of the band row, and the line a month cell keeps for its date. Both are fixed so
+   * the bars can be laid over the grid at a known offset rather than measured in a script. */
+  --band-club: 1.35rem;
+  --date-club: 1.7rem;
+}
+
+/**
+ * The dark palette overrides the custom properties themselves rather than reopening `@theme`:
+ * a nested `@theme` is hoisted by Tailwind and *replaces* the light values, which made the app
+ * dark for everybody. The utilities dereference these properties at runtime, so this works.
+ *
+ * Three states, not two. A club may force one palette for everybody, and does that by stamping
+ * `data-palette` on the root; with nothing stamped, the reader's own setting decides. The dark
+ * rules are written twice for that reason: once for the media query, once for the stamp, with the
+ * media query stepping aside whenever a club has chosen light.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-palette='light']) {
+    --color-ink: oklch(0.94 calc(var(--tint-club) * 0.5) var(--hue-club));
+    --color-paper: oklch(0.17 var(--tint-club) var(--hue-club));
+    --color-sunk: oklch(0.21 var(--tint-club) var(--hue-club));
+    --color-muted: oklch(0.65 var(--tint-club) var(--hue-club));
+    --color-line: oklch(0.28 var(--tint-club) var(--hue-club));
+    --color-going: oklch(0.74 0.13 155);
+    --color-maybe: oklch(0.82 0.12 85);
+    --color-declined: oklch(0.72 0.14 25);
+    --kind-lightness: 0.74;
+    --kind-chroma: 0.13;
+  }
+}
+
+:root[data-palette='dark'] {
+  --color-ink: oklch(0.94 calc(var(--tint-club) * 0.5) var(--hue-club));
+  --color-paper: oklch(0.17 var(--tint-club) var(--hue-club));
+  --color-sunk: oklch(0.21 var(--tint-club) var(--hue-club));
+  --color-muted: oklch(0.65 var(--tint-club) var(--hue-club));
+  --color-line: oklch(0.28 var(--tint-club) var(--hue-club));
+  --color-going: oklch(0.74 0.13 155);
+  --color-maybe: oklch(0.82 0.12 85);
+  --color-declined: oklch(0.72 0.14 25);
+  --kind-lightness: 0.74;
+  --kind-chroma: 0.13;
+}
+
+/**
+ * The two faces, each named outright.
+ *
+ * Both are listed for all three values rather than letting one fall back to the other. The
+ * heading face used to default to `var(--font-club)`, which reads as "the same as the body" and
+ * is exactly right until a club picks a serif body and a sans heading: the heading then followed
+ * the body and the choice did nothing.
+ */
+:root[data-font='sans'] {
+  --font-club: var(--font-sans);
+}
+
+:root[data-font='serif'] {
+  --font-club: var(--font-serif);
+}
+
+:root[data-font='mono'] {
+  --font-club: var(--font-mono);
+}
+
+:root[data-display='sans'] {
+  --display-club: var(--font-sans);
+}
+
+:root[data-display='serif'] {
+  --display-club: var(--font-serif);
+}
+
+:root[data-display='mono'] {
+  --display-club: var(--font-mono);
+}
+
+:root[data-width='narrow'] {
+  --width-club: 38rem;
+}
+
+:root[data-width='wide'] {
+  --width-club: 64rem;
+}
+
+/**
+ * A reader who finds movement distracting turns it off for everybody on this deployment, and the
+ * browser's own setting still wins for the reader who set that instead.
+ */
+:root[data-motion='false'] *,
+:root[data-motion='false'] *::before,
+:root[data-motion='false'] *::after {
+  transition-duration: 0ms !important;
+  animation-duration: 0ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
+
+/** What the tokens are before the club's own answer arrives, and what an unknown value falls to. */
+:root {
+  --font-club: var(--font-sans);
+  --display-club: var(--font-sans);
+  --width-club: 48rem;
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-club);
+  /** The base size the whole page is measured in rems from, so one number scales everything. */
+  font-size: var(--scale-club);
+  -webkit-font-smoothing: antialiased;
+}
+
+/**
+ * Headings are the club's display face and a size above the text under them. A section title that
+ * is the same size as its body is a paragraph in bold, and a page of those reads as one block.
+ * The sizes are relative, so they follow the club's own text size rather than fighting it.
+ */
+h1,
+h2,
+h3 {
+  font-family: var(--display-club);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+}
+
+h3 {
+  font-size: 1.05rem;
+}
+
+/** The one heading that is a poster rather than a title: the club's name on its own page. */
+.hero {
+  font-size: 2.1rem;
+}
+
+/**
+ * The column of content, which every page shares. It is written here rather than as a utility on
+ * each page, because the club chooses it and a page that forgot the class would be the odd one.
+ */
+main,
+nav > div,
+footer > div {
+  max-width: var(--width-club);
+}
+
+/**
+ * The one page that is allowed past the club's column, and only on a screen that has the room.
+ *
+ * A month is seven columns wide whatever else the club chose, and seven columns inside a narrow
+ * measure is seven columns of nothing but a truncated title. Reading width is a decision about
+ * prose; a grid is not prose.
+ */
+main:has(.calendar) {
+  max-width: max(var(--width-club), 72rem);
+}
+
+/**
+ * Every rounded corner in the app is this one, so a club that asks for square corners gets them
+ * everywhere rather than in the places somebody remembered.
+ */
+.rounded-lg,
+.rounded {
+  border-radius: var(--radius-club);
+}
+
+.rounded-full {
+  border-radius: calc(var(--radius-club) + 9999px);
+}
+
+/**
+ * The page's own rhythm scales with the density. Only the vertical gaps move: the horizontal ones
+ * hold a phone's layout together and a compact club still has a phone.
+ */
+main {
+  padding-block: calc(2.5rem * var(--space-club));
+}
+
+main section {
+  margin-top: calc(2.5rem * var(--space-club));
+}
+
+/**
+ * A colour input is two elements a browser draws for itself, and neither inherits the rounding of
+ * the box around it. Without these three rules the swatch is a hard-edged rectangle sitting inside
+ * a rounded border, which is the sort of thing that makes a whole page look unfinished.
+ */
+input[type='color'] {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-club);
+  cursor: pointer;
+}
+
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(var(--radius-club) - 1px);
+}
+
+input[type='color']::-moz-color-swatch {
+  border: none;
+  border-radius: calc(var(--radius-club) - 1px);
+}
+
+/**
+ * The menu's arrow, on the button that opens it. A mask rather than a character, so it takes the
+ * text colour and turns when the list is open.
+ */
+.chevron {
+  width: 0.7rem;
+  height: 0.45rem;
+  background-color: var(--color-muted);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transition: transform 120ms ease;
+}
+
+.chevron-open {
+  transform: rotate(180deg);
+}
+
+/** One focus ring, on everything that takes focus, in the club's own colour. */
+:where(input, select, textarea, button, a):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/**
+ * Anything that answers a click says so under the pointer. Tailwind's reset drops the cursor from
+ * a `button`, which leaves half the app feeling like text and the other half like an app.
+ */
+:where(
+  a[href],
+  button,
+  select,
+  summary,
+  [role='button'],
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='color'],
+  input[type='file'],
+  label:has(input[type='checkbox'])
+):not(:disabled) {
+  cursor: pointer;
+}
+
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+
+/**
+ * A checkbox the browser draws is the one control on these pages that ignores the palette: it is
+ * blue on a green club and grey-on-grey in the dark. This is the same box, drawn from the tokens,
+ * with the tick as a clip path so it takes the paper colour and needs no image.
+ */
+input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 1px solid var(--color-line);
+  border-radius: calc(var(--radius-club) * 0.55);
+  background: var(--color-paper);
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+input[type='checkbox']:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+input[type='checkbox']::after {
+  content: '';
+  width: 0.62rem;
+  height: 0.62rem;
+  background: var(--color-paper);
+  clip-path: polygon(14% 44%, 0 60%, 39% 100%, 100% 22%, 85% 8%, 39% 71%);
+  transform: scale(0);
+  transition: transform 120ms ease;
+}
+
+input[type='checkbox']:checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+input[type='checkbox']:checked::after {
+  transform: scale(1);
+}
+
+input[type='checkbox']:disabled {
+  opacity: 0.5;
+}
+
+/**
+ * A number field with no spinner.
+ *
+ * The two little chevrons a browser draws are the wrong control for every number in this app: the
+ * ones next to a slider are already adjustable by dragging, and a capacity is typed rather than
+ * clicked up from zero. They also sit in the padding and refuse to take the field's colours.
+ */
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+/**
+ * A badge is a dot and a word, not a box.
+ *
+ * Boxes were the first attempt and they fought everything around them: a bordered pill next to
+ * muted text and a monospace date reads as a control somebody can press. The colour is the only
+ * thing an answer needs to carry, so it is carried by the smallest mark that can hold it, and the
+ * word stays the same size and weight as the line it sits in.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 500;
+  white-space: nowrap;
+  color: color-mix(in oklch, var(--tint) 60%, var(--color-ink));
+}
+
+.badge::before {
+  content: '';
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--tint);
+}
+
+/**
+ * A dialog is drawn by the browser in its own layer, which is the only reason to use the element:
+ * it takes focus, it traps it, and `Escape` closes it without a keydown listener of ours.
+ */
+dialog {
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-club);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  max-width: min(28rem, calc(100vw - 2rem));
+  width: 100%;
+}
+
+dialog::backdrop {
+  background: color-mix(in oklch, oklch(0 0 0) 45%, transparent);
+}
+
+/**
+ * The slider, drawn from the tokens like everything else. A range input is one of the two controls
+ * a browser refuses to style through ordinary properties, so its track and its thumb are named
+ * here for both engines.
+ */
+.scale-club {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.scale-club::-webkit-slider-runnable-track {
+  height: 0.35rem;
+  border-radius: 9999px;
+  background: var(--color-line);
+}
+
+.scale-club::-moz-range-track {
+  height: 0.35rem;
+  border-radius: 9999px;
+  background: var(--color-line);
+}
+
+.scale-club::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -0.33rem;
+  width: 1rem;
+  height: 1rem;
+  border: none;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}
+
+.scale-club::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: none;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}
+
+/**
+ * An event, wherever it is drawn: a chip in a month cell, a bar across a weekend, a block in a day
+ * column, a row in the list.
+ *
+ * The rule is the one the badge already follows on every other page of this app: a colour is a dot
+ * and a word, not a box. A month of rounded tinted cards reads as a page of controls, and the thing
+ * a member is scanning for (which of these is training) is carried perfectly well by a four pixel
+ * dot beside the title.
+ *
+ * So only the two shapes that have to show *extent* get a surface: a bar, which says which days it
+ * covers, and a block, which says how much of an evening it takes. Both are flat and square, like
+ * a timetable, because a rounded card floating in a grid cell fights the grid it is in.
+ *
+ * The kind's colour arrives as `--tint`, the same property a badge is painted through.
+ */
+.piece {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.1rem 0.3rem;
+  /** Barely there: enough that the hover wash is not a hard rectangle, far from a card. */
+  border-radius: calc(var(--radius-club) * 0.3);
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: start;
+  transition:
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.piece:hover {
+  background: color-mix(in oklch, var(--tint) 14%, transparent);
+}
+
+/** The whole of the colour, on the shapes that carry it as a mark rather than as a surface. */
+.piece-dot {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: var(--tint);
+  /** Nudged onto the text's own line: a dot sitting on the baseline reads as a full stop. */
+  transform: translateY(-0.08em);
+}
+
+/** A bar says which days it covers, so it is a surface, and a flat one that butts up to the next. */
+.piece-bar {
+  align-items: center;
+  height: 100%;
+  padding-inline: 0.4rem;
+  border-radius: 0;
+  background: color-mix(in oklch, var(--tint) 24%, var(--color-paper));
+  box-shadow: inset 2px 0 0 var(--tint);
+}
+
+.piece-bar:hover {
+  background: color-mix(in oklch, var(--tint) 36%, var(--color-paper));
+}
+
+/** A block says how long it runs, so it is a surface too, and it stacks its two lines. */
+.piece-block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0;
+  border-inline-start: 2px solid var(--tint);
+  background: color-mix(in oklch, var(--tint) 14%, var(--color-paper));
+}
+
+.piece-block:hover {
+  background: color-mix(in oklch, var(--tint) 26%, var(--color-paper));
+}
+
+/** A line of the list: room for the whole sentence, and a hairline from the list rather than a box. */
+.piece-row {
+  gap: 0.65rem;
+  padding: 0.45rem 0.3rem;
+  font-size: 0.875rem;
+}
+
+/**
+ * The clock column of the list, which is the thing that makes it a list rather than a heap.
+ *
+ * It reads from the start rather than the end. Every row carries a whole range, so right-aligning
+ * them lined up the wrong end: `18:00 - 20:00` and a bare `18:00` finished together and began a
+ * centimetre apart, which is the one place in a column of times the eye is actually reading. The
+ * width is in `ch` so it holds a range in a locale that writes `6:00 PM` too, and it never wraps.
+ */
+.piece-row .piece-clock {
+  min-width: 12ch;
+  text-align: start;
+  white-space: nowrap;
+}
+
+/** What is happening right now. The dot wears a halo; a surface wears the ring it can. */
+.piece-live .piece-dot {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--tint) 30%, transparent);
+}
+
+.piece-live.piece-bar,
+.piece-live.piece-block {
+  box-shadow: inset 0 0 0 1px var(--tint);
+}
+
+/** Nobody is coming to this one. The title says so on its own, at any size. */
+.piece-off .piece-title {
+  text-decoration: line-through;
+}
+
+.piece-past {
+  opacity: 0.55;
+}
+
+/**
+ * Not published: visible to whoever wrote it, and drawn as the unfinished thing it is. A hollow dot
+ * where the others are solid, and a hatched surface where there is a surface to hatch.
+ */
+.piece-draft .piece-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--tint);
+}
+
+.piece-draft.piece-bar,
+.piece-draft.piece-block {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    color-mix(in oklch, var(--tint) 14%, transparent) 6px 12px
+  );
+}
+
+.piece-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/** The clock on a piece: the same size, one notch quieter, and never the thing that wraps. */
+.piece-clock {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-muted) 70%, var(--color-ink));
+}
+
+/**
+ * What kind of thing it is, in the list. Small caps in the kind's own colour, which is the same
+ * colour as its dot at the other end of the row: two marks of one fact, holding the line together.
+ */
+.piece-kind {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: color-mix(in oklch, var(--tint) 55%, var(--color-ink));
+}
+
+/**
+ * The dates down the side of the list.
+ *
+ * The day is a numeral in the club's display face and the weekday is a small caps label over it,
+ * both right against the column of events. It is the one place in the app where a date is furniture
+ * rather than prose: a list whose left edge is `Wednesday, 26 August` is a ragged margin, and a
+ * column of numerals is a spine.
+ */
+.numeral {
+  font-family: var(--display-club);
+  font-size: 1.7rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekday {
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/**
+ * The line across a day column saying where in it we are. It is drawn once per column rather than
+ * once per grid so the day view and the week view get it from the same component.
+ */
+.now-line {
+  position: absolute;
+  inset-inline: 0;
+  height: 0;
+  border-top: 1px solid var(--color-declined);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.now-line::before {
+  content: '';
+  position: absolute;
+  inset-block-start: -0.25rem;
+  inset-inline-start: -0.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-declined);
+}
+
+/**
+ * The hour lines of a day column, drawn as the background rather than as twenty four elements. The
+ * gutter beside it is built from the same token, so a club that wants a denser week moves one
+ * number and the labels follow the lines.
+ */
+.hours {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--color-line) 0 1px,
+    transparent 1px var(--hour-club)
+  );
+}
+
+/**
+ * An empty stretch of a day column, which is a control: clicking it opens the form with that hour
+ * already filled in. It shows nothing until it is pointed at, because a grid of visible buttons is
+ * not a calendar.
+ */
+.slot {
+  background: transparent;
+  transition: background-color 120ms ease;
+}
+
+.slot:hover {
+  background: color-mix(in oklch, var(--color-accent) 10%, transparent);
+}
+
+/**
+ * Movement, and only where it says something.
+ *
+ * Three ideas, not thirty: a page that has just arrived rises into place, a thing drawn over the
+ * page pops out of where it was opened from, and something the app is waiting on breathes. Nothing
+ * loops except the waiting, nothing moves further than half a line, and nothing takes longer than a
+ * fifth of a second, because a club's site is read every day by the same people.
+ *
+ * All of it is already switchable: `data-motion="false"` and the reader's own reduced-motion
+ * setting both zero every duration in the file, and `both` as the fill mode means an animation of
+ * no duration lands on its finished state rather than never running.
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem) scale(0.98);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.rise {
+  animation: rise 180ms ease-out both;
+}
+
+.pop {
+  animation: pop 140ms ease-out both;
+  transform-origin: top center;
+}
+
+/** What the app is waiting on. It is the one thing here that repeats, because it is still going. */
+.breathe {
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+dialog[open] {
+  animation: pop 160ms ease-out both;
+}
+
+dialog[open]::backdrop {
+  animation: fade 160ms ease-out both;
+}
+
+/** A row of the list arriving under the one above it, so a day reads as a day rather than a dump. */
+.calendar li {
+  animation: fade 200ms ease-out both;
+}

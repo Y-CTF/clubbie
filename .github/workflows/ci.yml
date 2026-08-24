@@ -1,0 +1,51 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The whole gate, twice over: once against SQLite, which is what a club deploys, and once against
+# a real Postgres, because "supports Postgres" is a claim until something runs the suite on one.
+jobs:
+  sqlite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run build
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: clubbie
+          POSTGRES_DB: clubbie
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # What the CLI and the server read.
+      DATABASE_URL: postgres://postgres:clubbie@localhost:5432/clubbie
+      # What the store suite reads. Separate on purpose: a fixture empties every table it opens.
+      TEST_DATABASE_URL: postgres://postgres:clubbie@localhost:5432/clubbie
+      SESSION_SECRET: a-secret-that-is-long-enough-for-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      # The store suite reads TEST_DATABASE_URL and runs against whatever it names.
+      - run: bun test packages/store
+      - run: bun packages/server/src/main.ts migrate
+      - run: bun packages/server/src/main.ts seed
