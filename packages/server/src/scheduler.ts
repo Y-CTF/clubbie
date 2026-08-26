@@ -6,6 +6,7 @@ import {
   type JobState,
   Member,
   type MemberId,
+  Millis,
   type Notice,
   type ScheduleId,
   type SeasonId,
@@ -38,11 +39,11 @@ export interface Options {
  */
 export class Scheduler {
   /** How often the queue is drained. A club's deadlines are hours, so half a minute is plenty. */
-  static readonly TICK = 30_000;
+  static readonly TICK = 30 * Millis.SECOND;
   /** How often expired sessions, spent linking codes and finished jobs are dropped. */
-  static readonly SWEEP = 24 * 60 * 60 * 1000;
+  static readonly SWEEP = Millis.DAY;
   /** How long a finished job is kept, so a question about last night has something to read. */
-  static readonly KEEP = 7 * 24 * 60 * 60 * 1000;
+  static readonly KEEP = Millis.WEEK;
   /** The states that mean a chain is already running, so planning leaves it alone. */
   static readonly ARMED: readonly JobState[] = [Job.INITIAL, Job.RUNNING];
 

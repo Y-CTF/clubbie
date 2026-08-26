@@ -63,7 +63,7 @@ export interface Which {
 
 export class Members {
   /** The club cannot admit its first member, so whoever signs in first is an admin. */
-  static readonly FOUNDER: Role = 'admin';
+  static readonly FOUNDER: Role = Member.ADMIN;
 
   constructor(
     private readonly db: Kysely<Schema>,

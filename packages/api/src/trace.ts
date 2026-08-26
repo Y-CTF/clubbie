@@ -1,3 +1,4 @@
+import { Millis } from '@clubbie/core';
 import { createMiddleware } from 'hono/factory';
 import type { Env, Options } from './context.ts';
 
@@ -13,7 +14,7 @@ import type { Env, Options } from './context.ts';
  */
 export namespace Trace {
   export const HEADER = 'x-request-id';
-  export const SLOW = 1000;
+  export const SLOW = Millis.SECOND;
   /** As long as a uuid, and no longer: an id is for finding a request, not for carrying data. */
   export const LONGEST = 36;
   /** What an id may be made of. Anything else is a caller writing into the log through us. */

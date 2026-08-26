@@ -1,4 +1,4 @@
-import { Ability } from '@clubbie/core';
+import { Ability, Event } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import type { Logger } from '@clubbie/log';
 import type { Store } from '@clubbie/store';
@@ -148,7 +148,7 @@ export class Bot {
     }
 
     const upcoming = await this.options.store.events.list({
-      state: 'published',
+      state: Event.LIVE,
       upcoming: new Date(),
       limit: Bot.LIMIT,
     });

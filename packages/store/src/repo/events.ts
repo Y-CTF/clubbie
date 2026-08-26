@@ -5,6 +5,7 @@ import {
   type KindId,
   type MemberId,
   Rsvp,
+  Schedule,
   type ScheduleId,
   type SeasonId,
   type State,
@@ -123,7 +124,6 @@ export class Events {
    * cannot page through a grid it is drawing all at once.
    */
   static readonly WINDOW = 500;
-  static readonly MINUTE = 60_000;
 
   constructor(
     private readonly db: Kysely<Schema>,
@@ -357,7 +357,7 @@ export class Events {
    */
   async restretch(scheduleId: ScheduleId, from: Date, minutes: number | null): Promise<number> {
     const ends =
-      minutes === null ? sql<number | null>`null` : sql<number>`"startsAt" + ${minutes * Events.MINUTE}`;
+      minutes === null ? sql<number | null>`null` : sql<number>`"startsAt" + ${minutes * Schedule.MINUTE}`;
 
     const touched = await this.db
       .updateTable('event')

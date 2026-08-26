@@ -1,3 +1,4 @@
+import { Millis } from '@clubbie/core';
 import { Format } from '../format.ts';
 import { words } from '../words/index.svelte.ts';
 
@@ -35,8 +36,8 @@ export namespace Grid {
   export const WEEK = 7;
   export const HOURS = 24;
   export const MINUTES = 60;
-  export const MINUTE = 60_000;
-  export const HOUR = MINUTES * MINUTE;
+  export const MINUTE = Millis.MINUTE;
+  export const HOUR = Millis.HOUR;
   /** Monday, in `Date.getDay` numbering, and what a locale that will not say falls back to. */
   export const MONDAY = 1;
   /** How many weeks a month grid may need: a 31-day month starting on the last day of a week. */

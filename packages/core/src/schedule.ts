@@ -1,6 +1,7 @@
 import type { Id } from './id.ts';
 import type { KindId } from './kind.ts';
 import type { MemberId } from './member.ts';
+import { Millis } from './millis.ts';
 import { Recur } from './recur.ts';
 import type { SeasonId } from './season.ts';
 
@@ -38,7 +39,7 @@ export interface Schedule extends ScheduleFields {}
 export class Schedule {
   /** How far ahead occurrences are materialised, so a listing is never empty and never endless. */
   static readonly AHEAD = Recur.AHEAD;
-  static readonly MINUTE = 60_000;
+  static readonly MINUTE = Millis.MINUTE;
 
   constructor(fields: ScheduleFields) {
     Object.assign(this, fields);

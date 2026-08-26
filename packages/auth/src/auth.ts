@@ -95,32 +95,34 @@ export class Auth {
    * provider that has no opinion about organisations at all.
    */
   private admissible(profile: Profile, club: Club): void {
-    const refusal = club.refuses({ ...profile, organisation: profile.organisation ?? null });
-    if (refusal === null) return;
+    const denial = club.refuses(profile);
+    if (denial === null) return;
 
     const home = profile.organisation?.toLowerCase() ?? null;
     /** Named rather than qualified: `ethz.ch` is what a member calls it, `eduid:ethz.ch` is not. */
     const doors = [...club.organisations.map(Club.named), ...club.domains].join(', ');
 
-    if (refusal === 'blocked') {
-      throw Diag.error(Codes.organisation, markup`${profile.email} may not sign in here`)
-        .note('this address is on the club\u2019s own list of addresses it does not admit')
-        .help('ask an organiser if you think that is a mistake');
-    }
+    /** No default: a reason added to `DENIALS` and not answered here fails to compile. */
+    switch (denial) {
+      case 'blocked':
+        throw Diag.error(Codes.organisation, markup`${profile.email} may not sign in here`)
+          .note('this address is on the club\u2019s own list of addresses it does not admit')
+          .help('ask an organiser if you think that is a mistake');
 
-    if (refusal === 'provider') {
-      throw Diag.error(Codes.provider, markup`this club does not sign in with *${profile.provider}*`)
-        .note(markup`it accepts ${club.providers.join(', ')}`)
-        .help('go back and pick the other way in');
-    }
+      case 'provider':
+        throw Diag.error(Codes.provider, markup`this club does not sign in with *${profile.provider}*`)
+          .note(markup`it accepts ${club.providers.join(', ')}`)
+          .help('go back and pick the other way in');
 
-    throw Diag.error(Codes.organisation, markup`this club is for members of ${doors}`)
-      .note(
-        home
-          ? markup`${profile.email} signed in from ${home}`
-          : markup`${profile.email} signed in with a provider that does not say which institution it is`,
-      )
-      .help('sign in with an account that belongs to one of them, or ask an organiser to admit you');
+      case 'organisation':
+        throw Diag.error(Codes.organisation, markup`this club is for members of ${doors}`)
+          .note(
+            home
+              ? markup`${profile.email} signed in from ${home}`
+              : markup`${profile.email} signed in with a provider that does not name an institution`,
+          )
+          .help('sign in with an account that belongs to one of them, or ask an organiser to admit you');
+    }
   }
 
   /**

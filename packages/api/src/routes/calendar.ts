@@ -1,4 +1,4 @@
-import { Ability, Brand, Event, Site } from '@clubbie/core';
+import { Ability, Brand, Event, Millis, Site } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { vValidator } from '@hono/valibot-validator';
@@ -18,7 +18,7 @@ export namespace Calendar {
   /** How many events a feed carries. */
   export const WINDOW = 200;
   /** How far back it reaches: enough that last month is still in a calendar, and no further. */
-  export const BACK = 90 * 24 * 60 * 60 * 1000;
+  export const BACK = 90 * Millis.DAY;
 
   /** The url a member subscribes to. The prefix and the extension are stated once, here. */
   export function url(baseUrl: string, token: string): string {

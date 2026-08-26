@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Event, type Frequency, type KindId, Recur, type State } from '@clubbie/core';
+import { Event, type Frequency, type KindId, Millis, Recur, type State } from '@clubbie/core';
 import { Action } from '../lib/action.svelte.ts';
 import { api, unwrap } from '../lib/api.ts';
 import { Format } from '../lib/format.ts';
@@ -47,8 +47,8 @@ let {
 } = $props();
 
 /** How long an event lasts when the calendar opened this form from an empty hour. */
-const HOUR = 60 * 60 * 1000;
-const MINUTE = 60_000;
+const HOUR = Millis.HOUR;
+const MINUTE = Millis.MINUTE;
 
 /** What "it does not happen again" is called in the one control that decides it. */
 const ONCE = 'once';

@@ -1,6 +1,7 @@
 import type { EventId } from './event.ts';
 import type { Id } from './id.ts';
 import type { MemberId } from './member.ts';
+import { Millis } from './millis.ts';
 import type { ScheduleId } from './schedule.ts';
 import type { SeasonId } from './season.ts';
 
@@ -91,13 +92,13 @@ export class Job<K extends Kind = Kind> {
   /** What separates a job's kind from what it is about in its subject. */
   static readonly SEP = ':';
   /** How long a failed attempt waits before the next one, doubling each time. */
-  static readonly BACKOFF = 60_000;
+  static readonly BACKOFF = Millis.MINUTE;
   /**
    * How long a claimed job may stay claimed. Past it the process that took it is assumed dead and
    * the job is offered again: a doubled announcement is a nuisance, a lost one is a member who
    * did not know about the event.
    */
-  static readonly LEASE = 5 * 60_000;
+  static readonly LEASE = 5 * Millis.MINUTE;
 
   constructor(fields: JobFields<K>) {
     Object.assign(this, fields);

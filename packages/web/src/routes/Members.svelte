@@ -148,7 +148,7 @@ async function set(id: string, patch: { status?: Status; role?: Role }): Promise
     {#each Member.STATUSES as status (status)}
       <Button disabled={action.busy} onclick={() => bulk({ status })}>{t.statuses[status]}</Button>
     {/each}
-    <Button disabled={action.busy} onclick={() => bulk({ role: 'admin' })}>{t.roles.admin}</Button>
+    <Button disabled={action.busy} onclick={() => bulk({ role: Member.ADMIN })}>{t.roles.admin}</Button>
     <Button look="plain" onclick={() => all(false)}>{t.common.clear}</Button>
   </div>
 {/if}
@@ -183,7 +183,7 @@ async function set(id: string, patch: { status?: Status; role?: Role }): Promise
             {#if member.id === session.member?.id}
               <span class="ml-2 text-xs text-muted">{t.members.you}</span>
             {/if}
-            {#if member.role === 'admin'}
+            {#if member.role === Member.ADMIN}
               <span class="ml-2 text-xs text-accent">{t.roles.admin}</span>
             {/if}
 

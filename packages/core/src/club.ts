@@ -14,8 +14,18 @@ import { Member, type Status } from './member.ts';
 export const ADMISSIONS = ['review', 'open'] as const;
 export type Admission = (typeof ADMISSIONS)[number];
 
-/** Why a sign-in was turned away, which is what the message a stranger reads is written from. */
-export type Refusal = 'blocked' | 'provider' | 'organisation';
+/**
+ * Why a sign-in was turned away, which is what the message a stranger reads is written from.
+ *
+ * A table rather than a hand-written union, so the one caller can branch over it exhaustively: it
+ * used to compare bare literals with a fall-through, and a fourth reason would have been rendered
+ * as "wrong organisation" with nothing failing to compile.
+ *
+ * It is `Denial` rather than `Refusal` because the API's `Refusal` is a different thing entirely,
+ * and the two were one word apart in a codebase that has both.
+ */
+export const DENIALS = ['blocked', 'provider', 'organisation'] as const;
+export type Denial = (typeof DENIALS)[number];
 
 export interface ClubFields {
   readonly name: string;
@@ -139,7 +149,6 @@ export class Club {
    */
   refuses(profile: {
     email: string;
-    organisation: string | null;
     /**
      * Every organisation the provider named, qualified by it: `eduid:ethz.ch`, `github:acme`. It is
      * the only thing `organisations` is compared against, so a provider that hands over bare names
@@ -147,7 +156,7 @@ export class Club {
      */
     organisations?: readonly string[] | undefined;
     provider: string;
-  }): Refusal | null {
+  }): Denial | null {
     const email = profile.email.trim().toLowerCase();
     const domain = email.split('@')[1] ?? '';
 

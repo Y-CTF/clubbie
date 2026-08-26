@@ -1,3 +1,5 @@
+import { Millis } from './millis.ts';
+
 /**
  * Wall-clock arithmetic in a named IANA zone, with no dependency.
  *
@@ -46,7 +48,7 @@ export namespace Zone {
     second: '2-digit',
   };
 
-  const SECOND = 1000;
+  const SECOND = Millis.SECOND;
 
   function formatter(zone: string): Intl.DateTimeFormat {
     const known = FORMATTERS.get(zone);

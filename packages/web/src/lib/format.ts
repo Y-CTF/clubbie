@@ -1,3 +1,4 @@
+import { Millis } from '@clubbie/core';
 import { words } from './words/index.svelte.ts';
 
 /**
@@ -96,7 +97,6 @@ export namespace Format {
     return shaped(TIME).formatRange(from, to);
   }
 
-  const MINUTE = 60_000;
   /** `YYYY-MM-DDTHH:MM`, which is exactly what a `datetime-local` input reads and writes. */
   const LOCAL = 16;
 
@@ -107,7 +107,7 @@ export namespace Format {
    */
   export function field(iso: string): string {
     const at = new Date(iso);
-    return new Date(at.getTime() - at.getTimezoneOffset() * MINUTE).toISOString().slice(0, LOCAL);
+    return new Date(at.getTime() - at.getTimezoneOffset() * Millis.MINUTE).toISOString().slice(0, LOCAL);
   }
 
   /** How many characters a `YYYY-MM-DD` day is, which is what a url carries a date as. */

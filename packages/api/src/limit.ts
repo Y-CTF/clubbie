@@ -1,3 +1,4 @@
+import { Millis } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import type { Context } from 'hono';
@@ -25,10 +26,10 @@ import { Fail, Refusal } from './fail.ts';
  */
 export class Limit {
   /** What the client is told to wait, and how long a window lasts. */
-  static readonly WINDOW = 60_000;
+  static readonly WINDOW = Millis.MINUTE;
   static readonly TRIES = 10;
   static readonly HEADER = 'retry-after';
-  static readonly SECOND = 1000;
+  static readonly SECOND = Millis.SECOND;
   /** Headers a trusted proxy sets, in the order they are believed. */
   static readonly FORWARDED = ['cf-connecting-ip', 'x-real-ip', 'x-forwarded-for'];
   /** The bucket callers share when the runtime cannot name them: still bounded, just coarser. */

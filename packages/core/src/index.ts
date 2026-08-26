@@ -4,7 +4,7 @@ export { ACTS, type Act, Audit, type AuditFields, type AuditId } from './audit.t
 export { Brand } from './brand.ts';
 export { Bytes } from './bytes.ts';
 export * from './cache.ts';
-export { ADMISSIONS, type Admission, Club, type ClubFields } from './club.ts';
+export { ADMISSIONS, type Admission, Club, type ClubFields, DENIALS, type Denial } from './club.ts';
 export {
   Design,
   type DesignFields,
@@ -42,6 +42,7 @@ export {
   STATUSES,
   type Status,
 } from './member.ts';
+export { Millis } from './millis.ts';
 export {
   CHANNELS,
   type Channel,

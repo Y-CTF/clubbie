@@ -38,22 +38,24 @@ export interface Member extends MemberFields {}
 export class Member {
   static readonly ROLES = ROLES;
   static readonly STATUSES = STATUSES;
-  /** What a member is when the club first sees them: known, but not yet admitted. */
   /** How many members one edit may touch, which is a screenful and not a database. */
   static readonly BATCH = 200;
   /** How many one page of the roster holds. A club of tens to hundreds, in one or two pages. */
   static readonly PAGE = 200;
+  /** What a member is when the club first sees them: known, but not yet admitted. */
   static readonly INITIAL: Status = 'pending';
   /** The one status that counts against a roster, and the only one that hears announcements. */
   static readonly ACTIVE: Status = 'active';
   static readonly ORDINARY: Role = 'member';
+  /** The role that decides everything, which is why nothing writes it as a bare word. */
+  static readonly ADMIN: Role = 'admin';
 
   constructor(fields: MemberFields) {
     Object.assign(this, fields);
   }
 
   get admin(): boolean {
-    return this.role === 'admin';
+    return this.role === Member.ADMIN;
   }
 
   get active(): boolean {

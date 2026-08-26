@@ -1,4 +1,4 @@
-import { Brand, type Club, type Event } from '@clubbie/core';
+import { Brand, type Club, type Event, Millis } from '@clubbie/core';
 import { When } from '@clubbie/term';
 import { Download } from './download.ts';
 
@@ -38,7 +38,7 @@ export namespace Ical {
    */
   export const BREAK = '\uE000';
   /** How long an event with no end lasts on a calendar, since a VEVENT needs one. */
-  export const DEFAULT = 60 * 60 * 1000;
+  export const DEFAULT = Millis.HOUR;
   export const EXTENSION = 'ics';
   /** What one event's file is called when its title carries nothing a header can hold. */
   export const FALLBACK = 'event';

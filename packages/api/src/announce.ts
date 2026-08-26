@@ -1,4 +1,4 @@
-import { Event, type EventId, type Season } from '@clubbie/core';
+import { Event, type EventId, Millis, type Season } from '@clubbie/core';
 import type { Store } from '@clubbie/store';
 
 /**
@@ -13,7 +13,7 @@ import type { Store } from '@clubbie/store';
  */
 export namespace Announce {
   /** An hour, since the club states its lead time in them. */
-  export const HOUR = 60 * 60 * 1000;
+  export const HOUR = Millis.HOUR;
 
   /**
    * What a published event owes: the reminder always, the club-wide announcement only when the

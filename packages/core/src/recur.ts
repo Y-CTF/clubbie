@@ -1,3 +1,4 @@
+import { Millis } from './millis.ts';
 import { Zone } from './zone.ts';
 
 /**
@@ -40,7 +41,7 @@ export class Recur {
   static readonly WEEK = 7;
   static readonly YEAR = 12;
   /** Only ever used to estimate an index: real stepping is by wall clock, in `shift`. */
-  static readonly DAY = 24 * 60 * 60 * 1000;
+  static readonly DAY = Millis.DAY;
 
   constructor(fields: RecurFields) {
     Object.assign(this, fields);

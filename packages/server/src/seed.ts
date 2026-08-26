@@ -5,6 +5,7 @@ import {
   type KindId,
   Member,
   type MemberId,
+  Millis,
   Recur,
   Rsvp,
   Schedule,
@@ -20,7 +21,7 @@ import type { EventDraft, Store } from '@clubbie/store';
  */
 export namespace Seed {
   export const NAMES = ['Ada', 'Alan', 'Grace', 'Edsger', 'Barbara', 'Ken'];
-  export const HOUR = 60 * 60 * 1000;
+  export const HOUR = Millis.HOUR;
   export const DAY = 24 * HOUR;
 
   /** The first four are admitted; the rest stay pending, so the roster page shows both. */

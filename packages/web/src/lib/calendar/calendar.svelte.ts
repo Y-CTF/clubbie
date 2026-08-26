@@ -1,4 +1,4 @@
-import type { KindId } from '@clubbie/core';
+import { type KindId, Millis } from '@clubbie/core';
 import { api, unwrap } from '../api.ts';
 import { Format } from '../format.ts';
 import { Query } from '../query.svelte.ts';
@@ -47,7 +47,7 @@ export const Param = {
  */
 export class Calendar {
   /** How often the red line and the "now" highlight move. A minute is as fine as anybody reads. */
-  static readonly TICK = 60_000;
+  static readonly TICK = Millis.MINUTE;
   /** Which key shows which view, the way every calendar on the web binds them. */
   static readonly KEYS: Readonly<Record<string, View>> = {
     m: View.Month,

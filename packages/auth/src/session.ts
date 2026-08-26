@@ -1,4 +1,4 @@
-import { Bytes } from '@clubbie/core';
+import { Bytes, Millis } from '@clubbie/core';
 
 /**
  * A session bearer token and its stored form. The token is handed to the browser once; only its
@@ -14,7 +14,7 @@ export namespace Token {
   export const BYTES = 32;
   export const ALG = 'SHA-256';
   /** How long a session lasts without being renewed. */
-  export const TTL = 30 * 24 * 60 * 60 * 1000;
+  export const TTL = 30 * Millis.DAY;
   /** A session is renewed once it is this fraction of the way through its life. */
   export const RENEW = 2;
 

@@ -1,6 +1,6 @@
 import { Api } from '@clubbie/api';
 import { Auth } from '@clubbie/auth';
-import { Bot } from '@clubbie/bot';
+import { Bot, Codes as BotCodes } from '@clubbie/bot';
 import { Brand, Site } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { Logger, Sink } from '@clubbie/log';
@@ -8,7 +8,6 @@ import { Email, Notify, type Sender, Telegram } from '@clubbie/notify';
 import { Store } from '@clubbie/store';
 import { Hono } from 'hono';
 import { Assets } from './assets.ts';
-import { Codes } from './codes.ts';
 import type { Config } from './config.ts';
 import { Scheduler } from './scheduler.ts';
 
@@ -89,7 +88,7 @@ export namespace App {
     } catch (error) {
       log.error(
         'the telegram bot could not start',
-        Diag.of(error, Codes.bot.start)
+        Diag.of(error, BotCodes.start)
           .note('the api, the web app and the scheduler are running')
           .help('check the token and the network, then restart to pick the bot back up'),
       );
