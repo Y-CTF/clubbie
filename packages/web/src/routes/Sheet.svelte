@@ -27,6 +27,9 @@ import Person from '../ui/Person.svelte';
 let { id }: { id: string } = $props();
 
 const sheet = new Query(async () => unwrap(await api.events[':id'].sheet.$get({ param: { id } })));
+
+/** What the sheet route answers with, so the optimistic patch is typed against the real shape. */
+type Sheet = NonNullable<typeof sheet.data>;
 const event = new Query(async () => unwrap(await api.events[':id'].$get({ param: { id } })));
 const action = new Action();
 const t = $derived(words.t);
@@ -53,59 +56,63 @@ function stamp(attended: boolean): string | null {
   return attended ? new Date().toISOString() : null;
 }
 
-async function mark(memberId: string, attended: boolean): Promise<void> {
-  const undo = sheet.patch((data) => ({
-    ...data,
-    answers: data.answers.map((entry) =>
-      entry.memberId === memberId ? { ...entry, attendedAt: stamp(attended) } : entry,
-    ),
-  }));
+/**
+ * Show it, write it, and put it back if the server disagrees.
+ *
+ * A member's row and a guest's row differ in which list they are in and which route they are
+ * written to, and in nothing else. The two used to carry a copy each of the optimistic patch, the
+ * head count, the rollback pair and the refetch.
+ */
+async function attend(
+  patch: (data: Sheet, at: string | null) => Sheet,
+  attended: boolean,
+  write: () => Promise<unknown>,
+): Promise<void> {
+  const undo = sheet.patch((data) => patch(data, stamp(attended)));
   const counted = count(attended);
 
-  const done = await action.run(async () =>
-    unwrap(
-      await api.events[':id'].attendance[':memberId'].$put({
-        param: { id, memberId },
-        json: { attended },
-      }),
-    ),
-  );
-
+  const done = await action.run(write);
   if (!done) {
     undo();
     counted();
-    /** Two taps inside one round trip nest their rollbacks, so the truth is refetched, not guessed. */
-    await refresh();
-    return;
   }
+  /** Two taps inside one round trip nest their rollbacks, so the truth is refetched, not guessed. */
   await refresh();
 }
 
-async function markGuest(guestId: string, attended: boolean): Promise<void> {
-  const undo = sheet.patch((data) => ({
-    ...data,
-    attending: data.attending.map((guest) =>
-      guest.id === guestId ? { ...guest, attendedAt: stamp(attended) } : guest,
-    ),
-  }));
-  const counted = count(attended);
-
-  const done = await action.run(async () =>
-    unwrap(
-      await api.events[':id'].guests[':guestId'].attendance.$put({
-        param: { id, guestId },
-        json: { attended },
-      }),
-    ),
+async function mark(memberId: string, attended: boolean): Promise<void> {
+  await attend(
+    (data, at) => ({
+      ...data,
+      answers: data.answers.map((entry) =>
+        entry.memberId === memberId ? { ...entry, attendedAt: at } : entry,
+      ),
+    }),
+    attended,
+    async () =>
+      unwrap(
+        await api.events[':id'].attendance[':memberId'].$put({ param: { id, memberId }, json: { attended } }),
+      ),
   );
+}
 
-  if (!done) {
-    undo();
-    counted();
-    await refresh();
-    return;
-  }
-  await refresh();
+async function markGuest(guestId: string, attended: boolean): Promise<void> {
+  await attend(
+    (data, at) => ({
+      ...data,
+      attending: data.attending.map((guest) =>
+        guest.id === guestId ? { ...guest, attendedAt: at } : guest,
+      ),
+    }),
+    attended,
+    async () =>
+      unwrap(
+        await api.events[':id'].guests[':guestId'].attendance.$put({
+          param: { id, guestId },
+          json: { attended },
+        }),
+      ),
+  );
 }
 
 /** The head count moves with the row it came from, or the number and the list disagree on screen. */

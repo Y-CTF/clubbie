@@ -417,8 +417,8 @@ export namespace Input {
     providers: v.optional(v.array(v.pipe(v.string(), v.trim(), v.toLowerCase(), v.maxLength(TITLE)))),
     /** Whether a first sign-in waits for an organiser. A closed list, like every other choice. */
     admission: v.optional(literals(Club.ADMISSIONS)),
-    deadline: v.optional(measure(Club.HOURS)),
-    remind: v.optional(measure(Club.HOURS)),
+    deadline: v.optional(measure(Club.DEADLINES)),
+    remind: v.optional(measure(Club.REMINDERS)),
     guests: v.optional(v.boolean()),
     waitlist: v.optional(v.boolean()),
     /** A closed list, because a language the app has no catalogue for is a page half in English. */

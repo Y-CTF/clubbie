@@ -38,8 +38,9 @@ export class Recur {
   static readonly AHEAD = 12;
   /** A hard stop, so an open-ended rule cannot be asked to enumerate forever. */
   static readonly LIMIT = 500;
-  static readonly WEEK = 7;
-  static readonly YEAR = 12;
+  /** Days in a week and months in a year: named for what they count, not for what they add up to. */
+  static readonly DAYS = 7;
+  static readonly MONTHS = 12;
   /** Only ever used to estimate an index: real stepping is by wall clock, in `shift`. */
   static readonly DAY = Millis.DAY;
 
@@ -100,11 +101,11 @@ export class Recur {
       case 'daily':
         return Math.floor(elapsed / Recur.DAY / this.interval);
       case 'weekly':
-        return Math.floor(elapsed / (Recur.DAY * Recur.WEEK) / this.interval);
+        return Math.floor(elapsed / (Recur.DAY * Recur.DAYS) / this.interval);
       case 'monthly': {
         const from = Zone.parts(anchor, zone);
         const to = Zone.parts(instant, zone);
-        const months = (to.year - from.year) * Recur.YEAR + (to.month - from.month);
+        const months = (to.year - from.year) * Recur.MONTHS + (to.month - from.month);
         return Math.floor(months / this.interval);
       }
     }
@@ -124,11 +125,11 @@ export class Recur {
       case 'daily':
         return Zone.instant({ ...at, day: at.day + moved }, zone);
       case 'weekly':
-        return Zone.instant({ ...at, day: at.day + moved * Recur.WEEK }, zone);
+        return Zone.instant({ ...at, day: at.day + moved * Recur.DAYS }, zone);
       case 'monthly': {
         const index = at.month - 1 + moved;
-        const year = at.year + Math.floor(index / Recur.YEAR);
-        const month = (((index % Recur.YEAR) + Recur.YEAR) % Recur.YEAR) + 1;
+        const year = at.year + Math.floor(index / Recur.MONTHS);
+        const month = (((index % Recur.MONTHS) + Recur.MONTHS) % Recur.MONTHS) + 1;
         return Zone.instant({ ...at, year, month, day: Math.min(at.day, Zone.last(year, month)) }, zone);
       }
     }

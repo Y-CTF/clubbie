@@ -1,5 +1,5 @@
 import { Brand } from './brand.ts';
-import { Design } from './design.ts';
+import { Design, type Range } from './design.ts';
 import type { Language } from './locale.ts';
 import { Member, type Status } from './member.ts';
 
@@ -138,7 +138,16 @@ export class Club {
   static readonly GUESTS = true;
   static readonly WAITLIST = true;
   /** The bounds of the two hour counts, which the settings page offers as sliders. */
-  static readonly HOURS = { min: 0, max: 336, step: 1, value: Club.REMIND };
+  /**
+   * How far ahead either of the two hour measures may reach: a fortnight, in hours.
+   *
+   * They are two ranges rather than one, because a `Range`'s `value` is where a measure *starts*
+   * and the two start in different places. One shared object gave the deadline slider the
+   * reminder's default, which is not what a club that has set neither means by either.
+   */
+  static readonly FORTNIGHT = 336;
+  static readonly DEADLINES: Range = { min: 0, max: Club.FORTNIGHT, step: 1, value: Club.DEADLINE };
+  static readonly REMINDERS: Range = { min: 0, max: Club.FORTNIGHT, step: 1, value: Club.REMIND };
 
   /** What status a first sign-in is written with, which is the whole of what `admission` means. */
   static admits(admission: Admission): Status {

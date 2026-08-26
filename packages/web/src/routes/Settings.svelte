@@ -545,11 +545,11 @@ async function save(): Promise<void> {
   <div class="mt-4 grid gap-4">
     <div class="grid gap-4 sm:grid-cols-2">
       <Field label={t.rules.deadline} hint={t.rules.deadlineHint} group>
-        <Scale bind:value={deadline} range={Club.HOURS} unit="h" label={t.rules.deadline} />
+        <Scale bind:value={deadline} range={Club.DEADLINES} unit="h" label={t.rules.deadline} />
       </Field>
 
       <Field label={t.rules.remind} hint={t.rules.remindHint} group>
-        <Scale bind:value={remind} range={Club.HOURS} unit="h" label={t.rules.remind} />
+        <Scale bind:value={remind} range={Club.REMINDERS} unit="h" label={t.rules.remind} />
       </Field>
     </div>
 

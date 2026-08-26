@@ -36,9 +36,9 @@ export class Identified {
   static readonly TOKENS = {
     '--color-accent': (design: Identity['design']) => design.accent,
     '--corner-club': (design: Identity['design']) => `${design.corner}px`,
-    '--space-club': (design: Identity['design']) => String(design.space / 100),
+    '--space-club': (design: Identity['design']) => String(design.space / Design.PERCENT),
     '--hue-club': (design: Identity['design']) => String(design.hue),
-    '--tint-club': (design: Identity['design']) => String(design.tint / 100),
+    '--tint-club': (design: Identity['design']) => String(design.tint / Design.PERCENT),
     '--scale-club': (design: Identity['design']) => `${design.scale}%`,
   } as const;
 

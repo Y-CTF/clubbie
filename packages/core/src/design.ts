@@ -93,6 +93,8 @@ export class Design {
   static readonly ACCENT = '#4f46e5';
   /** What the colour box shows before a club has picked a paper of its own. */
   static readonly PAPER = '#ffffff';
+  /** What `space`, `tint` and `scale` are out of: they are stored as whole percents. */
+  static readonly PERCENT = 100;
   /** How much ink is mixed into the paper to get the surface a card or a field sits on. */
   static readonly SUNK = 4;
   static readonly PALETTE: Palette = 'system';
