@@ -331,6 +331,27 @@ export class Jobs {
     return dropped.length;
   }
 
+  /**
+   * Whether the queue already holds a job of this kind about this thing.
+   *
+   * What makes planning idempotent. A cron deployment calls `Scheduler.plan` on every pass, and
+   * "cancel then schedule" only ever matched a *pending* row, so a notice that had already gone
+   * out was queued again, and again, every few minutes.
+   */
+  async holds<K extends JobKind>(
+    kind: K,
+    payload: Payload<K>,
+    states: readonly JobState[] = Job.STATES,
+  ): Promise<boolean> {
+    const row = await this.db
+      .selectFrom('job')
+      .select('id')
+      .where('subject', '=', Job.subject(kind, payload))
+      .where('state', 'in', states)
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
   async sweep(before: Date): Promise<number> {
     const result = await this.db
       .deleteFrom('job')

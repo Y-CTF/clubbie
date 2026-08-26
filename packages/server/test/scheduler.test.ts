@@ -138,4 +138,57 @@ describe('the scheduler', () => {
   test('a tick with nothing due does nothing', async () => {
     expect(await scheduler.tick(NOW)).toBe(0);
   });
+
+  /**
+   * A cron deployment plans on every pass. Planning used to cancel only pending rows and queue a
+   * fresh one on top, so a renewal notice that had already gone out was sent again every pass.
+   */
+  test('planning twice over a finished job leaves it finished', async () => {
+    const ada = await member('ada');
+    const season = await store.seasons.create(
+      {
+        name: '2026/27',
+        startsAt: NOW,
+        endsAt: new Date(NOW.getTime() + 365 * DAY),
+        renewalAt: new Date(NOW.getTime() + DAY),
+      },
+      NOW,
+    );
+    await store.seasons.promote(season.id);
+    await store.seasons.join(ada.id, season.id, NOW);
+
+    await scheduler.plan(NOW);
+    await scheduler.tick(NOW);
+    const after = await store.jobs.list({ kind: 'season.renewal' });
+
+    await scheduler.plan(new Date(NOW.getTime() + 60_000));
+    expect(await store.jobs.list({ kind: 'season.renewal' })).toHaveLength(after.length);
+    expect(await scheduler.tick(new Date(NOW.getTime() + 60_000))).toBe(0);
+  });
+
+  /** A channel that refuses everybody is an outage: the job goes back on the queue. */
+  test('a notice no channel would take fails the job rather than being marked done', async () => {
+    const { log } = Logger.memory();
+    const refuser: Sender = {
+      channel: 'email',
+      async send() {
+        throw new Error('the provider is unavailable');
+      },
+    };
+    const angry = new Scheduler({
+      store,
+      notify: new Notify(store, [refuser], log),
+      log,
+      baseUrl: BASE,
+    });
+
+    const ada = await member('ada');
+    const night = await event(ada);
+    await store.jobs.schedule('event.announce', { eventId: night.id }, NOW, NOW);
+
+    await angry.tick(NOW);
+    const [job] = await store.jobs.list({ kind: 'event.announce' });
+    expect(job?.state).not.toBe('done');
+    expect(job?.attempts).toBe(1);
+  });
 });

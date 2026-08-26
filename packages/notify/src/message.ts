@@ -1,7 +1,7 @@
 import type { Club, Event, Member, Season } from '@clubbie/core';
 import { markup } from '@clubbie/term';
 import { Stamp } from './stamp.ts';
-import { phrases } from './words.ts';
+import { phrases, type Seat } from './words.ts';
 
 /**
  * What a fact is about. It is a union rather than a label because a channel that draws a glyph
@@ -123,8 +123,13 @@ export class Message {
  * Times are written on the club's own clock and in its own language, which is `Stamp`.
  */
 export namespace Notices {
-  /** How much of an event a reminder or a seat notice repeats: when it is, and where. */
-  export const SOON = 2;
+  /**
+   * Which facts a reminder or a seat notice repeats: when it is, and where.
+   *
+   * By role rather than by position. `about` builds a variable-length list, so taking the first
+   * two of it meant an event with no location advertised its capacity under the word "where".
+   */
+  export const SOON: readonly Role[] = ['when', 'where'];
 
   /** The letterhead every notice carries: who it is from, and the one colour the club is drawn in. */
   function from(club: Club): From {
@@ -170,44 +175,32 @@ export namespace Notices {
     });
   }
 
-  export function reminder(event: Event, club: Club, url: string): Message {
-    const say = phrases(club.locale).reminder;
+  /**
+   * A notice about one member's place at one evening. Read on the way out of the door, so it
+   * carries when and where and nothing else. The three that use it differ only in their words.
+   */
+  function seat(event: Event, club: Club, url: string, say: Seat): Message {
     return new Message({
       subject: say.subject(club.name, event.title),
       from: from(club),
       title: markup`*${event.title}*`,
       lead: say.lead(),
-      /** A reminder is read on the way out of the door: when and where, nothing else. */
-      facts: about(event, club, null).slice(0, Notices.SOON),
+      facts: about(event, club, null).filter((fact) => Notices.SOON.includes(fact.of)),
       note: null,
       action: { label: say.action, url },
     });
+  }
+
+  export function reminder(event: Event, club: Club, url: string): Message {
+    return seat(event, club, url, phrases(club.locale).reminder);
   }
 
   export function promoted(event: Event, club: Club, url: string): Message {
-    const say = phrases(club.locale).promoted;
-    return new Message({
-      subject: say.subject(club.name, event.title),
-      from: from(club),
-      title: markup`*${event.title}*`,
-      lead: say.lead(),
-      facts: about(event, club, null).slice(0, Notices.SOON),
-      note: null,
-      action: { label: say.action, url },
-    });
+    return seat(event, club, url, phrases(club.locale).promoted);
   }
 
   export function demoted(event: Event, club: Club, url: string): Message {
-    const say = phrases(club.locale).demoted;
-    return new Message({
-      subject: say.subject(club.name, event.title),
-      from: from(club),
-      title: markup`*${event.title}*`,
-      lead: say.lead(),
-      facts: about(event, club, null).slice(0, Notices.SOON),
-      note: null,
-      action: { label: say.action, url },
-    });
+    return seat(event, club, url, phrases(club.locale).demoted);
   }
 
   export function admitted(member: Member, club: Club, url: string): Message {

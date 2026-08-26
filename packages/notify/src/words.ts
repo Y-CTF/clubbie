@@ -16,6 +16,17 @@ import { markup } from '@clubbie/term';
  * They are apart because they share no strings: one is buttons and labels, the other is sentences
  * the club sends. Adding a language means writing both, and the `Language` union is what says so.
  */
+/**
+ * A notice about one evening and one member's place at it. The three that carry it say the same
+ * things in the same order and differ only in the words, so the shape is named once and a
+ * translator who adds a language is told exactly what is missing.
+ */
+export interface Seat {
+  readonly subject: (club: string, title: string) => string;
+  readonly lead: () => string;
+  readonly action: string;
+}
+
 export interface Phrases {
   /** Why a member is reading this at all, at the foot of anything with room for a foot. */
   readonly footer: (club: string) => string;
@@ -38,21 +49,9 @@ export interface Phrases {
     readonly lead: (club: string) => string;
     readonly action: string;
   };
-  readonly reminder: {
-    readonly subject: (club: string, title: string) => string;
-    readonly lead: () => string;
-    readonly action: string;
-  };
-  readonly promoted: {
-    readonly subject: (club: string, title: string) => string;
-    readonly lead: () => string;
-    readonly action: string;
-  };
-  readonly demoted: {
-    readonly subject: (club: string, title: string) => string;
-    readonly lead: () => string;
-    readonly action: string;
-  };
+  readonly reminder: Seat;
+  readonly promoted: Seat;
+  readonly demoted: Seat;
   readonly admitted: {
     readonly subject: (club: string) => string;
     readonly lead: (name: string, club: string) => string;

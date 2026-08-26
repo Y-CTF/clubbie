@@ -64,7 +64,19 @@ export class Bot {
   async start(): Promise<void> {
     const me = await this.bot.api.getMe();
     this.log.info('bot online', { username: me.username });
-    void this.bot.start({ onStart: () => this.log.debug('long polling started') });
+    /**
+     * Long polling runs for as long as the process does, so its promise is not awaited. It is
+     * still caught: grammy rejects it when the loop dies, and an unhandled rejection takes the
+     * whole process down, which is the api and the scheduler as well as the bot.
+     */
+    void this.bot.start({ onStart: () => this.log.debug('long polling started') }).catch((error: unknown) => {
+      this.log.error(
+        'long polling stopped',
+        Diag.of(error, Codes.update)
+          .note('the api, the web app and the scheduler are still running')
+          .help('restart to pick the bot back up'),
+      );
+    });
   }
 
   async stop(): Promise<void> {

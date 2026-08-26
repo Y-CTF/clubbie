@@ -43,8 +43,8 @@ export class Scheduler {
   static readonly SWEEP = 24 * 60 * 60 * 1000;
   /** How long a finished job is kept, so a question about last night has something to read. */
   static readonly KEEP = 7 * 24 * 60 * 60 * 1000;
-  /** The states a job that queues its own successor is cancelled in, so no chain is ever doubled. */
-  static readonly RECURRING: readonly JobState[] = [Job.INITIAL, Job.RUNNING];
+  /** The states that mean a chain is already running, so planning leaves it alone. */
+  static readonly ARMED: readonly JobState[] = [Job.INITIAL, Job.RUNNING];
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private inflight: Promise<number> | null = null;
@@ -85,24 +85,33 @@ export class Scheduler {
     const jobs = this.options.store.jobs;
 
     /**
-     * Cancel first, or every restart would start a second daily sweep that runs forever. A sweep
-     * left `running` by a crash counts: `reclaim` would hand it back and both would recur.
+     * Armed only when it is not armed already, never re-armed.
+     *
+     * This runs on every pass, not only at boot: a Workers deployment plans from a cron trigger.
+     * "Cancel then schedule" matched only a pending row, so on a cron the chain restarted every
+     * few minutes, and the renewal notice below went out to every member each time.
+     *
+     * A job left `running` by a crash counts as armed: `reclaim` hands it back after its lease,
+     * which is one chain rather than the two that cancelling it and queuing a fresh one made.
      */
-    await jobs.cancel('sweep', {}, Scheduler.RECURRING);
-    await jobs.schedule('sweep', {}, now, now);
+    if (!(await jobs.holds('sweep', {}, Scheduler.ARMED))) await jobs.schedule('sweep', {}, now, now);
 
     for (const schedule of await this.options.store.schedules.list()) {
-      await jobs.cancel('schedule.expand', { scheduleId: schedule.id }, Scheduler.RECURRING);
-      await jobs.schedule('schedule.expand', { scheduleId: schedule.id }, now, now);
+      const wanted = { scheduleId: schedule.id };
+      if (await jobs.holds('schedule.expand', wanted, Scheduler.ARMED)) continue;
+      await jobs.schedule('schedule.expand', wanted, now, now);
     }
 
     /**
-     * And the renewal the open season owes. The route that creates or promotes one queues this
-     * itself; doing it here too is what catches a deployment that was down when the deadline
-     * approached, which is the same reason the sweep is planned rather than assumed.
+     * And the renewal the open season owes, if nothing is on the books for it in any state. The
+     * route that creates or promotes a season queues this itself and re-queues it when a committee
+     * moves the deadline; doing it here as well is for the deployment that was down when the
+     * deadline approached, and only for that.
      */
     const season = await this.options.store.seasons.current();
-    if (season) await Announce.renewals(this.options.store, season, now);
+    if (season && !(await jobs.holds('season.renewal', { seasonId: season.id }))) {
+      await Announce.renewals(this.options.store, season, now);
+    }
   }
 
   /** Runs everything due. Never runs twice at once: a slow tick is skipped, not stacked. */
@@ -123,8 +132,13 @@ export class Scheduler {
       let ran = 0;
 
       for (const job of due) {
-        /** Each job takes its own lease, so a slow batch cannot have its tail reclaimed mid-run. */
-        const held = await this.options.store.jobs.hold(job);
+        /**
+         * Each job takes its own lease, so a slow batch cannot have its tail reclaimed mid-run.
+         * A claim that cannot be taken is that job's problem and not the batch's: it used to
+         * escape to the catch below, which left the nineteen rows behind it sitting `running`
+         * until their leases expired.
+         */
+        const held = await this.options.store.jobs.hold(job).catch(() => null);
         if (!held) {
           this.log.warn('job claim lost', { job: job.id, kind: job.kind });
           continue;
@@ -160,7 +174,9 @@ export class Scheduler {
         attempt: job.attempts + 1,
         reason: Render.plain(diag),
       });
-      await this.options.store.jobs.failed(job, Render.plain(diag), now);
+      await this.options.store.jobs.failed(job, Render.plain(diag), now).catch((write: unknown) => {
+        this.log.error('job failed and could not be recorded as failed', write, { job: job.id });
+      });
       return;
     }
 
@@ -296,8 +312,22 @@ export class Scheduler {
     await this.options.store.jobs.schedule('sweep', {}, next, now);
   }
 
+  /**
+   * Sends a notice, and hands the job back when nothing took it.
+   *
+   * A partial broadcast succeeds: one blocked chat must not re-announce an evening to forty
+   * people. A broadcast where every channel refused is an outage, and throwing here is what makes
+   * the queue's retry mean anything. Without it a provider answering 503 was logged, swallowed,
+   * and the job marked done, so `Job.TRIES` and `Job.BACKOFF` never once ran.
+   */
   private async told(notice: Notice, members: readonly Member[], message: Message): Promise<void> {
-    await this.options.notify.send(notice, members, message);
+    const out = await this.options.notify.send(notice, members, message);
+    const refused = out.filter((delivery) => delivery.refused).length;
+    if (refused === 0 || out.some((delivery) => delivery.sent)) return;
+
+    throw Diag.error(Codes.job.refused, markup`no channel would take a \`${notice}\``)
+      .note(markup`${refused} of ${out.length} members were refused by every channel they have`)
+      .help('check the provider credentials, then retry the job from the jobs page');
   }
 
   private where(event: Event): string {

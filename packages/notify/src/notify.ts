@@ -11,6 +11,12 @@ export interface Delivery {
   /** The channel that took it, or null for a member nothing could reach. */
   readonly channel: Channel | null;
   readonly sent: boolean;
+  /**
+   * Whether a channel was tried and would not take it, as against a member who wanted nothing and
+   * a member with nowhere to be reached. The queue needs the difference: an outage is worth
+   * retrying and a member who switched everything off is not.
+   */
+  readonly refused: boolean;
 }
 
 /** Where a member is reached on each channel. A member with no address there is simply skipped. */
@@ -66,7 +72,8 @@ export class Notify {
     }
 
     const sent = out.filter((delivery) => delivery.sent).length;
-    this.log.info('notice sent', { notice, members: members.length, sent });
+    const refused = out.filter((delivery) => delivery.refused).length;
+    this.log.info('notice sent', { notice, members: members.length, sent, refused });
     return out;
   }
 
@@ -78,6 +85,7 @@ export class Notify {
     chatId: string | null,
     message: Message,
   ): Promise<Delivery> {
+    let refused = false;
     for (const channel of this.channels) {
       const to = ADDRESS[channel](member, chatId);
       if (!to || !prefs.wants(notice, channel)) continue;
@@ -87,8 +95,9 @@ export class Notify {
 
       try {
         await sender.send(to, message);
-        return { memberId: member.id, channel, sent: true };
+        return { memberId: member.id, channel, sent: true, refused: false };
       } catch (error) {
+        refused = true;
         this.log.warn('channel refused', {
           notice,
           channel,
@@ -98,6 +107,6 @@ export class Notify {
       }
     }
 
-    return { memberId: member.id, channel: null, sent: false };
+    return { memberId: member.id, channel: null, sent: false, refused };
   }
 }
