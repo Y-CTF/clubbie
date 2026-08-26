@@ -34,11 +34,6 @@ $effect(() => {
 /** The same two parsed instants the calendar draws from, so the export links are not built twice. */
 const moment = $derived(event.data ? new Moment(event.data) : null);
 
-/** The organiser of an event may edit it, which is what the API allows: `canOwn('event:manage')`. */
-const mine = $derived(
-  session.can('event:manage') || (event.data !== null && event.data.createdBy === session.member?.id),
-);
-
 /** A refusal here is the interesting case: a full event or a passed deadline says why. */
 async function answer(answer: Answer): Promise<void> {
   const said = await action.run(async () =>
@@ -90,10 +85,9 @@ async function announce(): Promise<void> {
             {t.calendar.series}
           </a>
         {/if}
-        {#if mine}
+        <!-- Both come from the API's own verdict, so the page cannot disagree with the route. -->
+        {#if detail.manage}
           <a href={Router.to('Edit', { id })} class={look('plain')}>{t.common.edit}</a>
-        {/if}
-        {#if session.can('event:manage')}
           <a href={Router.to('Sheet', { id })} class={look('plain')}>{t.event.attendance}</a>
         {/if}
       </span>

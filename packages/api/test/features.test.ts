@@ -122,16 +122,49 @@ describe('guests', () => {
     expect(detail.attending).toHaveLength(1);
   });
 
-  test('a member may not add one', async () => {
+  /** Whoever wrote the event runs it: `Ability.canOwn`, which the edit and the delete already ask. */
+  test('the member who organised it adds one', async () => {
     const ada = await h.member('ada');
     const workshop = await h.event(ada);
 
-    const refused = await h.call(`/events/${workshop.id}/guests`, {
+    const added = await h.call(`/events/${workshop.id}/guests`, {
       method: 'POST',
       cookie: await h.signIn(ada),
       body: JSON.stringify({ name: 'a friend' }),
     });
+    expect(added.status).toBe(201);
+  });
+
+  test('a member who did not organise it may not add one', async () => {
+    const ada = await h.member('ada');
+    const alan = await h.member('alan');
+    const workshop = await h.event(ada);
+
+    const refused = await h.call(`/events/${workshop.id}/guests`, {
+      method: 'POST',
+      cookie: await h.signIn(alan),
+      body: JSON.stringify({ name: 'a friend' }),
+    });
     expect(refused.status).toBe(403);
+  });
+
+  test('the sheet and the attendance of an event belong to whoever organised it', async () => {
+    const ada = await h.member('ada');
+    const alan = await h.member('alan');
+    const workshop = await h.event(ada);
+
+    const mine = await h.call(`/events/${workshop.id}/sheet`, { cookie: await h.signIn(ada) });
+    expect(mine.status).toBe(200);
+
+    const theirs = await h.call(`/events/${workshop.id}/sheet`, { cookie: await h.signIn(alan) });
+    expect(theirs.status).toBe(403);
+
+    const marked = await h.call(`/events/${workshop.id}/attendance/${alan.id}`, {
+      method: 'PUT',
+      cookie: await h.signIn(alan),
+      body: JSON.stringify({ attended: true }),
+    });
+    expect(marked.status).toBe(403);
   });
 });
 

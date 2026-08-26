@@ -123,6 +123,12 @@ export const events = new Hono<Env>()
       answers: answers.map(Wire.entry),
       attending: guests.map(Wire.attendee),
       mine: mine ? Wire.rsvp(mine) : null,
+      /**
+       * Whether this caller may run it, decided here by `Ability.canOwn` and rendered there. The
+       * page used to work it out for itself, which is a second permission table and the one thing
+       * `Ability` exists to prevent.
+       */
+      manage: c.get('ability').canOwn('event:manage', event.createdBy),
     });
   })
 
@@ -133,10 +139,7 @@ export const events = new Hono<Env>()
     vValidator('json', Input.eventPatch, Check.body),
     async (c) => {
       const store = c.get('store');
-      const event = await Guard.find('event', store.events.byId(c.req.valid('param').id));
-      if (!c.get('ability').canOwn('event:manage', event.createdBy)) {
-        throw Fail.forbidden('only the organiser or an admin may edit this event');
-      }
+      const event = await Events.managed(c, c.req.valid('param').id);
 
       const patch = c.req.valid('json');
       await Kinds.must(store, patch.kind);
@@ -170,10 +173,7 @@ export const events = new Hono<Env>()
     Guard.needs('event:create'),
     vValidator('param', Input.params.event, Check.param),
     async (c) => {
-      const event = await Guard.find('event', c.get('store').events.byId(c.req.valid('param').id));
-      if (!c.get('ability').canOwn('event:manage', event.createdBy)) {
-        throw Fail.forbidden('only the organiser or an admin may delete this event');
-      }
+      const event = await Events.managed(c, c.req.valid('param').id);
 
       await Announce.withdrawn(c.get('store'), event.id);
       await c.get('store').events.remove(event.id);
@@ -260,13 +260,14 @@ export const events = new Hono<Env>()
   /** The organiser's sheet: everyone, hidden members included, with attendance as recorded. */
   .get(
     '/:id/sheet',
-    Guard.needs('event:manage'),
+    Guard.needs('event:create'),
     vValidator('param', Input.params.event, Check.param),
     async (c) => {
       const store = c.get('store');
       const { id } = c.req.valid('param');
-      /** Without this an unknown id answers `{answers: [], attending: []}`, which reads as "nobody". */
-      await Guard.find('event', store.events.byId(id));
+      /** Loaded, not trusted: an unknown id answered `{answers: [], attending: []}`, which reads
+       * as "nobody", and the organiser of *this* event is who may read it. */
+      await Events.managed(c, id);
 
       const [sheet, guests] = await Promise.all([store.rsvps.sheet(id), store.guests.list(id)]);
       return c.json({ answers: sheet.map(Wire.entry), attending: guests.map(Wire.guest) });
@@ -276,12 +277,12 @@ export const events = new Hono<Env>()
   /** The same sheet as a file, for the report a committee writes once a year. */
   .get(
     '/:id/sheet.csv',
-    Guard.needs('event:manage'),
+    Guard.needs('event:create'),
     vValidator('param', Input.params.event, Check.param),
     async (c) => {
       const store = c.get('store');
       const { id } = c.req.valid('param');
-      const event = await Guard.find('event', store.events.byId(id));
+      const event = await Events.managed(c, id);
 
       const [sheet, guests] = await Promise.all([store.rsvps.sheet(id), store.guests.list(id)]);
       const rows = [
@@ -302,12 +303,12 @@ export const events = new Hono<Env>()
 
   .put(
     '/:id/attendance/:memberId',
-    Guard.needs('event:manage'),
+    Guard.needs('event:create'),
     vValidator('param', Input.params.eventMember, Check.param),
     vValidator('json', Input.attendance, Check.body),
     async (c) => {
       const { id, memberId } = c.req.valid('param');
-      const event = await Guard.find('event', c.get('store').events.byId(id));
+      const event = await Events.managed(c, id);
 
       /**
        * The member is loaded rather than trusted: `attend` inserts an rsvp, so a mistyped id
@@ -326,12 +327,12 @@ export const events = new Hono<Env>()
 
   .post(
     '/:id/guests',
-    Guard.needs('event:manage'),
+    Guard.needs('event:create'),
     vValidator('param', Input.params.event, Check.param),
     vValidator('json', Input.guest, Check.body),
     async (c) => {
       const store = c.get('store');
-      const event = await Guard.find('event', store.events.byId(c.req.valid('param').id));
+      const event = await Events.managed(c, c.req.valid('param').id);
 
       const booking = new Booking(store, c.get('log'));
       const guest = await booking.guest(event, c.req.valid('json'), Guard.member(c).id);
@@ -342,11 +343,13 @@ export const events = new Hono<Env>()
 
   .put(
     '/:id/guests/:guestId/attendance',
-    Guard.needs('event:manage'),
+    Guard.needs('event:create'),
     vValidator('param', Input.params.eventGuest, Check.param),
     vValidator('json', Input.attendance, Check.body),
     async (c) => {
       const { id, guestId } = c.req.valid('param');
+      /** The event, not just the guest: whose event it is decides who may mark anybody present. */
+      await Events.managed(c, id);
       const attended = c.req.valid('json').attended;
 
       const guest = await Guard.find('guest', c.get('store').guests.attend(id, guestId, attended));
@@ -359,17 +362,17 @@ export const events = new Hono<Env>()
 
   .delete(
     '/:id/guests/:guestId',
-    Guard.needs('event:manage'),
+    Guard.needs('event:create'),
     vValidator('param', Input.params.eventGuest, Check.param),
     async (c) => {
       const store = c.get('store');
       const { id, guestId } = c.req.valid('param');
+      const event = await Events.managed(c, id);
       const guest = await Guard.find('guest', store.guests.byId(id, guestId));
 
       await store.guests.remove(id, guestId);
       /** A guest leaving frees their seat, so the waitlist moves the way a withdrawal moves it. */
-      const event = await store.events.byId(id);
-      if (event) await new Booking(store, c.get('log')).promote(event);
+      await new Booking(store, c.get('log')).promote(event);
 
       await Trail.record(c, 'guest.remove', id, { guest: guestId, name: guest.name });
       return c.json({ ok: true });
@@ -384,6 +387,22 @@ export const events = new Hono<Env>()
  * the two that did not ask handed a draft's title to anybody holding its id.
  */
 export namespace Events {
+  /**
+   * One event, as this member is allowed to manage it.
+   *
+   * Whoever wrote it may run it, which is `Ability.canOwn` and nothing else. It used to be asked
+   * on the edit and the delete alone, so an active member could create an event, publish it and
+   * delete it, and then not read its sheet, mark anybody present or write a guest onto the list.
+   * Half a concept is a second permission table, which is the one thing `Ability` exists to stop.
+   */
+  export async function managed(c: Context<Env>, id: EventId): Promise<Event> {
+    const event = await Events.seen(c, id);
+    if (!c.get('ability').canOwn('event:manage', event.createdBy)) {
+      throw Fail.forbidden('only the organiser or an admin may manage this event');
+    }
+    return event;
+  }
+
   export async function seen(c: Context<Env>, id: EventId): Promise<Event> {
     const event = await Guard.find('event', c.get('store').events.byId(id));
     if (!event.visibleTo(Guard.member(c).id, c.get('ability').can('event:manage'))) {
