@@ -75,28 +75,23 @@ describe('a hostile event title, in every language', () => {
       for (const { subject, body } of delivered(TITLES.ansi, locale)) {
         for (const text of [subject, body]) {
           expect(text).not.toContain('\u001b');
-          expect(text).toContain('Training [31mred[0m night');
+          expect(text).toContain('Training  [31mred [0m night');
         }
       }
     }
   });
 
   /**
-   * The finding: a newline is kept by `Markup.text` (it is not treated as a control character),
-   * so a title with one puts a line break into what is used as an email subject.
+   * A subject line is one line. A title carrying a break used to put one there, which is a header
+   * a member's own event title got to write.
    */
-  test('a newline in a title reaches the subject line', () => {
+  test('a newline in a title never reaches the subject line', () => {
     for (const locale of LOCALES) {
       for (const { subject } of delivered(TITLES.newline, locale)) {
-        expect(subject).toContain('\n');
+        expect(subject).not.toContain('\n');
+        expect(subject).toContain('Training night From: committee@club.example');
       }
     }
-  });
-
-  /** And it also breaks the emphasis span it sits inside, so the delimiters print. */
-  test('a newline leaves a bare delimiter in the body', () => {
-    const [published] = delivered(TITLES.newline, 'en');
-    expect(published?.body.startsWith('*Training night')).toBe(true);
   });
 
   test('a long title is carried whole, so the length limit is the only bound', () => {

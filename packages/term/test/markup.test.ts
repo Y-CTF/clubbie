@@ -37,7 +37,22 @@ describe('Markup', () => {
 
   test('interpolated values cannot carry an escape sequence', () => {
     const rendered = Markup.render(markup`name: ${`${ESC}[31mred`}`, COLOUR);
-    expect(rendered).toBe('name: [31mred');
+    expect(rendered).toBe('name:  [31mred');
+  });
+
+  test('a line break in a value is a control character too, and becomes a space', () => {
+    expect(Markup.text('one\ntwo')).toBe('one two');
+    expect(Markup.text('one\ttwo')).toBe('one two');
+  });
+
+  /** U+009B is a single-byte CSI: an escape sequence that never needed the escape character. */
+  test('a C1 control character does not survive either', () => {
+    expect(Markup.text('\u009b31m red')).toBe(' 31m red');
+  });
+
+  /** `Diag.of` interpolates whatever was thrown, and `String()` throws for some of it. */
+  test('a value that cannot be made a string does not throw', () => {
+    expect(() => markup`what: ${Object.create(null)}`).not.toThrow();
   });
 
   test('styling closes narrowly, so an enclosing style survives', () => {

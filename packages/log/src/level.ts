@@ -1,19 +1,21 @@
-export type Level = 'trace' | 'debug' | 'info' | 'warn' | 'error';
+/** The table the level union is derived from, so the five names are written exactly once. */
+export const LEVELS = {
+  trace: 10,
+  debug: 20,
+  info: 30,
+  warn: 40,
+  error: 50,
+} as const;
+
+export type Level = keyof typeof LEVELS;
 
 /**
  * Levels and their order. A logger keeps records whose level is at least its threshold, so the
  * comparison is a number lookup and never a chain of string tests.
  */
 export namespace Level {
-  export const ORDER: Record<Level, number> = {
-    trace: 10,
-    debug: 20,
-    info: 30,
-    warn: 40,
-    error: 50,
-  };
-
-  export const ALL: readonly Level[] = ['trace', 'debug', 'info', 'warn', 'error'];
+  export const ORDER: Readonly<Record<Level, number>> = LEVELS;
+  export const ALL = Object.keys(LEVELS) as readonly Level[];
   /** The width a level column aligns to, derived rather than counted by hand. */
   export const WIDTH = Math.max(...ALL.map((level) => level.length));
   export const DEFAULT: Level = 'info';

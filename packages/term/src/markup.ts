@@ -1,5 +1,5 @@
 import { Ansi } from './ansi.ts';
-import type { Paint } from './paint.ts';
+import { Paint } from './paint.ts';
 import type { Style } from './style.ts';
 
 /**
@@ -22,6 +22,8 @@ export type Kind = keyof typeof Kind;
 
 export namespace Markup {
   export const ESCAPE = '\\';
+  /** What a control character is replaced by, so the words either side of it stay apart. */
+  export const SPACE = ' ';
   export const KINDS = Object.keys(Kind) as Kind[];
   export const DELIMITERS = KINDS.map((kind) => Kind[kind].delimiter);
 
@@ -35,17 +37,40 @@ export namespace Markup {
 
   /**
    * A value interpolated as literal text: every delimiter escaped, every control character
-   * dropped. A member's own event title is untrusted input, and one holding `[31m` would
+   * dropped. A member's own event title is untrusted input, and one holding `\x1b[31m` would
    * otherwise close the span it sits in and restyle the rest of the terminal.
+   *
+   * A line break is a control character like any other and becomes a space. It used to be let
+   * through, which put a break into what an email uses as its subject line, forged a line of a
+   * rendered diagnostic, and closed whatever span it sat inside so the delimiters printed raw. A
+   * space rather than nothing, so the words either side of it do not fuse.
    */
   export function text(value: unknown): string {
     let out = '';
-    for (const char of String(value)) {
-      if (isControl(char)) continue;
+    for (const char of Markup.string(value)) {
+      if (isControl(char)) {
+        out += SPACE;
+        continue;
+      }
       if (special(char)) out += ESCAPE;
       out += char;
     }
     return out;
+  }
+
+  /**
+   * Whatever was interpolated, as a string, whatever it is.
+   *
+   * `String(value)` throws for an object with a null prototype, and this sits on the path
+   * `Diag.of(error)` takes with whatever was thrown: an error path that throws while reporting an
+   * error is the one thing that must not happen here.
+   */
+  export function string(value: unknown): string {
+    try {
+      return String(value);
+    } catch {
+      return Object.prototype.toString.call(value);
+    }
   }
 
   /** `text`, inside a code span: the one way a message names a path, a key or a command. */
@@ -97,7 +122,12 @@ export namespace Markup {
 
   /** The same text with the markers resolved but never styled, for anywhere ANSI cannot go. */
   export function strip(source: string): string {
-    return Ansi.strip(render(source, PLAIN));
+    return Ansi.strip(render(source, Paint.plain));
+  }
+
+  /** The words alone: every span resolved, every delimiter gone. What a collector should read. */
+  export function bare(source: string): string {
+    return Ansi.strip(render(source, BARE));
   }
 
   /** The three characters that mean something to an html parser and nothing to this one. */
@@ -137,9 +167,8 @@ export namespace Markup {
    */
   export function attr(value: unknown): string {
     let out = '';
-    for (const char of String(value)) {
-      if (isControl(char)) continue;
-      out += QUOTE[char] ?? ENTITIES[char] ?? char;
+    for (const char of Markup.string(value)) {
+      out += isControl(char) ? SPACE : (QUOTE[char] ?? ENTITIES[char] ?? char);
     }
     return out;
   }
@@ -181,10 +210,13 @@ export namespace Markup {
     return out;
   }
 
-  function isControl(char: string): boolean {
+  /**
+   * C1 counts as well as C0. U+009B is a single-byte `CSI` on any terminal running in eight-bit
+   * mode, so letting the range through is letting an escape sequence through by another name.
+   */
+  export function isControl(char: string): boolean {
     const code = char.codePointAt(0) ?? 0;
-    if (char === '\n' || char === '\t') return false;
-    return code < 0x20 || code === 0x7f;
+    return code < 0x20 || (code >= 0x7f && code <= 0x9f);
   }
 
   /** The tag for a span, by the style it would have worn on a terminal. Derived, so it cannot drift. */
@@ -201,8 +233,12 @@ export namespace Markup {
     },
   } as Pick<Paint, 'enabled' | 'style'> as Paint;
 
-  /** A painter that never styles, used by `strip` so one parser serves both renderings. */
-  const PLAIN = { enabled: false, style: (_: Style, body: string) => body } as Pick<
+  /**
+   * A painter that resolves a span away entirely, delimiters and all. `Paint.plain` is not this:
+   * a disabled painter writes the delimiters back out, which is what `strip` wants and what a
+   * machine reading a JSON log does not.
+   */
+  const BARE = { enabled: true, style: (_: Style, body: string) => body } as Pick<
     Paint,
     'enabled' | 'style'
   > as Paint;

@@ -51,6 +51,10 @@ export namespace Sink {
   /**
    * One JSON object per line, which is what a collector reads. Markers are resolved out of the
    * message: a machine reading the log should not have to know what a backtick means here.
+   *
+   * The fields go in first so the envelope always wins. Spread last, a field called `level` or
+   * `message` replaced the one a collector filters on, and the two sinks then disagreed about the
+   * same record.
    */
   export class Json implements Sink {
     constructor(private readonly out: (line: string) => void = (line) => process.stdout.write(`${line}\n`)) {}
@@ -58,11 +62,11 @@ export namespace Sink {
     write(record: Record): void {
       this.out(
         JSON.stringify({
+          ...record.fields,
           at: record.at.toISOString(),
           level: record.level,
           scope: record.scope,
-          message: Markup.strip(record.message),
-          ...record.fields,
+          message: Markup.bare(record.message),
           ...(record.took !== undefined && { took: record.took }),
           ...(record.diag && { diag: record.diag.toJSON() }),
         }),
