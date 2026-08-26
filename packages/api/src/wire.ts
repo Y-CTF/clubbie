@@ -134,6 +134,16 @@ export namespace Wire {
     };
   }
 
+  /**
+   * What a member sees of somebody else's guest: a name on the list, and nothing more. A guest
+   * never held an account and never agreed to anything, so their address is the one contact detail
+   * in the app nobody chose to publish. Who invited them is the organiser's business too.
+   */
+  export function attendee(guest: Guest) {
+    const { email, invitedBy, ...rest } = Wire.guest(guest);
+    return rest;
+  }
+
   export function season(season: Season) {
     return {
       id: season.id,

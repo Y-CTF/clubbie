@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { KindId } from '@clubbie/core';
-import { Store } from '@clubbie/store';
 import { DAY, type Harness, harness, refusal } from './harness.ts';
 
 describe('the api', () => {
@@ -10,10 +9,10 @@ describe('the api', () => {
     h = await harness();
   });
 
-  test('health reports the schema version', async () => {
+  test('health answers liveness, and tells a stranger nothing about the deployment', async () => {
     const response = await h.call('/health');
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, schema: Store.latest });
+    expect(await response.json()).toEqual({ ok: true });
   });
 
   test('a signed-out caller is nobody, and `me` says so rather than refusing', async () => {

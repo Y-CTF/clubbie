@@ -11,6 +11,7 @@ import type { Kysely, Selectable } from 'kysely';
 import { Lock } from '../lock.ts';
 import { Row } from '../row.ts';
 import type { RsvpTable, Schema } from '../schema.ts';
+import { Seats } from '../seats.ts';
 import { Events, type Tally } from './events.ts';
 import { Members } from './members.ts';
 
@@ -127,7 +128,7 @@ export class Rsvps {
       /** Counting the seats and taking one are only one decision if nobody else may count now. */
       await this.lock.event(tx, eventId);
 
-      const taken = await Rsvps.taken(tx, eventId);
+      const taken = await Seats.taken(tx, eventId);
       if (capacity !== null && Rsvp.SEATED.includes(answer)) {
         const held = await tx
           .selectFrom('rsvp')
@@ -176,7 +177,7 @@ export class Rsvps {
     return this.db.transaction().execute(async (tx) => {
       await this.lock.event(tx, eventId);
 
-      const over = (await Rsvps.taken(tx, eventId)) - capacity;
+      const over = (await Seats.taken(tx, eventId)) - capacity;
       if (over <= 0) return [];
 
       const seated = await tx
@@ -227,12 +228,8 @@ export class Rsvps {
     });
   }
 
-  /**
-   * How many seats an event has taken, guests included: a capacity is what fits through the door,
-   * and somebody's friend occupies as much of it as a member does.
-   */
   async seated(eventId: EventId): Promise<number> {
-    return Rsvps.taken(this.db, eventId);
+    return Seats.taken(this.db, eventId);
   }
 
   /** Everyone waiting for a seat, in the order they asked, which is the order they are promoted. */
@@ -277,7 +274,7 @@ export class Rsvps {
       .execute();
     if (waiting.length === 0) return [];
 
-    const free = capacity === null ? waiting.length : capacity - (await Rsvps.taken(tx, eventId));
+    const free = capacity === null ? waiting.length : capacity - (await Seats.taken(tx, eventId));
     const moving = waiting.slice(0, Math.max(0, free)).map((row) => row.memberId);
     if (moving.length === 0) return [];
 
@@ -295,21 +292,6 @@ export class Rsvps {
       .returning('memberId')
       .execute();
     return moved.map((row) => row.memberId);
-  }
-
-  private static async taken(tx: Kysely<Schema>, eventId: EventId): Promise<number> {
-    const answers = await tx
-      .selectFrom('rsvp')
-      .select(({ fn }) => fn.countAll<number>().as('total'))
-      .where('eventId', '=', eventId)
-      .where('answer', 'in', Rsvp.SEATED)
-      .executeTakeFirstOrThrow();
-    const guests = await tx
-      .selectFrom('guest')
-      .select(({ fn }) => fn.countAll<number>().as('total'))
-      .where('eventId', '=', eventId)
-      .executeTakeFirstOrThrow();
-    return Number(answers.total) + Number(guests.total);
   }
 
   /** Hidden members are still on an organiser's sheet; the filter belongs to the view, not here. */

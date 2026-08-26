@@ -1,7 +1,9 @@
 import { type EventId, Guest, type GuestId, Id, type MemberId } from '@clubbie/core';
 import type { Kysely, Selectable } from 'kysely';
+import { Lock } from '../lock.ts';
 import { Row } from '../row.ts';
 import type { GuestTable, Schema } from '../schema.ts';
+import { Seats } from '../seats.ts';
 
 export interface Draft {
   readonly name: string;
@@ -10,7 +12,10 @@ export interface Draft {
 
 /** Guests: people at an event who have no account, and never will. */
 export class Guests {
-  constructor(private readonly db: Kysely<Schema>) {}
+  constructor(
+    private readonly db: Kysely<Schema>,
+    private readonly lock: Lock = Lock.NONE,
+  ) {}
 
   static of(row: Selectable<GuestTable>): Guest {
     return new Guest({
@@ -51,21 +56,42 @@ export class Guests {
     return rows.map(Guests.of);
   }
 
-  async add(eventId: EventId, draft: Draft, invitedBy: MemberId, now: Date = new Date()): Promise<Guest> {
-    const row = await this.db
-      .insertInto('guest')
-      .values({
-        id: Id.create<'guest'>(),
-        eventId,
-        name: draft.name,
-        email: draft.email ?? null,
-        invitedBy,
-        attendedAt: null,
-        createdAt: Row.ms(now),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    return Guests.of(row);
+  /**
+   * Writes a guest onto the list, or reports that there was no place for one.
+   *
+   * A guest takes a place exactly as a member does, so the count and the write are one
+   * transaction for the same reason `Rsvps.claim` is: two organisers adding the last guest would
+   * otherwise both read the room as having room, and the event would sit permanently over
+   * capacity, refusing every later answer as full.
+   */
+  async add(
+    eventId: EventId,
+    draft: Draft,
+    invitedBy: MemberId,
+    capacity: number | null,
+    now: Date = new Date(),
+  ): Promise<{ guest: Guest | null; taken: number }> {
+    return this.db.transaction().execute(async (tx) => {
+      await this.lock.event(tx, eventId);
+
+      const taken = await Seats.taken(tx, eventId);
+      if (capacity !== null && taken >= capacity) return { guest: null, taken };
+
+      const row = await tx
+        .insertInto('guest')
+        .values({
+          id: Id.create<'guest'>(),
+          eventId,
+          name: draft.name,
+          email: draft.email ?? null,
+          invitedBy,
+          attendedAt: null,
+          createdAt: Row.ms(now),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      return { guest: Guests.of(row), taken };
+    });
   }
 
   async attend(

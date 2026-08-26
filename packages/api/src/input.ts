@@ -1,3 +1,4 @@
+import { Providers } from '@clubbie/auth';
 import {
   ACTS,
   Asset,
@@ -92,7 +93,29 @@ export namespace Input {
     seasonMember: v.object({ id: id<'season'>(), memberId: id<'member'>() }),
     /** The calendar token, which is a member id and a signature and is checked by `Feed`. */
     feed: v.object({ token: v.pipe(v.string(), v.minLength(1), v.maxLength(TOKEN)) }),
+    /**
+     * A sign-in provider the app knows how to be. Whether this deployment has credentials for it
+     * is a different question, answered by `Auth` with a refusal that names the ones it has.
+     */
+    provider: v.object({ provider: literals(Providers.NAMES) }),
   } as const;
+
+  /**
+   * What a provider sends a member back with. It is the one input the app does not shape, so it is
+   * bounded here like everything else rather than forwarded at whatever length it arrived.
+   */
+  export const callback = v.object({
+    code: v.optional(v.pipe(v.string(), v.maxLength(TOKEN))),
+    state: v.optional(v.pipe(v.string(), v.maxLength(TOKEN))),
+    error: v.optional(v.pipe(v.string(), v.maxLength(TITLE))),
+  });
+
+  /** The flow parked in a signed cookie, re-checked on the way out: a cookie is still input. */
+  export const flow = v.object({
+    provider: literals(Providers.NAMES),
+    state: v.pipe(v.string(), v.minLength(1), v.maxLength(TOKEN)),
+    verifier: v.pipe(v.string(), v.minLength(1), v.maxLength(TOKEN)),
+  });
 
   /** What every heading a member types has to satisfy: one line, not empty, not endless. */
   export const heading = v.pipe(

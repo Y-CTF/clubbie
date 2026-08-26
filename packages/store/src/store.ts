@@ -71,7 +71,7 @@ export class Store {
     this.links = new Links(db);
     this.club = new Clubs(db);
     this.schedules = new Schedules(db);
-    this.guests = new Guests(db);
+    this.guests = new Guests(db, lock);
     this.jobs = new Jobs(db);
     this.audit = new Audits(db);
     this.assets = new Assets(db);

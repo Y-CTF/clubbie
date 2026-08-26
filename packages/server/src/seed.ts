@@ -168,7 +168,9 @@ export namespace Seed {
 
       await answers(store, event.id, members, draft.days < 0, now);
       /** One guest, on the workshop, so a sheet shows somebody who has no account. */
-      if (draft.capacity) await store.guests.add(event.id, { name: 'Visitor from EPFL' }, organiser, now);
+      if (draft.capacity) {
+        await store.guests.add(event.id, { name: 'Visitor from EPFL' }, organiser, event.capacity, now);
+      }
     }
   }
 

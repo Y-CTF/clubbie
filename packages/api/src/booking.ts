@@ -1,7 +1,7 @@
-import { type Answer, Event, type Member, type MemberId, Rsvp } from '@clubbie/core';
+import { type Answer, Event, type Guest, type Member, type MemberId, Rsvp } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import type { Logger } from '@clubbie/log';
-import type { Store } from '@clubbie/store';
+import type { GuestDraft, Store } from '@clubbie/store';
 import { markup, When } from '@clubbie/term';
 import { Codes } from './codes.ts';
 import { Fail, Refusal } from './fail.ts';
@@ -41,6 +41,31 @@ export class Booking {
 
     /** A waitlist answer on an event with room is promoted at once, so report what it became. */
     return (await this.store.rsvps.byMember(event.id, member.id)) ?? rsvp;
+  }
+
+  /**
+   * Writes a guest onto the list, if the club puts guests on it at all and there is a place left.
+   *
+   * It is here rather than in the route because a guest occupies a place exactly as a member does:
+   * the capacity rule is the same rule, and a second copy of it in a handler is a second answer to
+   * the question of whether the room is full.
+   */
+  async guest(event: Event, draft: GuestDraft, invitedBy: MemberId, now: Date = new Date()): Promise<Guest> {
+    const club = await this.store.club.read();
+    if (!club.guests) {
+      throw Fail.because(
+        Refusal.Closed,
+        Diag.error(Codes.event.guest, markup`*${club.name}* does not put guests on the list`).help(
+          'turn guests on in the settings, or admit them as members',
+        ),
+      );
+    }
+
+    const { guest, taken } = await this.store.guests.add(event.id, draft, invitedBy, event.capacity, now);
+    if (!guest) throw await this.full(event, taken);
+
+    this.log.info('guest added', { event: event.id, guest: guest.id, invitedBy });
+    return guest;
   }
 
   async withdraw(event: Event, member: Member, now: Date = new Date()): Promise<void> {

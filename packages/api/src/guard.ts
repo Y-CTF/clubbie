@@ -32,6 +32,19 @@ export namespace Guard {
     });
   }
 
+  /**
+   * The row behind a path parameter, or the refusal that names it.
+   *
+   * It is written once because most handlers begin by loading one row by id, and every one of them
+   * owes the same answer when there is no such row: a refusal that names what was not found, never
+   * an empty result that reads as "there is nothing".
+   */
+  export async function find<T>(what: string, found: Promise<T | null>): Promise<T> {
+    const row = await found;
+    if (!row) throw Fail.missing(what);
+    return row;
+  }
+
   /** The signed-in member, for handlers that already ran behind `needs`. */
   export function member(c: { get(key: 'member'): Member | null }): Member {
     const member = c.get('member');

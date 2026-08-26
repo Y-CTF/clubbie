@@ -1,14 +1,12 @@
 import { Brand } from '@clubbie/core';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } from 'hono/cookie';
+import * as v from 'valibot';
 import type { Env } from './context.ts';
+import { Input } from './input.ts';
 
 /** An OAuth flow in progress, parked in a signed cookie between the redirect and the callback. */
-export interface Flow {
-  readonly provider: string;
-  readonly state: string;
-  readonly verifier: string;
-}
+export type Flow = v.InferOutput<typeof Input.flow>;
 
 /**
  * The two cookies the app sets. Both are host-only, http-only and `lax`: the session must survive
@@ -57,7 +55,9 @@ export namespace Cookie {
     deleteCookie(c, FLOW, { path: '/' });
     if (!raw) return null;
     try {
-      return JSON.parse(raw) as Flow;
+      /** A signed cookie is still input: what was parked is checked on the way back out. */
+      const parsed = v.safeParse(Input.flow, JSON.parse(raw));
+      return parsed.success ? parsed.output : null;
     } catch {
       return null;
     }

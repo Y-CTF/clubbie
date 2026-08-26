@@ -1,9 +1,9 @@
-import { Event } from '@clubbie/core';
+import { Event, type EventId } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { Rsvps } from '@clubbie/store';
 import { markup } from '@clubbie/term';
 import { vValidator } from '@hono/valibot-validator';
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { Announce } from '../announce.ts';
 import { Booking } from '../booking.ts';
 import { Check } from '../check.ts';
@@ -105,8 +105,7 @@ export const events = new Hono<Env>()
     const member = Guard.member(c);
     const organiser = c.get('ability').can('event:manage');
 
-    const event = await store.events.byId(c.req.valid('param').id);
-    if (!event?.visibleTo(member.id, organiser)) throw Fail.missing('event');
+    const event = await Events.seen(c, c.req.valid('param').id);
 
     const [sheet, guests, mine] = await Promise.all([
       store.rsvps.sheet(event.id),
@@ -120,7 +119,7 @@ export const events = new Hono<Env>()
     return c.json({
       ...Wire.tally(Rsvps.tally(event, sheet, guests)),
       answers: answers.map(Wire.entry),
-      attending: guests.map(Wire.guest),
+      attending: guests.map(Wire.attendee),
       mine: mine ? Wire.rsvp(mine) : null,
     });
   })
@@ -214,13 +213,13 @@ export const events = new Hono<Env>()
     vValidator('json', Input.rsvp, Check.body),
     async (c) => {
       /**
-       * Any event that exists is loaded, and `Booking` says why it will not take an answer. The
-       * state check used to be here, so a member looking at a cancelled evening was told there is
-       * no such event: `Codes.rsvp.state` exists to say "it is cancelled" and could never be
-       * reached from this route, only from the withdraw beside it.
+       * Any event a member may see is loaded, and `Booking` says why it will not take an answer.
+       * The state check used to be here, so a member looking at a cancelled evening was told there
+       * is no such event: `Codes.rsvp.state` exists to say "it is cancelled" and could never be
+       * reached from this route, only from the withdraw beside it. Visibility is a different
+       * question and is still asked, or a leaked id answered with a draft event's title.
        */
-      const event = await c.get('store').events.byId(c.req.valid('param').id);
-      if (!event) throw Fail.missing('event');
+      const event = await Events.seen(c, c.req.valid('param').id);
 
       const booking = new Booking(c.get('store'), c.get('log'));
       return c.json(Wire.rsvp(await booking.answer(event, Guard.member(c), c.req.valid('json').answer)));
@@ -232,8 +231,7 @@ export const events = new Hono<Env>()
     Guard.needs('event:rsvp'),
     vValidator('param', Input.params.event, Check.param),
     async (c) => {
-      const event = await c.get('store').events.byId(c.req.valid('param').id);
-      if (!event) throw Fail.missing('event');
+      const event = await Events.seen(c, c.req.valid('param').id);
 
       await new Booking(c.get('store'), c.get('log')).withdraw(event, Guard.member(c));
       return c.json({ ok: true });
@@ -342,27 +340,8 @@ export const events = new Hono<Env>()
       const event = await store.events.byId(c.req.valid('param').id);
       if (!event) throw Fail.missing('event');
 
-      const club = await store.club.read();
-      if (!club.guests) {
-        throw Fail.because(
-          Refusal.Forbidden,
-          Diag.error(Codes.event.guest, markup`*${club.name}* does not put guests on the list`).help(
-            'turn guests on in the settings, or admit them as members',
-          ),
-        );
-      }
-
-      /** A guest takes a seat like anybody else, so a full event refuses one. */
-      if (event.capacity !== null && (await store.rsvps.seated(event.id)) >= event.capacity) {
-        throw Fail.because(
-          Refusal.Full,
-          Diag.error(Codes.event.capacity, markup`all ${event.capacity} places at *${event.title}* are taken`)
-            .note('a guest occupies a place exactly as a member does')
-            .help('raise the capacity, or wait for somebody to withdraw'),
-        );
-      }
-
-      const guest = await store.guests.add(event.id, c.req.valid('json'), Guard.member(c).id);
+      const booking = new Booking(store, c.get('log'));
+      const guest = await booking.guest(event, c.req.valid('json'), Guard.member(c).id);
       await Trail.record(c, 'guest.add', event.id, { guest: guest.id, name: guest.name });
       return c.json(Wire.guest(guest), 201);
     },
@@ -405,3 +384,20 @@ export const events = new Hono<Env>()
       return c.json({ ok: true });
     },
   );
+
+/**
+ * What a member may see of the club's diary.
+ *
+ * A draft belongs to its organiser until it is published, so every route that loads one event by
+ * id asks the same question: the read, the answer and the withdrawal. They used to disagree, and
+ * the two that did not ask handed a draft's title to anybody holding its id.
+ */
+export namespace Events {
+  export async function seen(c: Context<Env>, id: EventId): Promise<Event> {
+    const event = await Guard.find('event', c.get('store').events.byId(id));
+    if (!event.visibleTo(Guard.member(c).id, c.get('ability').can('event:manage'))) {
+      throw Fail.missing('event');
+    }
+    return event;
+  }
+}

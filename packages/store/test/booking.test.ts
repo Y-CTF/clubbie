@@ -86,7 +86,7 @@ describe('seats', () => {
     const alan = await member('alan');
     const workshop = await event(1, ada);
 
-    await store.guests.add(workshop.id, { name: 'a friend' }, ada.id, NOW);
+    await store.guests.add(workshop.id, { name: 'a friend' }, ada.id, workshop.capacity, NOW);
     const refused = await store.rsvps.claim(workshop.id, alan.id, 'going', workshop.capacity, NOW);
 
     expect(refused.rsvp).toBeNull();
@@ -154,11 +154,11 @@ describe('the waitlist', () => {
   test('a tally counts places, waiting members and guests the same way the listing does', async () => {
     const ada = await member('ada');
     const alan = await member('alan');
-    const workshop = await event(1, ada);
+    const workshop = await event(2, ada);
 
     await store.rsvps.claim(workshop.id, ada.id, 'going', workshop.capacity, NOW);
     await store.rsvps.answer(workshop.id, alan.id, Rsvp.QUEUED, NOW);
-    await store.guests.add(workshop.id, { name: 'a friend' }, ada.id, NOW);
+    await store.guests.add(workshop.id, { name: 'a friend' }, ada.id, workshop.capacity, NOW);
     await store.rsvps.attend(workshop.id, ada.id, true, NOW);
 
     const [listed] = await store.events.list({ state: 'published' });
@@ -172,5 +172,17 @@ describe('the waitlist', () => {
     expect(listed?.waiting).toBe(counted.waiting);
     expect(listed?.attended).toBe(counted.attended);
     expect(counted.taken).toBe(2);
+  });
+
+  test('a guest is refused the place a member already took, in the same transaction a member is', async () => {
+    const ada = await member('ada');
+    const workshop = await event(1, ada);
+
+    await store.rsvps.claim(workshop.id, ada.id, 'going', workshop.capacity, NOW);
+    const refused = await store.guests.add(workshop.id, { name: 'a friend' }, ada.id, workshop.capacity, NOW);
+
+    expect(refused.guest).toBeNull();
+    expect(refused.taken).toBe(1);
+    expect(await store.guests.list(workshop.id)).toHaveLength(0);
   });
 });

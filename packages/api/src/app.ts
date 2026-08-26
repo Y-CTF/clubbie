@@ -79,9 +79,12 @@ export namespace Api {
 
           return c.json(fail.body, fail.status);
         })
-        /** Sign-in is throttled: it is the one door an anonymous caller may knock on repeatedly. */
+        /** Every door an anonymous caller may knock on repeatedly is throttled. */
         .use('/auth/*', limit.middleware('auth'))
         .use('/me/link', limit.middleware('link'))
+        /** The calendar token is the one credential in the app that can be guessed at. */
+        .use('/calendar/*', limit.middleware('calendar'))
+        .use('/public/*', limit.middleware('public'))
         .route('/auth', auth)
         .route('/me', me)
         .route('/members', members)
@@ -95,9 +98,10 @@ export namespace Api {
         .route('/kinds', kinds)
         .route('/public', open)
         .route('/calendar', calendar)
+        /** Liveness, and nothing else: the schema version is the deployment's business. */
         .get('/health', async (c) => {
           await c.get('store').ping();
-          return c.json({ ok: true, schema: await c.get('store').version });
+          return c.json({ ok: true });
         })
     );
   }
