@@ -65,4 +65,13 @@ export namespace Providers {
   export function all(): readonly string[] {
     return NAMES.flatMap(vars);
   }
+
+  /**
+   * The variables that carry a credential, so a config listing knows what never to print. It is
+   * read off the table rather than guessed from the variable's name: a provider whose secret is
+   * not called `..._SECRET` would otherwise be printed in full by any failed boot.
+   */
+  export function secrets(): readonly string[] {
+    return NAMES.map((name) => SPECS[name].vars.clientSecret);
+  }
 }

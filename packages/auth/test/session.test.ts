@@ -12,7 +12,7 @@ let store: Store;
 let auth: Auth;
 
 async function signIn(member: Member, at: Date): Promise<string> {
-  const minted = await Token.mint(Token.TTL, at);
+  const minted = await Token.mint(at);
   await store.sessions.open(minted.digest, member.id, minted.expiresAt, at);
   return minted.token;
 }
@@ -25,7 +25,7 @@ beforeEach(async () => {
 
 describe('Token', () => {
   test('a token is stored as its digest, never as itself', async () => {
-    const minted = await Token.mint(Token.TTL, NOW);
+    const minted = await Token.mint(NOW);
     expect(minted.digest).not.toBe(minted.token);
     expect(minted.digest).toBe(await Token.digest(minted.token));
   });

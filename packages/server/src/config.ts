@@ -65,8 +65,16 @@ export namespace Config {
   export const PORTS = { min: 1, max: 65535 } as const;
   /** What the environment is called when a diagnostic underlines a line of it. */
   export const SOURCE = 'environment';
-  /** Variables whose value is never printed, however a diagnostic renders them. */
-  export const HIDDEN = /SECRET|TOKEN|PASSWORD|API_KEY/;
+  /**
+   * Variables whose value is never printed, however a diagnostic renders them. Each provider's
+   * secret is named by `Providers`, which is the table that already knows which variable is which.
+   */
+  export const HIDDEN: readonly string[] = [
+    ...Providers.secrets(),
+    VARS.secret,
+    VARS.telegram,
+    VARS.emailKey,
+  ];
   export const MASK = 8;
   /**
    * Variables that carry a secret without saying so in their name. A connection string is the
@@ -248,7 +256,7 @@ export namespace Config {
   export function redact(name: string, value: string | undefined): string {
     if (value === undefined) return '';
     if (SECRETS.includes(name)) return credentials(value);
-    if (!HIDDEN.test(name)) return value;
+    if (!HIDDEN.includes(name)) return value;
     return `${'*'.repeat(Math.min(value.length, MASK))} (${value.length} characters)`;
   }
 

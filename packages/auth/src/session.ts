@@ -18,9 +18,14 @@ export namespace Token {
   /** A session is renewed once it is this fraction of the way through its life. */
   export const RENEW = 2;
 
-  export async function mint(ttl: number = TTL, now: Date = new Date()): Promise<Minted> {
+  /**
+   * One session's lifetime is `TTL` and nothing else. It used to take a lifetime as an argument,
+   * which `stale` could not see: a session minted shorter than `TTL / RENEW` read as stale on its
+   * very first request and was quietly renewed to the full thirty days.
+   */
+  export async function mint(now: Date = new Date()): Promise<Minted> {
     const token = Bytes.token(BYTES);
-    return { token, digest: await digest(token), expiresAt: new Date(now.getTime() + ttl) };
+    return { token, digest: await digest(token), expiresAt: new Date(now.getTime() + TTL) };
   }
 
   /** Whether a session is far enough through its life to be worth writing a new expiry for. */

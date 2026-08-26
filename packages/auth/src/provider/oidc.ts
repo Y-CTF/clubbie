@@ -120,8 +120,20 @@ export class Oidc implements Provider {
      * business: eduID releases `sub` there and keeps the address and the home organisation at the
      * userinfo endpoint, which is exactly what that endpoint is for. So anything missing is asked
      * for once, with the access token we were just handed, and the two are merged.
+     *
+     * The id token wins every claim they disagree about, and userinfo naming a different `sub` is
+     * refused outright. The id token is signed and this endpoint's answer is not, and `subject` is
+     * what a member's row is matched on: a userinfo body that could overwrite it could point a
+     * sign-in at somebody else's account.
      */
-    const claims = Oidc.enough(token) ? token : { ...token, ...(await this.userinfo(tokens.accessToken())) };
+    const extra = Oidc.enough(token) ? {} : await this.userinfo(tokens.accessToken());
+    const stated = Oidc.text(extra[CLAIM.subject]);
+    if (stated !== null && stated !== Oidc.text(token[CLAIM.subject])) {
+      throw Diag.error(Codes.claims, markup`*${this.name}* described a different account than it signed in`)
+        .note('the userinfo subject does not match the one in the signed id token')
+        .help('start again from the sign-in page');
+    }
+    const claims = { ...extra, ...token };
 
     const subject = Oidc.text(claims[CLAIM.subject]);
     const email = Oidc.text(claims[CLAIM.email]);
@@ -157,12 +169,20 @@ export class Oidc implements Provider {
   }
 
   /**
-   * Whether the id token already carries everything a member row needs. The organisation is not
-   * on the list: a club that does not filter by one must not pay for a second request, and a club
-   * that does gets it from userinfo along with the rest.
+   * Whether the id token already carries everything a member row needs.
+   *
+   * The organisation is on the list. It used to be left off, so that a club which does not filter
+   * by one paid nothing for it, and the result was that eduID (which keeps the claim at userinfo)
+   * never reached it: `organisations` came out empty and a club that had restricted itself to an
+   * institution turned away every member, including the admin who typed the restriction. One
+   * userinfo call per sign-in is the cheaper of the two mistakes.
    */
   private static enough(claims: Claims): boolean {
-    return Oidc.text(claims[CLAIM.subject]) !== null && Oidc.text(claims[CLAIM.email]) !== null;
+    return (
+      Oidc.text(claims[CLAIM.subject]) !== null &&
+      Oidc.text(claims[CLAIM.email]) !== null &&
+      Oidc.text(claims[CLAIM.organisation]) !== null
+    );
   }
 
   /**
