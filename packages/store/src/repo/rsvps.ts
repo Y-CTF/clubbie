@@ -249,6 +249,32 @@ export class Rsvps {
   }
 
   /**
+   * The events that still have somebody waiting for a place, newest first, with how many.
+   *
+   * Only events that have not happened: a waiting list on last month's evening is history rather
+   * than a queue, and a club would otherwise be blocked forever by one. It is what tells a
+   * committee turning the waiting list off what is still standing in the way of that.
+   */
+  async queues(now: Date = new Date()): Promise<{ title: string; waiting: number }[]> {
+    const at = Row.ms(now);
+    const rows = await this.db
+      .selectFrom('rsvp')
+      .innerJoin('event', 'event.id', 'rsvp.eventId')
+      .select(({ fn }) => ['event.title as title', fn.countAll<number>().as('waiting')])
+      .where('rsvp.answer', '=', Rsvp.QUEUED)
+      .where((eb) =>
+        eb.or([
+          eb('event.endsAt', '>=', at),
+          eb.and([eb('event.endsAt', 'is', null), eb('event.startsAt', '>=', at)]),
+        ]),
+      )
+      .groupBy(['event.id', 'event.title', 'event.startsAt'])
+      .orderBy('event.startsAt', 'asc')
+      .execute();
+    return rows.map((row) => ({ title: row.title, waiting: Number(row.waiting) }));
+  }
+
+  /**
    * Promotes as many waiting members as there is room for, and reports who moved so the caller
    * can tell them. Called with a null capacity it promotes everybody, which is what removing a
    * capacity from an event means.

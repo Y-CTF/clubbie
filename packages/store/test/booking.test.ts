@@ -174,6 +174,35 @@ describe('the waitlist', () => {
     expect(counted.taken).toBe(2);
   });
 
+  /**
+   * What a committee turning the waiting list off is told is standing in the way. A queue on an
+   * evening that has already been is history rather than a queue, or a club would be blocked by
+   * one forever.
+   */
+  test('the queues still owed are the ones on events that have not happened', async () => {
+    const ada = await member('ada');
+    const alan = await member('alan');
+
+    const soon = await event(1, ada);
+    const gone = await store.events.create(
+      {
+        title: 'Last month',
+        kind: 'workshop' as KindId,
+        state: 'published',
+        startsAt: new Date(NOW.getTime() - 30 * 24 * HOUR),
+        capacity: 1,
+      },
+      ada.id,
+      NOW,
+    );
+
+    await store.rsvps.claim(soon.id, ada.id, 'going', soon.capacity, NOW);
+    await store.rsvps.answer(soon.id, alan.id, Rsvp.QUEUED, NOW);
+    await store.rsvps.answer(gone.id, alan.id, Rsvp.QUEUED, NOW);
+
+    expect(await store.rsvps.queues(NOW)).toEqual([{ title: 'Workshop', waiting: 1 }]);
+  });
+
   test('a guest is refused the place a member already took, in the same transaction a member is', async () => {
     const ada = await member('ada');
     const workshop = await event(1, ada);

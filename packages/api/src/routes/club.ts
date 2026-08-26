@@ -1,5 +1,6 @@
 import { vValidator } from '@hono/valibot-validator';
 import { Hono } from 'hono';
+import { Booking } from '../booking.ts';
 import { Check } from '../check.ts';
 import type { Env } from '../context.ts';
 import { Guard } from '../guard.ts';
@@ -20,6 +21,10 @@ export const club = new Hono<Env>()
 
   .patch('/', Guard.needs('club:manage'), vValidator('json', Input.club, Check.body), async (c) => {
     const patch = c.req.valid('json');
+
+    /** Turning the queue off is an answering rule, so `Booking` says whether it can be done. */
+    if (patch.waitlist === false) await new Booking(c.get('store'), c.get('log')).closable();
+
     const updated = await c.get('store').club.update(patch);
     c.get('log').info('club changed', { fields: Object.keys(patch) });
     await Trail.record(c, 'club.update', null, patch);

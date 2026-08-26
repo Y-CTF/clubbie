@@ -68,6 +68,34 @@ export class Booking {
     return guest;
   }
 
+  /**
+   * Whether the club may stop keeping a queue at all.
+   *
+   * `waitlist` has to mean one thing everywhere, and the one thing it cannot mean is that the
+   * members already queued keep being promoted out of a list the club says it does not have. It
+   * used to mean exactly that: new answers were refused while the existing queue drained and sent
+   * notices, so a member could see people ahead of them in a queue they were not allowed to join.
+   *
+   * Rather than answer on anybody's behalf, the change is refused while somebody is waiting for an
+   * evening that has not happened yet. That is what makes the two halves agree: with the list off
+   * there is nobody queued, so `promote` has nobody to promote. A queue on an evening that has
+   * already been is history rather than a queue, and does not stand in the way.
+   */
+  async closable(now: Date = new Date()): Promise<void> {
+    const queues = await this.store.rsvps.queues(now);
+    if (queues.length === 0) return;
+
+    const waiting = queues.reduce((total, one) => total + one.waiting, 0);
+    const where = queues.map((one) => `${one.title}: ${one.waiting}`).join(', ');
+
+    throw Fail.because(
+      Refusal.Conflict,
+      Diag.error(Codes.rsvp.waiting, markup`the waiting list still has ${waiting} on it`)
+        .note(markup`${where}`)
+        .help('raise the capacity on those events, or wait until they have happened, then turn it off'),
+    );
+  }
+
   async withdraw(event: Event, member: Member, now: Date = new Date()): Promise<void> {
     this.open(event, now);
     const promoted = await this.store.rsvps.withdraw(event.id, member.id, event.capacity, now);

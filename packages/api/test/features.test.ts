@@ -45,6 +45,54 @@ describe('the waitlist', () => {
     expect(promoted?.answer).toBe('going');
   });
 
+  /**
+   * The setting has to mean one thing. It used to mean "no new entries", so a member could see
+   * people ahead of them in a queue they were not allowed to join, and those people were still
+   * promoted and still told.
+   */
+  test('the waiting list cannot be turned off while somebody is still on it', async () => {
+    const admin = await h.member('ada', 'active', 'admin');
+    const alan = await h.member('alan');
+    const workshop = await h.event(admin, 1);
+
+    await h.call(`/events/${workshop.id}/rsvp`, {
+      method: 'PUT',
+      cookie: await h.signIn(admin),
+      body: JSON.stringify({ answer: 'going' }),
+    });
+    await h.call(`/events/${workshop.id}/rsvp`, {
+      method: 'PUT',
+      cookie: await h.signIn(alan),
+      body: JSON.stringify({ answer: 'waitlist' }),
+    });
+
+    const refused = await h.call('/club', {
+      method: 'PATCH',
+      cookie: await h.signIn(admin),
+      body: JSON.stringify({ waitlist: false }),
+    });
+
+    expect(refused.status).toBe(409);
+    const said = await refusal(refused);
+    expect(String(said.diag.code)).toBe('rsvp.waiting');
+    expect(said.diag.help).toBeTruthy();
+    /** Nothing was written: the club still keeps the list the refusal is about. */
+    expect((await h.store.club.read()).waitlist).toBe(true);
+  });
+
+  test('an empty waiting list is turned off, and what is behind a past event does not block it', async () => {
+    const admin = await h.member('ada', 'active', 'admin');
+    const cookie = await h.signIn(admin);
+
+    const done = await h.call('/club', {
+      method: 'PATCH',
+      cookie,
+      body: JSON.stringify({ waitlist: false }),
+    });
+    expect(done.status).toBe(200);
+    expect((await h.store.club.read()).waitlist).toBe(false);
+  });
+
   test('a waitlist answer on an event with room comes back as a place', async () => {
     const ada = await h.member('ada');
     const workshop = await h.event(ada, 2);

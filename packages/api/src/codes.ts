@@ -12,7 +12,7 @@ export const Codes = {
    * switched on `auth.provider` could not tell which table it came from.
    */
   auth: Code.group('auth', ['anonymous', 'forbidden', 'refused', 'callback', 'state']),
-  rsvp: Code.group('rsvp', ['closed', 'state', 'full']),
+  rsvp: Code.group('rsvp', ['closed', 'state', 'full', 'waiting']),
   season: Code.group('season', ['range', 'closed']),
   event: Code.group('event', ['state', 'capacity', 'guest']),
   schedule: Code.group('schedule', ['rule', 'range']),
