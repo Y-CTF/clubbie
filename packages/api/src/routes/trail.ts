@@ -21,10 +21,11 @@ export const trail = new Hono<Env>().get(
     const [entries, total] = await Promise.all([store.audit.list(which), store.audit.count(which)]);
 
     /**
-     * The roster once, rather than a lookup per row. A trail of a hundred entries is usually a
-     * handful of people, and "who" is the question the whole screen exists to answer.
+     * The actors on this page, in one query, rather than a lookup per row. It used to read the
+     * whole roster for every request: the page is bounded and the read behind it was not.
      */
-    const roster = new Map((await store.members.list()).map((member) => [member.id, member]));
+    const actors = entries.map((entry) => entry.actorId).filter((id) => id !== null);
+    const roster = await store.members.byIds(actors);
     return c.json({
       entries: entries.map((entry) =>
         Wire.audit(entry, entry.actorId ? (roster.get(entry.actorId) ?? null) : null),

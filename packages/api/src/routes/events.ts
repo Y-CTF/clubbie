@@ -38,6 +38,8 @@ export const events = new Hono<Env>()
     const window = query.from && query.to ? { from: query.from, to: query.to } : null;
 
     const listing = await c.get('store').events.list({
+      ...(query.limit !== undefined && { limit: query.limit }),
+      ...(query.offset !== undefined && { offset: query.offset }),
       ...(query.kind && { kind: query.kind }),
       ...(query.seasonId && { seasonId: query.seasonId }),
       ...(query.q && { query: query.q }),

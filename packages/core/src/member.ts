@@ -41,6 +41,8 @@ export class Member {
   /** What a member is when the club first sees them: known, but not yet admitted. */
   /** How many members one edit may touch, which is a screenful and not a database. */
   static readonly BATCH = 200;
+  /** How many one page of the roster holds. A club of tens to hundreds, in one or two pages. */
+  static readonly PAGE = 200;
   static readonly INITIAL: Status = 'pending';
   /** The one status that counts against a roster, and the only one that hears announcements. */
   static readonly ACTIVE: Status = 'active';

@@ -207,7 +207,31 @@ describe('how much of the queue the screen shows', () => {
     const { jobs, total } = (await answer.json()) as { jobs: unknown[]; total: number };
     expect(jobs).toHaveLength(25);
     expect(total).toBe(25);
-    expect(Jobs.PAGE).toBeGreaterThan(Jobs.BATCH);
+    expect(Job.PAGE).toBeGreaterThan(Jobs.BATCH);
+  });
+
+  /** The listing used to cap at fifty with no way to ask for the next one, and no way to know. */
+  test('a listing of events is a page, and the offset reaches the next one', async () => {
+    const who = await cookies();
+    const admin = await h.member('ada', 'active', 'admin');
+    for (let index = 0; index < 3; index++) await h.event(admin);
+
+    const first = (await (await h.call('/events?limit=2', { cookie: who.admin })).json()) as unknown[];
+    const next = (await (
+      await h.call('/events?limit=2&offset=2', { cookie: who.admin })
+    ).json()) as unknown[];
+
+    expect(first).toHaveLength(2);
+    expect(next).toHaveLength(1);
+  });
+
+  test('a roster is a page too, so a club that grew is not one unbounded read', async () => {
+    const who = await cookies();
+    await h.member('alan');
+    await h.member('grace');
+
+    const page = (await (await h.call('/members?limit=1', { cookie: who.admin })).json()) as unknown[];
+    expect(page).toHaveLength(1);
   });
 
   test('a page of failures is the window asked for, and the total says what is behind it', async () => {

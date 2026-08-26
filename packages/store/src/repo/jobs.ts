@@ -27,9 +27,6 @@ export type Tally = Record<JobState, number>;
 export class Jobs {
   /** How many jobs one tick takes, which bounds how long a tick can run for. */
   static readonly BATCH = 20;
-  /** How many jobs a screen shows. Its own number: a page is not a batch. */
-  static readonly PAGE = 100;
-
   constructor(private readonly db: Kysely<Schema>) {}
 
   static of(row: Selectable<JobTable>): Job {
@@ -268,7 +265,7 @@ export class Jobs {
       .orderBy('createdAt', 'desc')
       /** A total order, so page two is not page one again with one row swapped. */
       .orderBy('id', 'desc')
-      .limit(query.limit ?? Jobs.PAGE)
+      .limit(query.limit ?? Job.PAGE)
       .offset(query.offset ?? 0)
       .execute();
     return rows.map(Jobs.of);

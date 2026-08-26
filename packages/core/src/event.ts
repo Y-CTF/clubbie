@@ -42,6 +42,8 @@ export class Event {
   static readonly LIVE: State = 'published';
   /** Called off, and still on the calendar, because that is how somebody learns not to come. */
   static readonly CANCELLED: State = 'cancelled';
+  /** How many events one page of a listing holds. A calendar asks by window instead. */
+  static readonly PAGE = 50;
 
   constructor(fields: EventFields) {
     Object.assign(this, fields);

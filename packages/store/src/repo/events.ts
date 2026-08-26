@@ -33,7 +33,7 @@ export interface Draft {
 export type Patch = { readonly [K in keyof Draft]?: Draft[K] | undefined };
 
 export interface Filter {
-  readonly state?: State;
+  readonly state?: State | undefined;
   readonly kind?: KindId | undefined;
   readonly seasonId?: SeasonId | undefined;
   readonly scheduleId?: ScheduleId | undefined;
@@ -59,6 +59,7 @@ export interface Filter {
   /** True when the caller may read every draft, which is what `event:manage` grants. */
   readonly drafts?: boolean | undefined;
   readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
 }
 
 /** A stretch of the clock, half open: `from` is inside it and `to` is the first instant after. */
@@ -116,7 +117,6 @@ function within(eb: ExpressionBuilder<Schema, 'event'>, from: number, to: number
 }
 
 export class Events {
-  static readonly PAGE = 50;
   /**
    * How many events one window may answer with. It is far above a page because a window is already
    * bounded by the calendar asking it: a month of a busy club is a hundred nights, and the caller
@@ -197,7 +197,8 @@ export class Events {
           .as('present'),
       ])
       .orderBy('event.startsAt', 'asc')
-      .limit(filter.limit ?? (filter.window ? Events.WINDOW : Events.PAGE));
+      .limit(filter.limit ?? (filter.window ? Events.WINDOW : Event.PAGE))
+      .offset(filter.offset ?? 0);
 
     if (filter.state) query = query.where('event.state', '=', filter.state);
     if (!filter.drafts) {

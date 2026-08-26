@@ -182,25 +182,31 @@ export namespace Input {
   /** What a search box sends. Long enough for a name, short enough that a scan stays a scan. */
   export const term = v.pipe(v.string(), v.trim(), v.maxLength(TITLE));
 
-  /** What a paged report asks for: a window, and where it starts. */
-  export const page = v.object({
-    limit: v.optional(
-      v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(1), v.maxValue(Audit.PAGE)),
-    ),
-    offset: v.optional(v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(0))),
-  });
+  /**
+   * What a paged report asks for: a window, and where it starts.
+   *
+   * The ceiling is the caller's, because a page of the queue and a page of the trail are different
+   * numbers and each concept owns its own. It used to be `Audit.PAGE` for everybody, so the jobs
+   * screen was bounded by the trail's number and changing either quietly changed the other.
+   */
+  export const page = (max: number) =>
+    v.object({
+      limit: v.optional(v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(1), v.maxValue(max))),
+      offset: v.optional(v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(0))),
+    });
 
   /**
    * What the jobs screen asks for: a page of the queue, narrowed to one state or one kind. Both
    * unions are the domain's own, so a filter cannot ask for a state the queue does not have.
    */
   export const jobQuery = v.object({
-    ...page.entries,
+    ...page(Job.PAGE).entries,
     state: v.optional(literals(Job.STATES)),
     kind: v.optional(literals(Job.KINDS)),
   });
 
   export const memberQuery = v.object({
+    ...page(Member.PAGE).entries,
     status: v.optional(status),
     role: v.optional(role),
     q: v.optional(term),
@@ -229,6 +235,7 @@ export namespace Input {
 
   export const eventQuery = v.pipe(
     v.object({
+      ...page(Event.PAGE).entries,
       state: v.optional(state),
       kind: v.optional(kind),
       seasonId: v.optional(seasonId),

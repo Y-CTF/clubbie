@@ -21,9 +21,11 @@ import { Wire } from '../wire.ts';
  */
 export const members = new Hono<Env>()
   .get('/', Guard.needs('member:read'), vValidator('query', Input.memberQuery, Check.query), async (c) => {
-    const { status, role, q } = c.req.valid('query');
+    const { status, role, q, limit, offset } = c.req.valid('query');
     const emails = c.get('ability').can('member:manage');
     const roster = await c.get('store').members.list({
+      ...(limit !== undefined && { limit }),
+      ...(offset !== undefined && { offset }),
       ...(status && { status }),
       ...(role && { role }),
       ...(q && { query: q }),

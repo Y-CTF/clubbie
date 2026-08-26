@@ -44,6 +44,8 @@ export interface Patch {
 }
 
 export interface Which {
+  readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
   readonly status?: Status | undefined;
   readonly role?: Role | undefined;
   /** A typed word, matched against a name. Empty is no filter, not no members. */
@@ -106,7 +108,14 @@ export class Members {
   }
 
   async list(filter: Which = {}): Promise<Member[]> {
-    let query = this.db.selectFrom('member').selectAll().orderBy('name', 'asc');
+    let query = this.db
+      .selectFrom('member')
+      .selectAll()
+      .orderBy('name', 'asc')
+      /** A total order, so page two is not page one again with two rows swapped. */
+      .orderBy('id', 'asc')
+      .limit(filter.limit ?? Member.PAGE)
+      .offset(filter.offset ?? 0);
     if (filter.status) query = query.where('status', '=', filter.status);
     if (filter.role) query = query.where('role', '=', filter.role);
 
@@ -125,6 +134,14 @@ export class Members {
       .select(({ fn }) => fn.countAll<number>().as('total'))
       .executeTakeFirstOrThrow();
     return Number(row.total);
+  }
+
+  /** The members behind a set of ids, for a screen that has the ids and wants the names. */
+  async byIds(ids: readonly MemberId[]): Promise<Map<MemberId, Member>> {
+    if (ids.length === 0) return new Map();
+
+    const rows = await this.db.selectFrom('member').selectAll().where('id', 'in', ids).execute();
+    return new Map(rows.map((row) => [row.id, Members.of(row)]));
   }
 
   /**

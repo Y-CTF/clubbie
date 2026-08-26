@@ -75,6 +75,8 @@ export class Job<K extends Kind = Kind> {
   static readonly FAILED: State = 'failed';
   /** How many jobs a screen shows at once. */
   static readonly WINDOW = 20;
+  /** How many a page of the queue holds. Its own number: a page is not a batch and not a screen. */
+  static readonly PAGE = 100;
   /** How many times a job is retried before it is left alone for a person to look at. */
   static readonly TRIES = 3;
   /**
