@@ -4,6 +4,7 @@ import type { EventPatch } from '@clubbie/store';
 import { markup, When } from '@clubbie/term';
 import { vValidator } from '@hono/valibot-validator';
 import { Hono } from 'hono';
+import type * as v from 'valibot';
 import { Booking } from '../booking.ts';
 import { Check } from '../check.ts';
 import { Codes } from '../codes.ts';
@@ -22,25 +23,6 @@ import { Kinds } from './kinds.ts';
  * of the term noticing.
  */
 
-/** A rule that ends before it begins produces nothing, and is worth saying so rather than storing. */
-function range(startsAt: Date, until: Date | null): void {
-  if (!until || until.getTime() > startsAt.getTime()) return;
-
-  throw Fail.invalid(
-    Diag.error(Codes.schedule.range, 'a schedule ends after its first occurrence')
-      .note(markup`it starts ${When.stamp(startsAt)} and ends ${When.stamp(until)}`)
-      .help('push the end date past the start, or drop it and set a count instead'),
-  );
-}
-
-/** The fields an occurrence inherits, taken from the patch so a night edited by hand keeps its edit. */
-function carried(patch: Record<string, unknown>): EventPatch {
-  const fields = ['title', 'description', 'kind', 'location', 'capacity', 'seasonId', 'listed'] as const;
-  const out: Record<string, unknown> = {};
-  for (const field of fields) if (field in patch) out[field] = patch[field];
-  return out as EventPatch;
-}
-
 export const schedules = new Hono<Env>()
   .get('/', Guard.needs('event:read'), async (c) => {
     const store = c.get('store');
@@ -51,7 +33,7 @@ export const schedules = new Hono<Env>()
 
   .post('/', Guard.needs('event:manage'), vValidator('json', Input.schedule, Check.body), async (c) => {
     const draft = c.req.valid('json');
-    range(draft.startsAt, draft.until ?? null);
+    Schedules.range(draft.startsAt, draft.until ?? null);
 
     const store = c.get('store');
     await Kinds.must(store, draft.kind);
@@ -62,8 +44,8 @@ export const schedules = new Hono<Env>()
       { ...draft, ...(season && { seasonId: season.id }) },
       Guard.member(c).id,
     );
-    const { created: events } = await Expand.run(store, created, c.get('log'));
     const { timezone } = await store.club.read();
+    const { created: events } = await Expand.run(store, created, c.get('log'), timezone);
 
     await Trail.record(c, 'schedule.create', created.id, { title: created.title, events: events.length });
     return c.json({ ...Wire.schedule(created, timezone), events }, 201);
@@ -104,14 +86,19 @@ export const schedules = new Hono<Env>()
       const patch = c.req.valid('json');
 
       const before = await Guard.find('schedule', store.schedules.byId(id));
+      /** Once, at the top: stretching a term and reconciling it must not read two different zones. */
+      const { timezone } = await store.club.read();
 
-      range(patch.startsAt ?? before.startsAt, patch.until === undefined ? before.recur.until : patch.until);
+      Schedules.range(
+        patch.startsAt ?? before.startsAt,
+        patch.until === undefined ? before.recur.until : patch.until,
+      );
       await Kinds.must(store, patch.kind);
 
       const after = await Guard.find('schedule', store.schedules.update(id, patch));
 
       const now = new Date();
-      const updated = await store.events.retemplate(id, now, carried(patch));
+      const updated = await store.events.retemplate(id, now, Schedules.carried(patch));
       if (patch.minutes !== undefined) await store.events.restretch(id, now, patch.minutes ?? null);
 
       /**
@@ -128,7 +115,7 @@ export const schedules = new Hono<Env>()
         }
       }
 
-      const { created, dropped } = await Expand.reconcile(store, after, c.get('log'), now);
+      const { created, dropped } = await Expand.reconcile(store, after, c.get('log'), timezone, now);
 
       await Trail.record(c, 'schedule.update', id, {
         title: after.title,
@@ -136,7 +123,6 @@ export const schedules = new Hono<Env>()
         dropped,
         created: created.length,
       });
-      const { timezone } = await store.club.read();
       return c.json({
         ...Wire.schedule(after, timezone),
         updated: updated.length,
@@ -155,7 +141,8 @@ export const schedules = new Hono<Env>()
       const store = c.get('store');
       const schedule = await Guard.find('schedule', store.schedules.byId(c.req.valid('param').id));
 
-      const result = await Expand.run(store, schedule, c.get('log'));
+      const { timezone } = await store.club.read();
+      const result = await Expand.run(store, schedule, c.get('log'), timezone);
       /** It creates events, and every sibling on this route records what it did. */
       await Trail.record(c, 'schedule.update', schedule.id, { expanded: result.created });
       return c.json({ created: result.created, skipped: result.skipped });
@@ -184,3 +171,39 @@ export const schedules = new Hono<Env>()
       return c.json({ ok: true, dropped });
     },
   );
+
+/**
+ * What a repeating rule owes beyond its own row: the shape a night has to satisfy, and the fields
+ * an edit to the rule carries down onto the nights it already made.
+ */
+export namespace Schedules {
+  /** A rule that ends before it begins produces nothing, and is worth saying so rather than storing. */
+  export function range(startsAt: Date, until: Date | null): void {
+    if (!until || until.getTime() > startsAt.getTime()) return;
+
+    throw Fail.invalid(
+      Diag.error(Codes.schedule.range, 'a schedule ends after its first occurrence')
+        .note(markup`it starts ${When.stamp(startsAt)} and ends ${When.stamp(until)}`)
+        .help('push the end date past the start, or drop it and set a count instead'),
+    );
+  }
+
+  /**
+   * The fields an occurrence inherits, so a night edited by hand keeps its edit.
+   *
+   * Built field by field from the checked patch rather than copied through a `Record` and cast: a
+   * cast threw away everything `Input` had just proved, and a field renamed on `EventPatch` would
+   * have compiled.
+   */
+  export function carried(patch: v.InferOutput<typeof Input.schedulePatch>): EventPatch {
+    return {
+      ...(patch.title !== undefined && { title: patch.title }),
+      ...(patch.description !== undefined && { description: patch.description }),
+      ...(patch.kind !== undefined && { kind: patch.kind }),
+      ...(patch.location !== undefined && { location: patch.location }),
+      ...(patch.capacity !== undefined && { capacity: patch.capacity }),
+      ...(patch.seasonId !== undefined && { seasonId: patch.seasonId }),
+      ...(patch.listed !== undefined && { listed: patch.listed }),
+    };
+  }
+}

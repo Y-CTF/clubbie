@@ -72,12 +72,13 @@ export namespace Announce {
     if (!season.current || season.renewalAt === null) return;
 
     /**
-     * A deadline that has already passed, or is closer than the notice, still owes the message: it
-     * goes out at once rather than at a moment in the past, because the member can still act on it
-     * right up to the deadline and an organiser can act on it afterwards.
+     * A deadline already behind the club owes nothing: `Season.renewable` is `now <= renewalAt`,
+     * so the message would name a door the member can no longer walk through. One that is closer
+     * than the notice still owes it, and it goes out at once rather than at a moment in the past.
      */
-    const warn = new Date(season.renewalAt.getTime() - NOTICE);
     if (now.getTime() > season.renewalAt.getTime()) return;
+
+    const warn = new Date(season.renewalAt.getTime() - NOTICE);
 
     await store.jobs.schedule('season.renewal', { seasonId: season.id }, warn > now ? warn : now, now);
   }

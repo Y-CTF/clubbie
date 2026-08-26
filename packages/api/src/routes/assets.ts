@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { Check } from '../check.ts';
 import { Codes } from '../codes.ts';
 import type { Env } from '../context.ts';
+import { Download } from '../download.ts';
 import { Fail } from '../fail.ts';
 import { Guard } from '../guard.ts';
 import { Input } from '../input.ts';
@@ -35,7 +36,7 @@ export const assets = new Hono<Env>()
       'cache-control': Cache.IMMUTABLE,
       /** It is an image, whatever anybody says: never sniffed, never rendered as a document. */
       ...Cache.SNIFF,
-      'content-disposition': 'inline',
+      'content-disposition': Download.Kind.Inline,
     });
   })
 
@@ -64,7 +65,9 @@ export const assets = new Hono<Env>()
     if (body.byteLength > Asset.LIMIT) {
       throw Fail.invalid(
         Diag.error(Codes.asset.size, 'that image is too big to keep in the database')
-          .note(markup`it is ${kilobytes(body.byteLength)}, and the limit is ${kilobytes(Asset.LIMIT)}`)
+          .note(
+            markup`it is ${Bytes.kilobytes(body.byteLength)}, and the limit is ${Bytes.kilobytes(Asset.LIMIT)}`,
+          )
           .help('scale it down: a logo is rarely more than a few hundred pixels across'),
       );
     }
@@ -87,7 +90,3 @@ export const assets = new Hono<Env>()
       return c.json({ ok: true });
     },
   );
-
-function kilobytes(bytes: number): string {
-  return `${Math.round(bytes / Bytes.KILO)} kB`;
-}

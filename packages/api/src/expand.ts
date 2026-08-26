@@ -43,10 +43,10 @@ export namespace Expand {
     store: Store,
     schedule: Schedule,
     log: Logger,
+    timezone: string | null,
     now: Date = new Date(),
     ahead: number = Schedule.AHEAD,
   ): Promise<Reconciled> {
-    const { timezone } = await store.club.read();
     const wanted = Expand.window(schedule, now, ahead, timezone);
 
     const gone = await store.events.reconcile(schedule.id, now, wanted);
@@ -59,17 +59,22 @@ export namespace Expand {
      */
     for (const eventId of gone) await Announce.withdrawn(store, eventId);
 
-    return { ...(await Expand.run(store, schedule, log, now, ahead)), dropped: gone.length };
+    return { ...(await Expand.run(store, schedule, log, timezone, now, ahead)), dropped: gone.length };
   }
 
+  /**
+   * The club's zone is passed in rather than read here. A request that creates or edits a schedule
+   * used to read the one singleton row up to four times, and could in principle have stretched a
+   * term against one zone and reconciled it against another.
+   */
   export async function run(
     store: Store,
     schedule: Schedule,
     log: Logger,
+    timezone: string | null,
     now: Date = new Date(),
     ahead: number = Schedule.AHEAD,
   ): Promise<Result> {
-    const { timezone } = await store.club.read();
     const wanted = Expand.window(schedule, now, ahead, timezone);
 
     const created: EventId[] = [];

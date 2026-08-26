@@ -35,7 +35,7 @@ export const kinds = new Hono<Env>()
     const { label, id } = c.req.valid('json');
 
     /** The slug is the club's if it gave one, and made from the label if it did not. */
-    const wanted = id ?? (Kind.slug(label) as KindId);
+    const wanted: string = id ?? Kind.slug(label);
     if (!Kind.is(wanted)) {
       throw Fail.invalid(
         Diag.error(Codes.kind.slug, markup`there is no url-safe name in *${label}*`)

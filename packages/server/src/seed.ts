@@ -97,7 +97,8 @@ export namespace Seed {
       now,
     );
 
-    const { created } = await Expand.run(store, schedule, log, now);
+    const { timezone } = await store.club.read();
+    const { created } = await Expand.run(store, schedule, log, timezone, now);
     return created.length;
   }
 

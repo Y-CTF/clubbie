@@ -296,7 +296,7 @@ export const events = new Hono<Env>()
       ];
 
       const csv = Csv.of(['name', 'answer', 'attended', 'answered', 'kind'], rows);
-      return c.body(csv, 200, Csv.headers(Csv.filename(event.title), `${event.title}.csv`));
+      return c.body(csv, 200, Csv.headers(Csv.filename(event.title), `${event.title}.${Csv.EXTENSION}`));
     },
   )
 

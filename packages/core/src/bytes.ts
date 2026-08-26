@@ -8,6 +8,12 @@ export namespace Bytes {
   export const PAD = 2;
   /** A kilobyte, as everything that measures a payload means it. */
   export const KILO = 1024;
+  /** What a size reads as in a sentence to a person, which is the only place a size is shown. */
+  export const UNIT = 'kB';
+
+  export function kilobytes(bytes: number): string {
+    return `${Math.round(bytes / KILO)} ${UNIT}`;
+  }
 
   export function random(count: number): Uint8Array {
     return crypto.getRandomValues(new Uint8Array(count));

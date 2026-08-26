@@ -269,7 +269,9 @@ export class Scheduler {
   private async expand(scheduleId: ScheduleId): Promise<void> {
     const schedule = await this.options.store.schedules.byId(scheduleId);
     if (!schedule) return;
-    await Expand.run(this.options.store, schedule, this.log);
+
+    const { timezone } = await this.options.store.club.read();
+    await Expand.run(this.options.store, schedule, this.log, timezone);
   }
 
   /**
