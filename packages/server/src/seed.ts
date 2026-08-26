@@ -40,19 +40,25 @@ export namespace Seed {
   export const PROVIDER = 'seed';
   export const PLACE = 'Room A09';
 
-  /** A club with a name, so the seeded app does not introduce itself as the software. */
+  /**
+   * A club with a name, so the seeded app does not introduce itself as the software.
+   *
+   * Invented on purpose. Nothing about one real club is compiled in, not even in a fixture: this
+   * ships to clubs it has never met, and a named university and a named real event read as the
+   * software having an opinion about who it is for.
+   */
   export const CLUB = {
-    name: 'Polytech CTF',
-    tagline: 'we break things on wednesdays',
+    name: 'Example Club',
+    tagline: 'we meet on wednesdays',
     listed: true,
   } as const;
 
   /** Days either side of today, so a seeded listing has both a past and a future. */
   const EVENTS: readonly (Omit<EventDraft, 'startsAt'> & { days: number })[] = [
     { title: 'Weekly meeting', kind: 'meeting' as KindId, days: 2, capacity: null },
-    { title: 'Intro to binary exploitation', kind: 'workshop' as KindId, days: 7, capacity: 12 },
-    { title: 'Insomni’hack teaser', kind: 'competition' as KindId, days: 21, capacity: null },
-    { title: 'Pizza and CTF writeups', kind: 'social' as KindId, days: -5, capacity: null },
+    { title: 'Beginners workshop', kind: 'workshop' as KindId, days: 7, capacity: 12 },
+    { title: 'Open competition', kind: 'competition' as KindId, days: 21, capacity: null },
+    { title: 'Pizza and write-ups', kind: 'social' as KindId, days: -5, capacity: null },
   ];
 
   export async function run(store: Store, log: Logger, now: Date = new Date()): Promise<void> {
@@ -171,7 +177,7 @@ export namespace Seed {
       await answers(store, event.id, members, draft.days < 0, now);
       /** One guest, on the workshop, so a sheet shows somebody who has no account. */
       if (draft.capacity) {
-        await store.guests.add(event.id, { name: 'Visitor from EPFL' }, organiser, event.capacity, now);
+        await store.guests.add(event.id, { name: 'A visitor' }, organiser, event.capacity, now);
       }
     }
   }

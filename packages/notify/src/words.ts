@@ -204,9 +204,11 @@ const fr: Phrases = {
   },
 };
 
-const CATALOGUES: Record<Language, Phrases> = { en, de, fr };
+export namespace Phrases {
+  export const CATALOGUES: Readonly<Record<Language, Phrases>> = { en, de, fr };
 
-/** The phrases for a club's language. A club that has chosen none is written to in English. */
-export function phrases(locale: Language | null): Phrases {
-  return CATALOGUES[locale ?? Locale.DEFAULT];
+  /** The phrases for a club's language. A club that has chosen none is written to in English. */
+  export function of(locale: Language | null): Phrases {
+    return CATALOGUES[Locale.pick(locale)];
+  }
 }

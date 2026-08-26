@@ -38,6 +38,20 @@ export namespace Zone {
   /** Formatters are not cheap to build and a schedule builds one per occurrence without this. */
   const FORMATTERS = new Map<string, Intl.DateTimeFormat>();
 
+  /**
+   * Get-or-build, over a caller's own map. It is exported because building an `Intl` formatter is
+   * expensive wherever it happens: a broadcast built one per member, and every place that noticed
+   * had written the same eight lines.
+   */
+  export function memo<T>(cache: Map<string, T>, key: string, make: () => T): T {
+    const known = cache.get(key);
+    if (known !== undefined) return known;
+
+    const made = make();
+    cache.set(key, made);
+    return made;
+  }
+
   const OPTIONS: Intl.DateTimeFormatOptions = {
     hourCycle: 'h23',
     year: 'numeric',
@@ -51,12 +65,7 @@ export namespace Zone {
   const SECOND = Millis.SECOND;
 
   function formatter(zone: string): Intl.DateTimeFormat {
-    const known = FORMATTERS.get(zone);
-    if (known) return known;
-
-    const made = new Intl.DateTimeFormat('en-US', { ...OPTIONS, timeZone: zone });
-    FORMATTERS.set(zone, made);
-    return made;
+    return memo(FORMATTERS, zone, () => new Intl.DateTimeFormat('en-US', { ...OPTIONS, timeZone: zone }));
   }
 
   /** Whether the runtime knows a zone, which is the only authority on the question worth asking. */

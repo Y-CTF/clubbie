@@ -1,17 +1,15 @@
-import { Issues } from '@clubbie/diag';
+import { type Issue, Issues } from '@clubbie/diag';
 import type { Context } from 'hono';
 import type { Env } from './context.ts';
 import { Fail } from './fail.ts';
 
-/** What a valibot validator hands its hook. Kept structural so routes need no valibot types. */
+/**
+ * What a valibot validator hands its hook. The issue shape is `diag`'s own: it was written out a
+ * second time here, so the two definitions of one thing could drift with nothing noticing.
+ */
 interface Result {
   readonly success: boolean;
-  readonly issues?:
-    | readonly {
-        readonly message: string;
-        readonly path?: readonly { readonly key?: unknown }[] | undefined;
-      }[]
-    | undefined;
+  readonly issues?: readonly Issue[] | undefined;
 }
 
 /**

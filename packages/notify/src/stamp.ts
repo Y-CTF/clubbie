@@ -1,4 +1,4 @@
-import { type Club, type Language, Locale } from '@clubbie/core';
+import { type Club, type Language, Locale, Zone } from '@clubbie/core';
 
 /**
  * How a notice writes an instant: on the club's clock, in the club's language.
@@ -34,19 +34,14 @@ export namespace Stamp {
   const FORMATTERS = new Map<string, Intl.DateTimeFormat>();
 
   function shaped(club: Club): Intl.DateTimeFormat {
-    const tag: Language = club.locale ?? Locale.DEFAULT;
+    const tag: Language = Locale.pick(club.locale);
     const zone = club.timezone;
-    const key = [tag, zone ?? ''].join(KEY);
 
-    const known = FORMATTERS.get(key);
-    if (known) return known;
-
-    const made = new Intl.DateTimeFormat(tag, {
-      ...SHAPE,
-      ...(zone === null ? {} : { timeZone: zone }),
-    });
-    FORMATTERS.set(key, made);
-    return made;
+    return Zone.memo(
+      FORMATTERS,
+      [tag, zone ?? ''].join(KEY),
+      () => new Intl.DateTimeFormat(tag, { ...SHAPE, ...(zone === null ? {} : { timeZone: zone }) }),
+    );
   }
 
   /** One instant, written out. */

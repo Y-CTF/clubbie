@@ -1,7 +1,7 @@
 import type { Club, Event, Member, Season } from '@clubbie/core';
 import { markup } from '@clubbie/term';
 import { Stamp } from './stamp.ts';
-import { phrases, type Seat } from './words.ts';
+import { Phrases, type Seat } from './words.ts';
 
 /**
  * What a fact is about. It is a union rather than a label because a channel that draws a glyph
@@ -133,7 +133,7 @@ export namespace Notices {
 
   /** The letterhead every notice carries: who it is from, and the one colour the club is drawn in. */
   function from(club: Club): From {
-    return { name: club.name, accent: club.design.accent, why: phrases(club.locale).footer(club.name) };
+    return { name: club.name, accent: club.design.accent, why: Phrases.of(club.locale).footer(club.name) };
   }
 
   /**
@@ -146,7 +146,7 @@ export namespace Notices {
    * because `notify` has no business knowing what a choir calls a concert.
    */
   function about(event: Event, club: Club, kind: string | null): Fact[] {
-    const say = phrases(club.locale).labels;
+    const say = Phrases.of(club.locale).labels;
     const facts: Fact[] = [
       { of: 'when', label: say.when, value: markup`${Stamp.when(event.startsAt, event.endsAt, club)}` },
     ];
@@ -163,7 +163,7 @@ export namespace Notices {
   }
 
   export function published(event: Event, club: Club, url: string, kind: string | null = null): Message {
-    const say = phrases(club.locale).published;
+    const say = Phrases.of(club.locale).published;
     return new Message({
       subject: say.subject(club.name, event.title),
       from: from(club),
@@ -192,19 +192,19 @@ export namespace Notices {
   }
 
   export function reminder(event: Event, club: Club, url: string): Message {
-    return seat(event, club, url, phrases(club.locale).reminder);
+    return seat(event, club, url, Phrases.of(club.locale).reminder);
   }
 
   export function promoted(event: Event, club: Club, url: string): Message {
-    return seat(event, club, url, phrases(club.locale).promoted);
+    return seat(event, club, url, Phrases.of(club.locale).promoted);
   }
 
   export function demoted(event: Event, club: Club, url: string): Message {
-    return seat(event, club, url, phrases(club.locale).demoted);
+    return seat(event, club, url, Phrases.of(club.locale).demoted);
   }
 
   export function admitted(member: Member, club: Club, url: string): Message {
-    const say = phrases(club.locale).admitted;
+    const say = Phrases.of(club.locale).admitted;
     return new Message({
       subject: say.subject(club.name),
       from: from(club),
@@ -221,7 +221,7 @@ export namespace Notices {
    * none, which is what a missing fact is everywhere else in this file.
    */
   export function renewal(season: Season, club: Club, url: string): Message {
-    const say = phrases(club.locale);
+    const say = Phrases.of(club.locale);
     return new Message({
       subject: say.renewal.subject(club.name, season.name),
       from: from(club),
