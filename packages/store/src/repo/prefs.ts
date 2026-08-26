@@ -50,29 +50,44 @@ export class Preferences {
     return out;
   }
 
+  /**
+   * Changes the switches a patch names, and only those.
+   *
+   * It used to read the row, merge, and write all four columns back. Two patches in flight, which
+   * is a member on the settings page and the bot unlinking their chat, both read the old row and
+   * the later write silently reverted the earlier one. Now the conflict update carries the touched
+   * columns alone, so a switch nobody moved is a switch nobody writes.
+   */
   async update(memberId: MemberId, patch: Patch): Promise<Prefs> {
-    const current = await this.read(memberId);
-    const next = new Prefs({
-      memberId,
-      telegram: patch.telegram ?? current.telegram,
-      email: patch.email ?? current.email,
-      announcements: patch.announcements ?? current.announcements,
-      reminders: patch.reminders ?? current.reminders,
-    });
-
-    const values = {
-      memberId,
-      telegram: Row.bit(next.telegram),
-      email: Row.bit(next.email),
-      announcements: Row.bit(next.announcements),
-      reminders: Row.bit(next.reminders),
+    const touched = {
+      ...(patch.telegram !== undefined && { telegram: Row.bit(patch.telegram) }),
+      ...(patch.email !== undefined && { email: Row.bit(patch.email) }),
+      ...(patch.announcements !== undefined && { announcements: Row.bit(patch.announcements) }),
+      ...(patch.reminders !== undefined && { reminders: Row.bit(patch.reminders) }),
     };
+    if (Object.keys(touched).length === 0) return this.read(memberId);
 
-    await this.db
-      .insertInto('preference')
-      .values(values)
-      .onConflict((c) => c.column('memberId').doUpdateSet(values))
-      .execute();
-    return next;
+    const fallback = Prefs.default(memberId);
+    return this.db.transaction().execute(async (tx) => {
+      await tx
+        .insertInto('preference')
+        .values({
+          memberId,
+          telegram: Row.bit(fallback.telegram),
+          email: Row.bit(fallback.email),
+          announcements: Row.bit(fallback.announcements),
+          reminders: Row.bit(fallback.reminders),
+          ...touched,
+        })
+        .onConflict((c) => c.column('memberId').doUpdateSet(touched))
+        .execute();
+
+      const row = await tx
+        .selectFrom('preference')
+        .selectAll()
+        .where('memberId', '=', memberId)
+        .executeTakeFirstOrThrow();
+      return Preferences.of(row);
+    });
   }
 }

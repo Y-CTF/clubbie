@@ -259,6 +259,48 @@ describe('Seasons', () => {
     expect((await store.seasons.byId(first.id))?.current).toBe(false);
   });
 
+  test('a member is found by an address typed in any case, because one shape is stored', async () => {
+    const member = await store.members.enroll(profile('Ada'), NOW);
+
+    expect((await store.members.byEmail('  ADA@example.org '))?.id).toBe(member.id);
+    expect(member.email).toBe('ada@example.org');
+  });
+
+  /**
+   * The references from an event, a repeat and a guest do not cascade on purpose, so the delete
+   * used to reach the driver as a foreign key violation and the member as a 500.
+   */
+  test('removing a member who organised something refuses, and says what to do instead', async () => {
+    const ada = await store.members.enroll(profile('ada'), NOW);
+    await store.events.create(
+      { title: 'Workshop', kind: 'workshop' as KindId, state: 'published', startsAt: NOW },
+      ada.id,
+      NOW,
+    );
+
+    expect(store.members.remove(ada.id)).rejects.toThrow();
+    expect(await store.members.byId(ada.id)).not.toBeNull();
+  });
+
+  test('a member who wrote nothing is removed', async () => {
+    const ada = await store.members.enroll(profile('ada'), NOW);
+    await store.members.remove(ada.id);
+
+    expect(await store.members.byId(ada.id)).toBeNull();
+  });
+
+  /** Two patches of different switches: the later one must not revert the earlier one. */
+  test('a preference patch writes the switches it names and no others', async () => {
+    const ada = await store.members.enroll(profile('ada'), NOW);
+
+    await store.prefs.update(ada.id, { telegram: false });
+    const after = await store.prefs.update(ada.id, { reminders: false });
+
+    expect(after.telegram).toBe(false);
+    expect(after.reminders).toBe(false);
+    expect(after.email).toBe(true);
+  });
+
   test('joining twice leaves one membership', async () => {
     const member = await store.members.enroll(profile('ada'), NOW);
     const season = await store.seasons.create(

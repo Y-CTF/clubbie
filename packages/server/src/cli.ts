@@ -200,7 +200,7 @@ export namespace Cli {
     }
 
     const { store, log } = await App.wire(config);
-    const member = await store.members.byEmail(email.toLowerCase());
+    const member = await store.members.byEmail(email);
     if (!member) {
       await store.close();
       throw Diag.error(Codes.cli.admin, markup`no member has the email \`${email}\``)

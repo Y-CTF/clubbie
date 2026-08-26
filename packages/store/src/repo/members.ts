@@ -89,8 +89,20 @@ export class Members {
   }
 
   async byEmail(email: string): Promise<Member | null> {
-    const row = await this.db.selectFrom('member').selectAll().where('email', '=', email).executeTakeFirst();
+    const row = await this.db
+      .selectFrom('member')
+      .selectAll()
+      .where('email', '=', Members.address(email))
+      .executeTakeFirst();
     return row ? Members.of(row) : null;
+  }
+
+  /**
+   * One shape for an address, so a lookup finds what an enrolment wrote. The normalisation used to
+   * live only on the write, and the one caller of `byEmail` compensated by lowercasing for itself.
+   */
+  private static address(email: string): string {
+    return email.trim().toLowerCase();
   }
 
   async list(filter: Which = {}): Promise<Member[]> {
@@ -135,7 +147,7 @@ export class Members {
    */
   async enroll(profile: Profile, now: Date = new Date(), status: Status = Member.INITIAL): Promise<Member> {
     /** Compared, stored and matched in one shape, rather than in whatever a provider sent. */
-    const email = profile.email.trim().toLowerCase();
+    const email = Members.address(profile.email);
     const organisation = profile.organisation?.trim().toLowerCase() ?? null;
 
     return this.db.transaction().execute(async (tx) => {
@@ -236,7 +248,40 @@ export class Members {
     return row ? Members.of(row) : null;
   }
 
+  /**
+   * Removes a member, or says what the club still has of theirs.
+   *
+   * An event, a schedule and a guest all name who wrote them, and none of those references
+   * cascades: the name on what somebody organised is part of the record. Without this the delete
+   * reached the driver as a foreign key violation and came back to the member as "something went
+   * wrong on our side", which is neither true nor actionable.
+   */
   async remove(id: MemberId): Promise<void> {
+    const [events, schedules, guests] = await Promise.all([
+      this.db
+        .selectFrom('event')
+        .select((eb) => eb.fn.countAll<number>().as('total'))
+        .where('createdBy', '=', id)
+        .executeTakeFirstOrThrow(),
+      this.db
+        .selectFrom('schedule')
+        .select((eb) => eb.fn.countAll<number>().as('total'))
+        .where('createdBy', '=', id)
+        .executeTakeFirstOrThrow(),
+      this.db
+        .selectFrom('guest')
+        .select((eb) => eb.fn.countAll<number>().as('total'))
+        .where('invitedBy', '=', id)
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    const held = Number(events.total) + Number(schedules.total) + Number(guests.total);
+    if (held > 0) {
+      throw Diag.error(Codes.conflict, markup`that member wrote ${held} things the club still has`)
+        .note(markup`${events.total} events, ${schedules.total} repeats and ${guests.total} guests name them`)
+        .help('retire the member instead: their name stays on what they organised');
+    }
+
     await this.db.deleteFrom('member').where('id', '=', id).execute();
   }
 }

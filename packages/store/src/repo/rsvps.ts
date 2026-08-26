@@ -95,7 +95,23 @@ export class Rsvps {
    * they were already in.
    */
   async answer(eventId: EventId, memberId: MemberId, answer: Answer, now: Date = new Date()): Promise<Rsvp> {
-    const row = await this.db
+    return Rsvps.put(this.db, eventId, memberId, answer, now);
+  }
+
+  /**
+   * The upsert both doors go through: this one, and the seat check in `claim`.
+   *
+   * It is one function because the `answeredAt`-only-on-change rule is the waitlist's order, and
+   * two copies of it meant a fix to one reordered the queue the other made.
+   */
+  private static async put(
+    tx: Kysely<Schema>,
+    eventId: EventId,
+    memberId: MemberId,
+    answer: Answer,
+    now: Date,
+  ): Promise<Rsvp> {
+    const row = await tx
       .insertInto('rsvp')
       .values({ eventId, memberId, answer, attendedAt: null, answeredAt: Row.ms(now) })
       .onConflict((c) =>
@@ -106,8 +122,17 @@ export class Rsvps {
       )
       .returningAll()
       .executeTakeFirst();
+    if (row) return Rsvps.of(row);
+
     /** The update was skipped because nothing changed, so the row as it stands is the answer. */
-    return row ? Rsvps.of(row) : ((await this.byMember(eventId, memberId)) as Rsvp);
+    return Rsvps.of(
+      await tx
+        .selectFrom('rsvp')
+        .selectAll()
+        .where('eventId', '=', eventId)
+        .where('memberId', '=', memberId)
+        .executeTakeFirstOrThrow(),
+    );
   }
 
   /**
@@ -142,29 +167,7 @@ export class Rsvps {
         if (!holds && taken >= capacity) return { rsvp: null, taken };
       }
 
-      const row = await tx
-        .insertInto('rsvp')
-        .values({ eventId, memberId, answer, attendedAt: null, answeredAt: Row.ms(now) })
-        .onConflict((c) =>
-          c
-            .columns(['eventId', 'memberId'])
-            .doUpdateSet({ answer, answeredAt: Row.ms(now) })
-            .whereRef('rsvp.answer', '!=', 'excluded.answer'),
-        )
-        .returningAll()
-        .executeTakeFirst();
-
-      const rsvp = row
-        ? Rsvps.of(row)
-        : Rsvps.of(
-            await tx
-              .selectFrom('rsvp')
-              .selectAll()
-              .where('eventId', '=', eventId)
-              .where('memberId', '=', memberId)
-              .executeTakeFirstOrThrow(),
-          );
-      return { rsvp, taken };
+      return { rsvp: await Rsvps.put(tx, eventId, memberId, answer, now), taken };
     });
   }
 
