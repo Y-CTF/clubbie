@@ -114,7 +114,7 @@ function counted(one: JobState | ''): string {
 
 /** When a job is next interesting: due, overdue, or held by a drainer that took it. */
 function timing(job: { state: JobState; runAt: string; claimedAt: string | null }): string {
-  if (job.state === 'running' && job.claimedAt) return t.queue.held(Format.since(job.claimedAt));
+  if (job.state === Job.RUNNING && job.claimedAt) return t.queue.held(Format.since(job.claimedAt));
   const late = new Date(job.runAt).getTime() < Date.now();
   return late ? t.queue.overdue(Format.since(job.runAt)) : t.queue.due(Format.since(job.runAt));
 }
@@ -140,9 +140,7 @@ function timing(job: { state: JobState; runAt: string; claimedAt: string | null 
   -->
   <div class="flex items-center gap-2 justify-self-start sm:justify-self-end">
     <Button look="plain" onclick={() => live.toggle()}>
-      <span class="badge" style={live.on ? '--tint: var(--color-going)' : '--tint: var(--color-muted)'}>
-        {live.on ? t.queue.live : t.queue.paused}
-      </span>
+      <Badge kind={live.on ? 'live' : 'paused'}>{live.on ? t.queue.live : t.queue.paused}</Badge>
     </Button>
     <Button look="plain" disabled={queue.loading} onclick={() => queue.load()}>{t.queue.refresh}</Button>
   </div>
@@ -200,7 +198,7 @@ function timing(job: { state: JobState; runAt: string; claimedAt: string | null 
         <div class="mt-3 flex flex-wrap items-center gap-2">
           {#if Job.REPLAYABLE.includes(job.state)}
             <Button disabled={action.busy} onclick={() => retry(job.id)}>
-              {job.state === 'failed' ? t.queue.retry : t.queue.now}
+              {job.state === Job.FAILED ? t.queue.retry : t.queue.now}
             </Button>
           {/if}
 
@@ -216,7 +214,7 @@ function timing(job: { state: JobState; runAt: string; claimedAt: string | null 
             </Danger>
           {/if}
 
-          {#if job.state === 'running'}
+          {#if job.state === Job.RUNNING}
             <span class="text-xs text-muted">{t.queue.busy}</span>
           {/if}
         </div>

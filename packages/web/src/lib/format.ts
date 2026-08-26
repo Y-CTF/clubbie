@@ -17,6 +17,18 @@ import { words } from './words/index.svelte.ts';
  * a module constant, and against the language, so choosing a new one starts a fresh set.
  */
 export namespace Format {
+  /**
+   * What a trail detail's value reads as. The column holds whatever the act recorded, which is a
+   * string, a number, a flag, or the before-and-after of a membership; none of those is worth its
+   * JSON, and none of them is a sentence the catalogue could hold on its own.
+   */
+  export function detail(value: unknown): string {
+    const t = words.t.common;
+    if (value === null || value === undefined) return t.nothing;
+    if (typeof value === 'object') return Object.values(value).join(` ${t.became} `);
+    return String(value);
+  }
+
   const DAY: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
   const TIME: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
   const FULL: Intl.DateTimeFormatOptions = { ...DAY, ...TIME, year: 'numeric' };

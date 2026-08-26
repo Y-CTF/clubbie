@@ -35,6 +35,9 @@ export const de: Catalogue = {
     forward: 'älter',
     page: (page, pages) => `Seite ${page} von ${pages}`,
     between: 'bis',
+    nothing: 'keine',
+    became: 'zu',
+    url: 'https://',
     or: 'oder',
   },
 
@@ -348,6 +351,7 @@ export const de: Catalogue = {
     languageAuto: 'die des Lesers',
     timezone: 'Zeitzone',
     timezoneHint: 'etwa Europe/Zurich: die Uhr, an die sich ein Serientermin hält',
+    timezoneExample: 'Europe/Zurich',
     listed: 'eine öffentliche Seite mit den nächsten Terminen zeigen',
     trail: 'was geändert wurde',
     trailEmpty: 'es wurde noch nichts geändert.',

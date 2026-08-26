@@ -330,7 +330,7 @@ export namespace Input {
   export const DOMAIN = Club.DOMAIN;
   export const ORGANISATION = Club.ORGANISATION;
   /** Deliberately loose: an address is whatever a provider says it is, with an `@` in the middle. */
-  export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  export const EMAIL = Club.ADDRESS;
 
   /** A domain, as every list of them wants it: trimmed, lowercased, and shaped like one. */
   const domain = v.pipe(

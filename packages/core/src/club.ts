@@ -108,6 +108,12 @@ export class Club {
    * organisation in the *other* namespace with the same name walked through a door that was
    * written for a university. Qualifying it makes each entry say whose organisation it is.
    */
+  /**
+   * What an entry in `allowed` or `blocked` looks like. Beside `DOMAIN` for the same reason: the
+   * settings page checks it too, and a browser that accepts what the server refuses is a form that
+   * fails on save for a reason the member cannot see from the field they typed into.
+   */
+  static readonly ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   static readonly QUALIFIER = ':';
   /** What an entry in `organisations` looks like: a provider, the qualifier, and a name. */
   static readonly ORGANISATION =

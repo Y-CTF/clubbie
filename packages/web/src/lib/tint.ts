@@ -5,7 +5,10 @@ import type { Answer, JobState } from '@clubbie/core';
  * and where a job is in its life. They share a table because they share a vocabulary of meaning,
  * which is what a colour on a badge actually says: this went well, this is waiting, this did not.
  */
-export type Tinted = Answer | 'attended' | 'guest' | JobState;
+export type Tinted = Answer | 'attended' | 'guest' | JobState | Watch;
+
+/** Whether a screen that moves under the reader is moving. It wears a badge, so it wears a tint. */
+export type Watch = 'live' | 'paused';
 
 /**
  * The one place a state gets a colour.
@@ -25,4 +28,6 @@ export const Tint: Record<Tinted, string> = {
   running: '--tint: var(--color-maybe)',
   done: '--tint: var(--color-going)',
   failed: '--tint: var(--color-declined)',
+  live: '--tint: var(--color-going)',
+  paused: '--tint: var(--color-muted)',
 };

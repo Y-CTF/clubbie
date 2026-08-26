@@ -91,6 +91,8 @@ export class Design {
 
   /** The one colour a deployment names outright, as a CSS colour the SPA sets a token from. */
   static readonly ACCENT = '#4f46e5';
+  /** What the colour box shows before a club has picked a paper of its own. */
+  static readonly PAPER = '#ffffff';
   /** How much ink is mixed into the paper to get the surface a card or a field sits on. */
   static readonly SUNK = 4;
   static readonly PALETTE: Palette = 'system';

@@ -35,6 +35,9 @@ export const fr: Catalogue = {
     forward: 'plus ancien',
     page: (page, pages) => `page ${page} sur ${pages}`,
     between: 'au',
+    nothing: 'aucune',
+    became: 'vers',
+    url: 'https://',
     or: 'ou',
   },
 
@@ -351,6 +354,7 @@ export const fr: Catalogue = {
     languageAuto: 'celle du lecteur',
     timezone: 'fuseau horaire',
     timezoneHint: 'par exemple Europe/Zurich : l’heure que garde un événement récurrent',
+    timezoneExample: 'Europe/Zurich',
     listed: 'montrer une page publique avec les prochains événements',
     trail: 'ce qui a été fait',
     trailEmpty: 'rien n’a encore été changé.',

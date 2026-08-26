@@ -63,6 +63,12 @@ export interface Catalogue {
     readonly between: string;
     /** Between two ways of doing the same thing: point at an image, or upload one. */
     readonly or: string;
+    /** What a value the club never set reads as, in a report that has a column for it anyway. */
+    readonly nothing: string;
+    /** Between what something was and what it became, in one line of the trail. */
+    readonly became: string;
+    /** What goes in a box that wants a web address. */
+    readonly url: string;
   };
 
   /** What a club calls its events is data, so these are the words *around* that list. */
@@ -392,6 +398,8 @@ export interface Catalogue {
     readonly languageAuto: string;
     readonly timezone: string;
     readonly timezoneHint: string;
+    /** A zone spelled the way IANA spells one, in the box that wants one. */
+    readonly timezoneExample: string;
     readonly listed: string;
     readonly trail: string;
     readonly trailEmpty: string;

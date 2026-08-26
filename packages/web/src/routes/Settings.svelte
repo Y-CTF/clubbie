@@ -46,15 +46,6 @@ const trail = new Query(async () =>
   ),
 );
 
-/**
- * What a detail's value reads as. The column holds whatever the act recorded, which is a string,
- * a number, a flag, or the before-and-after of a membership; none of those is worth its JSON.
- */
-function stringify(value: unknown): string {
-  if (value === null || value === undefined) return '—';
-  if (typeof value === 'object') return Object.values(value).join(' → ');
-  return String(value);
-}
 /** Where the trail is: it grows forever, and is read newest first. */
 let done = $state(0);
 /** What this deployment actually configured, which is what a club may pick from. */
@@ -81,7 +72,13 @@ let hue = $state(Design.HUE.value);
 let tint = $state(Design.TINT.value);
 let scale = $state(Design.SCALE.value);
 let motion = $state(Design.MOTION);
-let links = $state<{ label: string; url: string }[]>([]);
+/**
+ * A row's `key` is the browser's, not the club's: a link is stored as a label and a url and has no
+ * identity of its own. Keying the list by position instead meant deleting the first of three moved
+ * every surviving row's identity, and the focus and the caret went with it.
+ */
+let rows = 0;
+let links = $state<{ key: number; label: string; url: string }[]>([]);
 let banner = $state('');
 let blurb = $state('');
 let footer = $state('');
@@ -131,7 +128,7 @@ function addLink(): void {
   const url = pending.url.trim();
   if (!label || !url) return;
 
-  links = [...links, { label, url }];
+  links = [...links, { key: ++rows, label, url }];
   pending = { label: '', url: '' };
 }
 
@@ -182,7 +179,7 @@ function fill(): void {
   tint = current.design.tint;
   scale = current.design.scale;
   motion = current.design.motion;
-  links = current.design.links.map((one) => ({ ...one }));
+  links = current.design.links.map((one) => ({ ...one, key: ++rows }));
   banner = current.design.banner ?? '';
   blurb = current.design.blurb ?? '';
   footer = current.design.footer ?? '';
@@ -223,7 +220,10 @@ async function save(): Promise<void> {
           scale,
           motion,
           /** A half-typed link is not a link: only rows with both halves are sent. */
-          links: links.filter((one) => one.label.trim() !== '' && one.url.trim() !== ''),
+          links: links
+            .filter((one) => one.label.trim() !== '' && one.url.trim() !== '')
+            /** The key is the browser's own; what the club stores is a label and a url. */
+            .map(({ label, url }) => ({ label, url })),
           banner: banner || null,
           blurb: blurb || null,
           footer: footer || null,
@@ -285,7 +285,7 @@ async function save(): Promise<void> {
         <span class="flex items-center gap-3">
           <input
             type="color"
-            value={paper ?? '#ffffff'}
+            value={paper ?? Design.PAPER}
             onchange={(event) => (paper = event.currentTarget.value)}
             class="h-11 w-16 border border-line"
           />
@@ -314,24 +314,24 @@ async function save(): Promise<void> {
         <Select bind:value={width} options={Design.WIDTHS} name={(one) => t.widths[one]} />
       </Field>
 
-      <Field label={t.design.scale} hint={t.design.scaleHint}>
-        <Scale bind:value={scale} range={Design.SCALE} unit="%" />
+      <Field label={t.design.scale} hint={t.design.scaleHint} group>
+        <Scale bind:value={scale} range={Design.SCALE} unit="%" label={t.design.scale} />
       </Field>
 
-      <Field label={t.design.corner} hint={t.design.cornerHint}>
-        <Scale bind:value={corner} range={Design.CORNER} unit="px" />
+      <Field label={t.design.corner} hint={t.design.cornerHint} group>
+        <Scale bind:value={corner} range={Design.CORNER} unit="px" label={t.design.corner} />
       </Field>
 
-      <Field label={t.design.space} hint={t.design.spaceHint}>
-        <Scale bind:value={space} range={Design.SPACE} unit="%" />
+      <Field label={t.design.space} hint={t.design.spaceHint} group>
+        <Scale bind:value={space} range={Design.SPACE} unit="%" label={t.design.space} />
       </Field>
 
-      <Field label={t.design.hue} hint={t.design.hueHint}>
-        <Scale bind:value={hue} range={Design.HUE} unit="°" />
+      <Field label={t.design.hue} hint={t.design.hueHint} group>
+        <Scale bind:value={hue} range={Design.HUE} unit="°" label={t.design.hue} />
       </Field>
 
-      <Field label={t.design.tint} hint={t.design.tintHint}>
-        <Scale bind:value={tint} range={Design.TINT} />
+      <Field label={t.design.tint} hint={t.design.tintHint} group>
+        <Scale bind:value={tint} range={Design.TINT} label={t.design.tint} />
       </Field>
     </div>
 
@@ -368,12 +368,12 @@ async function save(): Promise<void> {
     other composing in place, which made adding a link and adding a kind feel like different acts.
   -->
   <ul class="mt-4 grid gap-2">
-    {#each links as link, index (index)}
+    {#each links as link, index (link.key)}
       <li class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_7rem] items-center gap-2">
         <Input bind:value={link.label} placeholder={t.design.linkLabel} aria-label={t.design.linkLabel} />
         <Input
           bind:value={link.url}
-          placeholder="https://"
+          placeholder={t.common.url}
           aria-label={t.design.linkUrl}
           autocapitalize="none"
           autocorrect="off"
@@ -392,7 +392,7 @@ async function save(): Promise<void> {
       <Input bind:value={pending.label} placeholder={t.design.linkLabel} aria-label={t.design.linkLabel} />
       <Input
         bind:value={pending.url}
-        placeholder="https://"
+        placeholder={t.common.url}
         aria-label={t.design.linkUrl}
         autocapitalize="none"
         autocorrect="off"
@@ -476,7 +476,7 @@ async function save(): Promise<void> {
         bind:values={allowed}
         placeholder={t.access.address}
         label={t.access.allowed}
-        check={(value) => value.includes('@')}
+        check={(value) => Club.ADDRESS.test(value)}
       />
     </Field>
 
@@ -485,7 +485,7 @@ async function save(): Promise<void> {
         bind:values={blocked}
         placeholder={t.access.address}
         label={t.access.blocked}
-        check={(value) => value.includes('@')}
+        check={(value) => Club.ADDRESS.test(value)}
       />
     </Field>
 
@@ -532,7 +532,7 @@ async function save(): Promise<void> {
       </Field>
 
       <Field label={t.settings.timezone} hint={t.settings.timezoneHint}>
-        <Input bind:value={timezone} placeholder="Europe/Zurich" />
+        <Input bind:value={timezone} placeholder={t.settings.timezoneExample} />
       </Field>
     </div>
   </div>
@@ -544,12 +544,12 @@ async function save(): Promise<void> {
 
   <div class="mt-4 grid gap-4">
     <div class="grid gap-4 sm:grid-cols-2">
-      <Field label={t.rules.deadline} hint={t.rules.deadlineHint}>
-        <Scale bind:value={deadline} range={Club.HOURS} unit="h" />
+      <Field label={t.rules.deadline} hint={t.rules.deadlineHint} group>
+        <Scale bind:value={deadline} range={Club.HOURS} unit="h" label={t.rules.deadline} />
       </Field>
 
-      <Field label={t.rules.remind} hint={t.rules.remindHint}>
-        <Scale bind:value={remind} range={Club.HOURS} unit="h" />
+      <Field label={t.rules.remind} hint={t.rules.remindHint} group>
+        <Scale bind:value={remind} range={Club.HOURS} unit="h" label={t.rules.remind} />
       </Field>
     </div>
 
@@ -603,7 +603,7 @@ async function save(): Promise<void> {
             <p class="font-mono text-xs break-words text-muted">
               {#if entry.subject}<span>{entry.subject}</span>{/if}
               {#each Object.entries(entry.detail ?? {}) as [key, value] (key)}
-                <span class="ml-2">{key}: {stringify(value)}</span>
+                <span class="ml-2">{key}: {Format.detail(value)}</span>
               {/each}
             </p>
           {/if}

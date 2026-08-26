@@ -63,7 +63,7 @@ function chosen(event: Event & { currentTarget: HTMLInputElement }): void {
 
   <!-- One grid, so the box and the buttons beside it share an edge and a height. -->
   <div class="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2">
-    <Input bind:value placeholder="https://" />
+    <Input bind:value placeholder={t.common.url} />
 
     <!-- The two are alternatives, and a word says so: they read as a sequence without it. -->
     <span class="text-xs text-muted">{t.common.or}</span>
