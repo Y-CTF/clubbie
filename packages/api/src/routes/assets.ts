@@ -10,6 +10,7 @@ import { Fail } from '../fail.ts';
 import { Guard } from '../guard.ts';
 import { Input } from '../input.ts';
 import { Trail } from '../trail.ts';
+import { Wire } from '../wire.ts';
 
 /**
  * The images a club uploads: its logo, and the banner on its public page.
@@ -25,8 +26,7 @@ import { Trail } from '../trail.ts';
  */
 export const assets = new Hono<Env>()
   .get('/:id', vValidator('param', Input.params.asset, Check.param), async (c) => {
-    const found = await c.get('store').assets.read(c.req.valid('param').id);
-    if (!found) throw Fail.missing('image');
+    const found = await Guard.find('image', c.get('store').assets.read(c.req.valid('param').id));
 
     return c.body(found.body as unknown as ArrayBuffer, 200, {
       'content-type': found.asset.mime,
@@ -41,15 +41,7 @@ export const assets = new Hono<Env>()
 
   .get('/', Guard.needs('club:manage'), async (c) => {
     const stored = await c.get('store').assets.list();
-    return c.json(
-      stored.map((asset) => ({
-        id: asset.id,
-        url: Asset.url(asset.id),
-        mime: asset.mime,
-        bytes: asset.bytes,
-        uploadedAt: asset.uploadedAt.toISOString(),
-      })),
-    );
+    return c.json(stored.map(Wire.asset));
   })
 
   /**
@@ -80,7 +72,7 @@ export const assets = new Hono<Env>()
     const stored = await c.get('store').assets.add(body, mime, Guard.member(c).id);
     await Trail.record(c, 'asset.add', stored.id, { mime, bytes: stored.bytes });
 
-    return c.json({ id: stored.id, url: Asset.url(stored.id), mime, bytes: stored.bytes }, 201);
+    return c.json(Wire.asset(stored), 201);
   })
 
   .delete(

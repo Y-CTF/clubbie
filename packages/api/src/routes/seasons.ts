@@ -59,8 +59,7 @@ export const seasons = new Hono<Env>()
     async (c) => {
       const store = c.get('store');
       const { id } = c.req.valid('param');
-      const season = await store.seasons.byId(id);
-      if (!season) throw Fail.missing('season');
+      const season = await Guard.find('season', store.seasons.byId(id));
 
       const previous = await store.seasons.roster(c.req.valid('json').from);
       const moving = previous.filter((member) => member.active);
@@ -82,8 +81,7 @@ export const seasons = new Hono<Env>()
     async (c) => {
       const store = c.get('store');
       const before = await store.seasons.current();
-      const promoted = await store.seasons.promote(c.req.valid('param').id);
-      if (!promoted) throw Fail.missing('season');
+      const promoted = await Guard.find('season', store.seasons.promote(c.req.valid('param').id));
 
       /**
        * The renewal moves with the season. The one it replaced owes nothing any more: it is not the
@@ -110,7 +108,7 @@ export const seasons = new Hono<Env>()
     async (c) => {
       const store = c.get('store');
       const { id } = c.req.valid('param');
-      if (!(await store.seasons.byId(id))) throw Fail.missing('season');
+      await Guard.find('season', store.seasons.byId(id));
 
       const roster = await store.seasons.roster(id);
       return c.json(roster.map(Wire.peer));
@@ -130,8 +128,7 @@ export const seasons = new Hono<Env>()
     vValidator('param', Input.params.season, Check.param),
     async (c) => {
       const store = c.get('store');
-      const season = await store.seasons.byId(c.req.valid('param').id);
-      if (!season) throw Fail.missing('season');
+      const season = await Guard.find('season', store.seasons.byId(c.req.valid('param').id));
       if (!season.renewable()) {
         throw Fail.because(
           Refusal.Closed,
@@ -154,8 +151,8 @@ export const seasons = new Hono<Env>()
       const store = c.get('store');
       const { id, memberId } = c.req.valid('param');
       /** Both sides are loaded: the insert has two foreign keys, and neither is worth a 503. */
-      if (!(await store.seasons.byId(id))) throw Fail.missing('season');
-      if (!(await store.members.byId(memberId))) throw Fail.missing('member');
+      await Guard.find('season', store.seasons.byId(id));
+      await Guard.find('member', store.members.byId(memberId));
 
       await store.seasons.join(memberId, id);
       await Trail.record(c, 'season.roster', id, { member: memberId, joined: true });
@@ -183,8 +180,7 @@ export const seasons = new Hono<Env>()
       const store = c.get('store');
       const { id } = c.req.valid('param');
 
-      const season = await store.seasons.byId(id);
-      if (!season) throw Fail.missing('season');
+      const season = await Guard.find('season', store.seasons.byId(id));
 
       const removed = await store.seasons.remove(id);
       if (removed === null) throw Fail.missing('season');
@@ -203,7 +199,7 @@ export const seasons = new Hono<Env>()
     async (c) => {
       const store = c.get('store');
       const { id, memberId } = c.req.valid('param');
-      if (!(await store.seasons.byId(id))) throw Fail.missing('season');
+      await Guard.find('season', store.seasons.byId(id));
 
       await store.seasons.leave(memberId, id);
       await Trail.record(c, 'season.roster', id, { member: memberId, joined: false });

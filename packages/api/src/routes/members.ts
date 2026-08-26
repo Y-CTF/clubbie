@@ -1,8 +1,9 @@
-import type { Act, Member } from '@clubbie/core';
+import type { Act, Member, MemberId } from '@clubbie/core';
 import { Member as Membership } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
+import type { MemberPatch as Patch } from '@clubbie/store';
 import { vValidator } from '@hono/valibot-validator';
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { Check } from '../check.ts';
 import { Codes } from '../codes.ts';
 import type { Env } from '../context.ts';
@@ -52,8 +53,7 @@ export const members = new Hono<Env>()
     Guard.needs('member:read'),
     vValidator('param', Input.params.member, Check.param),
     async (c) => {
-      const member = await c.get('store').members.byId(c.req.valid('param').id);
-      if (!member) throw Fail.missing('member');
+      const member = await Guard.find('member', c.get('store').members.byId(c.req.valid('param').id));
       return c.json(Wire.peer(member));
     },
   )
@@ -98,15 +98,7 @@ export const members = new Hono<Env>()
       const updated = await store.members.update(id, patch);
       if (!updated) continue;
 
-      if (patch.status && patch.status !== Membership.ACTIVE) await store.sessions.closeAll(id);
-      if (patch.status === Membership.ACTIVE && before.status !== Membership.ACTIVE) {
-        await store.jobs.schedule('member.admitted', { memberId: id });
-      }
-
-      await Trail.record(c, Members.act(before, updated), id, {
-        from: { role: before.role, status: before.status },
-        to: { role: updated.role, status: updated.status },
-      });
+      await Members.settle(c, id, before, updated, patch);
       changed.push(id);
     }
 
@@ -124,8 +116,7 @@ export const members = new Hono<Env>()
       const patch = c.req.valid('json');
       const store = c.get('store');
 
-      const before = await store.members.byId(id);
-      if (!before) throw Fail.missing('member');
+      const before = await Guard.find('member', store.members.byId(id));
 
       /**
        * An admin may not take their own admin away, or retire themselves, for the same reason
@@ -141,21 +132,10 @@ export const members = new Hono<Env>()
           throw Fail.forbidden('an admin cannot change their own status');
         }
       }
-      const updated = await store.members.update(id, patch);
-      if (!updated) throw Fail.missing('member');
-
-      /** A member who is no longer active keeps no live session; the next sign-in re-decides. */
-      if (patch.status && patch.status !== 'active') await store.sessions.closeAll(id);
-      /** Being admitted is worth hearing about, and is the one notice nobody can switch off. */
-      if (patch.status === 'active' && before.status !== 'active') {
-        await store.jobs.schedule('member.admitted', { memberId: id });
-      }
+      const updated = await Guard.find('member', store.members.update(id, patch));
 
       c.get('log').info('member changed', { member: id, role: updated.role, status: updated.status });
-      await Trail.record(c, Members.act(before, updated), id, {
-        from: { role: before.role, status: before.status },
-        to: { role: updated.role, status: updated.status },
-      });
+      await Members.settle(c, id, before, updated, patch);
       return c.json(Wire.peer(updated));
     },
   )
@@ -169,7 +149,7 @@ export const members = new Hono<Env>()
       if (Guard.member(c).is(id)) throw Fail.forbidden('an admin cannot remove themselves');
 
       /** A member who was never there is not removed: it is a 404, and it is not a trail entry. */
-      if (!(await c.get('store').members.byId(id))) throw Fail.missing('member');
+      await Guard.find('member', c.get('store').members.byId(id));
 
       await c.get('store').members.remove(id);
       c.get('log').warn('member removed', { member: id });
@@ -190,5 +170,34 @@ export namespace Members {
   export function act(before: Member, after: Member): Act {
     if (before.role !== after.role) return 'member.role';
     return after.status === Membership.ACTIVE ? 'member.admit' : 'member.retire';
+  }
+
+  /**
+   * What a membership edit owes beyond the row: the sessions it invalidates, the notice it queues,
+   * and the entry it writes into the trail.
+   *
+   * Written once because two routes make the same edit, one member at a time and forty at a time,
+   * and the two copies had already drifted: one wrote the status as a bare literal where the other
+   * used `Member.ACTIVE`.
+   */
+  export async function settle(
+    c: Context<Env>,
+    id: MemberId,
+    before: Member,
+    after: Member,
+    patch: Patch,
+  ): Promise<void> {
+    const store = c.get('store');
+    /** A member who is no longer active keeps no live session; the next sign-in re-decides. */
+    if (patch.status && patch.status !== Membership.ACTIVE) await store.sessions.closeAll(id);
+    /** Being admitted is worth hearing about, and is the one notice nobody can switch off. */
+    if (patch.status === Membership.ACTIVE && before.status !== Membership.ACTIVE) {
+      await store.jobs.schedule('member.admitted', { memberId: id });
+    }
+
+    await Trail.record(c, Members.act(before, after), id, {
+      from: { role: before.role, status: before.status },
+      to: { role: after.role, status: after.status },
+    });
   }
 }

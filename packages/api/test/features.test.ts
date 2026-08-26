@@ -80,7 +80,18 @@ describe('the waitlist', () => {
       body: JSON.stringify({ capacity: 1 }),
     });
 
-    expect((await h.store.rsvps.byMember(workshop.id, alan.id))?.answer).toBe('waitlist');
+    /**
+     * One of the two loses the place, and which one is the millisecond they answered in: both
+     * answers go through the API with no clock of their own, so asserting on a particular member
+     * was asserting on a tie-break. What the club is promised is that the room now fits.
+     */
+    const answers = await Promise.all([
+      h.store.rsvps.byMember(workshop.id, admin.id),
+      h.store.rsvps.byMember(workshop.id, alan.id),
+    ]);
+
+    expect(answers.map((rsvp) => rsvp?.answer).sort()).toEqual(['going', 'waitlist']);
+    expect(await h.store.rsvps.seated(workshop.id)).toBe(1);
   });
 });
 

@@ -53,8 +53,7 @@ export const jobs = new Hono<Env>()
       const store = c.get('store');
       const { id } = c.req.valid('param');
 
-      const job = await store.jobs.byId(id);
-      if (!job) throw Fail.missing('job');
+      const job = await Guard.find('job', store.jobs.byId(id));
 
       /**
        * A job a drainer is holding is not put back, and says why. Queueing a second copy of a
@@ -76,8 +75,7 @@ export const jobs = new Hono<Env>()
       const store = c.get('store');
       const { id } = c.req.valid('param');
 
-      const job = await store.jobs.byId(id);
-      if (!job) throw Fail.missing('job');
+      const job = await Guard.find('job', store.jobs.byId(id));
       if (!(await store.jobs.drop(id))) throw stuck(await store.jobs.byId(id), 'thrown away');
 
       c.get('log').warn('job discarded', { job: id, kind: job.kind });

@@ -75,8 +75,7 @@ export const schedules = new Hono<Env>()
     vValidator('param', Input.params.schedule, Check.param),
     async (c) => {
       const store = c.get('store');
-      const schedule = await store.schedules.byId(c.req.valid('param').id);
-      if (!schedule) throw Fail.missing('schedule');
+      const schedule = await Guard.find('schedule', store.schedules.byId(c.req.valid('param').id));
 
       const occurrences = await store.events.list({ scheduleId: schedule.id, limit: Recur.LIMIT });
       const { timezone } = await store.club.read();
@@ -104,14 +103,12 @@ export const schedules = new Hono<Env>()
       const { id } = c.req.valid('param');
       const patch = c.req.valid('json');
 
-      const before = await store.schedules.byId(id);
-      if (!before) throw Fail.missing('schedule');
+      const before = await Guard.find('schedule', store.schedules.byId(id));
 
       range(patch.startsAt ?? before.startsAt, patch.until === undefined ? before.recur.until : patch.until);
       await Kinds.must(store, patch.kind);
 
-      const after = await store.schedules.update(id, patch);
-      if (!after) throw Fail.missing('schedule');
+      const after = await Guard.find('schedule', store.schedules.update(id, patch));
 
       const now = new Date();
       const updated = await store.events.retemplate(id, now, carried(patch));
@@ -156,8 +153,7 @@ export const schedules = new Hono<Env>()
     vValidator('param', Input.params.schedule, Check.param),
     async (c) => {
       const store = c.get('store');
-      const schedule = await store.schedules.byId(c.req.valid('param').id);
-      if (!schedule) throw Fail.missing('schedule');
+      const schedule = await Guard.find('schedule', store.schedules.byId(c.req.valid('param').id));
 
       const result = await Expand.run(store, schedule, c.get('log'));
       /** It creates events, and every sibling on this route records what it did. */
@@ -177,8 +173,7 @@ export const schedules = new Hono<Env>()
     async (c) => {
       const store = c.get('store');
       const { id } = c.req.valid('param');
-      const schedule = await store.schedules.byId(id);
-      if (!schedule) throw Fail.missing('schedule');
+      const schedule = await Guard.find('schedule', store.schedules.byId(id));
 
       const dropped = await store.events.removeOccurrences(id, new Date());
       await store.jobs.cancel('schedule.expand', { scheduleId: id });

@@ -131,8 +131,7 @@ export const events = new Hono<Env>()
     vValidator('json', Input.eventPatch, Check.body),
     async (c) => {
       const store = c.get('store');
-      const event = await store.events.byId(c.req.valid('param').id);
-      if (!event) throw Fail.missing('event');
+      const event = await Guard.find('event', store.events.byId(c.req.valid('param').id));
       if (!c.get('ability').canOwn('event:manage', event.createdBy)) {
         throw Fail.forbidden('only the organiser or an admin may edit this event');
       }
@@ -169,8 +168,7 @@ export const events = new Hono<Env>()
     Guard.needs('event:create'),
     vValidator('param', Input.params.event, Check.param),
     async (c) => {
-      const event = await c.get('store').events.byId(c.req.valid('param').id);
-      if (!event) throw Fail.missing('event');
+      const event = await Guard.find('event', c.get('store').events.byId(c.req.valid('param').id));
       if (!c.get('ability').canOwn('event:manage', event.createdBy)) {
         throw Fail.forbidden('only the organiser or an admin may delete this event');
       }
@@ -189,8 +187,7 @@ export const events = new Hono<Env>()
     Guard.needs('event:manage'),
     vValidator('param', Input.params.event, Check.param),
     async (c) => {
-      const event = await c.get('store').events.byId(c.req.valid('param').id);
-      if (!event) throw Fail.missing('event');
+      const event = await Guard.find('event', c.get('store').events.byId(c.req.valid('param').id));
       if (event.state !== Event.LIVE) {
         throw Fail.because(
           Refusal.Conflict,
@@ -251,10 +248,7 @@ export const events = new Hono<Env>()
     vValidator('param', Input.params.event, Check.param),
     async (c) => {
       const store = c.get('store');
-      const member = Guard.member(c);
-
-      const event = await store.events.byId(c.req.valid('param').id);
-      if (!event?.visibleTo(member.id, c.get('ability').can('event:manage'))) throw Fail.missing('event');
+      const event = await Events.seen(c, c.req.valid('param').id);
 
       const club = await store.club.read();
       return c.body(Ical.file(event, club), 200, Ical.attachment(event.title));
@@ -270,7 +264,7 @@ export const events = new Hono<Env>()
       const store = c.get('store');
       const { id } = c.req.valid('param');
       /** Without this an unknown id answers `{answers: [], attending: []}`, which reads as "nobody". */
-      if (!(await store.events.byId(id))) throw Fail.missing('event');
+      await Guard.find('event', store.events.byId(id));
 
       const [sheet, guests] = await Promise.all([store.rsvps.sheet(id), store.guests.list(id)]);
       return c.json({ answers: sheet.map(Wire.entry), attending: guests.map(Wire.guest) });
@@ -285,8 +279,7 @@ export const events = new Hono<Env>()
     async (c) => {
       const store = c.get('store');
       const { id } = c.req.valid('param');
-      const event = await store.events.byId(id);
-      if (!event) throw Fail.missing('event');
+      const event = await Guard.find('event', store.events.byId(id));
 
       const [sheet, guests] = await Promise.all([store.rsvps.sheet(id), store.guests.list(id)]);
       const rows = [
@@ -312,15 +305,14 @@ export const events = new Hono<Env>()
     vValidator('json', Input.attendance, Check.body),
     async (c) => {
       const { id, memberId } = c.req.valid('param');
-      const event = await c.get('store').events.byId(id);
-      if (!event) throw Fail.missing('event');
+      const event = await Guard.find('event', c.get('store').events.byId(id));
 
       /**
        * The member is loaded rather than trusted: `attend` inserts an rsvp, so a mistyped id
        * reached the database as a foreign-key violation and came back as "something went wrong on
        * our side" with a request id to quote.
        */
-      if (!(await c.get('store').members.byId(memberId))) throw Fail.missing('member');
+      await Guard.find('member', c.get('store').members.byId(memberId));
 
       const attended = c.req.valid('json').attended;
       const rsvp = await c.get('store').rsvps.attend(event.id, memberId, attended);
@@ -337,8 +329,7 @@ export const events = new Hono<Env>()
     vValidator('json', Input.guest, Check.body),
     async (c) => {
       const store = c.get('store');
-      const event = await store.events.byId(c.req.valid('param').id);
-      if (!event) throw Fail.missing('event');
+      const event = await Guard.find('event', store.events.byId(c.req.valid('param').id));
 
       const booking = new Booking(store, c.get('log'));
       const guest = await booking.guest(event, c.req.valid('json'), Guard.member(c).id);
@@ -356,8 +347,7 @@ export const events = new Hono<Env>()
       const { id, guestId } = c.req.valid('param');
       const attended = c.req.valid('json').attended;
 
-      const guest = await c.get('store').guests.attend(id, guestId, attended);
-      if (!guest) throw Fail.missing('guest');
+      const guest = await Guard.find('guest', c.get('store').guests.attend(id, guestId, attended));
 
       /** The member equivalent records this, and one sheet's history should not have two halves. */
       await Trail.record(c, 'attendance.mark', id, { guest: guestId, attended });
@@ -372,8 +362,7 @@ export const events = new Hono<Env>()
     async (c) => {
       const store = c.get('store');
       const { id, guestId } = c.req.valid('param');
-      const guest = await store.guests.byId(id, guestId);
-      if (!guest) throw Fail.missing('guest');
+      const guest = await Guard.find('guest', store.guests.byId(id, guestId));
 
       await store.guests.remove(id, guestId);
       /** A guest leaving frees their seat, so the waitlist moves the way a withdrawal moves it. */

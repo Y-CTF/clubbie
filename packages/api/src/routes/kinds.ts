@@ -10,6 +10,7 @@ import { Fail } from '../fail.ts';
 import { Guard } from '../guard.ts';
 import { Input } from '../input.ts';
 import { Trail } from '../trail.ts';
+import { Wire } from '../wire.ts';
 
 /**
  * The club's own words for what an event is.
@@ -26,7 +27,7 @@ import { Trail } from '../trail.ts';
 export const kinds = new Hono<Env>()
   .get('/', Guard.needs('event:read'), async (c) => {
     const listing = await c.get('store').kinds.list();
-    return c.json(listing.map((kind) => ({ id: kind.id, label: kind.label, position: kind.position })));
+    return c.json(listing.map(Wire.kind));
   })
 
   .post('/', Guard.needs('club:manage'), vValidator('json', Input.kinds, Check.body), async (c) => {
@@ -61,7 +62,7 @@ export const kinds = new Hono<Env>()
 
     const made = await store.kinds.add({ id: wanted, label });
     await Trail.record(c, 'kind.create', made.id, { label });
-    return c.json({ id: made.id, label: made.label, position: made.position }, 201);
+    return c.json(Wire.kind(made), 201);
   })
 
   .patch(
@@ -73,12 +74,11 @@ export const kinds = new Hono<Env>()
       const store = c.get('store');
       const { id } = c.req.valid('param');
 
-      const changed = await store.kinds.update(id, c.req.valid('json'));
-      if (!changed) throw Fail.missing('kind');
+      const changed = await Guard.find('kind', store.kinds.update(id, c.req.valid('json')));
 
       /** Renaming touches no event: an event stores the id, and only the label moved. */
       await Trail.record(c, 'kind.update', id, { label: changed.label });
-      return c.json({ id: changed.id, label: changed.label, position: changed.position });
+      return c.json(Wire.kind(changed));
     },
   )
 
@@ -90,8 +90,7 @@ export const kinds = new Hono<Env>()
       const store = c.get('store');
       const { id } = c.req.valid('param');
 
-      const kind = await store.kinds.byId(id);
-      if (!kind) throw Fail.missing('kind');
+      const kind = await Guard.find('kind', store.kinds.byId(id));
 
       /**
        * A kind that events point at is not deleted. The alternative is an event whose kind is a

@@ -5,12 +5,14 @@ import type {
   Event,
   Guest,
   Job,
+  Kind,
   Member,
   Prefs,
   Rsvp,
   Schedule,
   Season,
 } from '@clubbie/core';
+import { Asset } from '@clubbie/core';
 import type { Entry, Tally } from '@clubbie/store';
 import { Expand } from './expand.ts';
 
@@ -142,6 +144,24 @@ export namespace Wire {
   export function attendee(guest: Guest) {
     const { email, invitedBy, ...rest } = Wire.guest(guest);
     return rest;
+  }
+
+  export function kind(kind: Kind) {
+    return { id: kind.id, label: kind.label, position: kind.position };
+  }
+
+  /**
+   * An image the club uploaded. The url rather than the bytes: the file is served by its own
+   * route, and a settings page wants to show it, not to hold it.
+   */
+  export function asset(asset: Asset) {
+    return {
+      id: asset.id,
+      url: Asset.url(asset.id),
+      mime: asset.mime,
+      bytes: asset.bytes,
+      uploadedAt: asset.uploadedAt.toISOString(),
+    };
   }
 
   export function season(season: Season) {
