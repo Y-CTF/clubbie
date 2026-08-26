@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Site } from '@clubbie/core';
 import { Action } from '../lib/action.svelte.ts';
 import { api, unwrap } from '../lib/api.ts';
 import { Query } from '../lib/query.svelte.ts';
@@ -139,7 +140,7 @@ async function uninvite(guestId: string): Promise<void> {
 
 <header class="flex items-baseline justify-between gap-4">
   <h1 class="font-semibold">{event.data?.title ?? t.sheet.heading}</h1>
-  <a href="/api/events/{id}/sheet.csv" data-external class="text-sm text-muted hover:text-ink">{t.common.csv}</a>
+  <a href={Site.Api.sheet(id)} data-external class="text-sm text-muted hover:text-ink">{t.common.csv}</a>
 </header>
 
 {#if event.data}

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Member, type Role, type Status } from '@clubbie/core';
+import { Member, type Role, Site, type Status } from '@clubbie/core';
 import { Action } from '../lib/action.svelte.ts';
 import { api, unwrap } from '../lib/api.ts';
 import { Format } from '../lib/format.ts';
@@ -119,7 +119,7 @@ async function set(id: string, patch: { status?: Status; role?: Role }): Promise
   </h1>
 
   {#if manage}
-    <a href="/api/members/roster.csv" data-external class={look('plain')}>{t.common.csv}</a>
+    <a href={Site.Api.roster()} data-external class={look('plain')}>{t.common.csv}</a>
   {/if}
 </header>
 

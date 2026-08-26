@@ -37,7 +37,15 @@ export class Query<T> {
     try {
       const data = await this.run();
       if (mine !== this.ticket) return;
-      if (this.held === data) return;
+      /**
+       * The same answer as last time is still an answer. Returning without settling the state left
+       * the query `loading` for good, and every page that renders an empty list only once the read
+       * is `ready` waited on a read that had already come back.
+       */
+      if (this.held === data) {
+        this.state = State.Ready;
+        return;
+      }
 
       this.held = data;
       this.data = data;

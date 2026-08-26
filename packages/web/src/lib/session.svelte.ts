@@ -67,7 +67,7 @@ export class Session {
     const season = this.season;
     if (!season) return;
 
-    await api.seasons[':id'].join.$post({ param: { id: season.id } });
+    await unwrap(await api.seasons[':id'].join.$post({ param: { id: season.id } }));
     await this.load();
   }
 

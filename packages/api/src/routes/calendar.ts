@@ -1,9 +1,8 @@
-import { Ability, Brand, Event } from '@clubbie/core';
+import { Ability, Brand, Event, Site } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { vValidator } from '@hono/valibot-validator';
 import { Hono } from 'hono';
-import { Api } from '../app.ts';
 import { Check } from '../check.ts';
 import { Codes } from '../codes.ts';
 import type { Env } from '../context.ts';
@@ -23,7 +22,7 @@ export namespace Calendar {
 
   /** The url a member subscribes to. The prefix and the extension are stated once, here. */
   export function url(baseUrl: string, token: string): string {
-    return new URL(`${Api.PREFIX}/calendar/${token}.ics`, baseUrl).toString();
+    return new URL(Site.Api.calendar(token), baseUrl).toString();
   }
 }
 

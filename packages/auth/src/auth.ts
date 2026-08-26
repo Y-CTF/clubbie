@@ -27,7 +27,7 @@ export interface Config {
 export class Auth {
   /** Where a provider sends someone back. The API mounts exactly this path. */
   static callback(base: string, provider: string): string {
-    return new URL(`${Site.API}/auth/${provider}/callback`, base).toString();
+    return new URL(Site.Api.callback(provider), base).toString();
   }
 
   private constructor(

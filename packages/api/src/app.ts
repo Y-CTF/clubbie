@@ -1,4 +1,3 @@
-import { Site } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { Hono } from 'hono';
@@ -32,9 +31,6 @@ import { Trace } from './trace.ts';
  * token because a calendar client has no cookie.
  */
 export namespace Api {
-  /** Where the whole API is mounted. `Site` owns the path; this is the name the routes use. */
-  export const PREFIX = Site.API;
-
   export function create(options: Options) {
     const limit = new Limit();
 

@@ -84,7 +84,7 @@ export namespace Calendars {
 
   /** The one event as a file, which the API writes so the browser never composes iCalendar. */
   export function file(id: string): string {
-    return `${Site.API}/events/${encodeURIComponent(id)}/event.ics`;
+    return Site.Api.event(id);
   }
 
   /** An instant as the calendar deep links spell it: UTC, basic format, no separators. */

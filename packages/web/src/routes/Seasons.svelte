@@ -245,15 +245,18 @@ async function remove(id: string): Promise<void> {
         </div>
 
         {#if open === season.id}
-          <p class="mt-3 text-xs text-muted">{t.seasons.count(roster.data?.length ?? 0)}</p>
-          <ul id="roster-{season.id}" class="mt-1 ml-1 border-l border-line pl-3 text-xs text-muted">
-            {#each roster.data ?? [] as member (member.id)}
-              <li class="py-0.5">
-                <Person id={member.id} name={member.name} note={t.statuses[member.status]} />
-              </li>
-            {/each}
-            {#if roster.data?.length === 0}<li class="py-0.5">{t.seasons.empty}</li>{/if}
-          </ul>
+          <!-- Through `Panel`, or a refused roster read as a season nobody had joined. -->
+          <Panel query={roster}>
+            <p class="mt-3 text-xs text-muted">{t.seasons.count(roster.data?.length ?? 0)}</p>
+            <ul id="roster-{season.id}" class="mt-1 ml-1 border-l border-line pl-3 text-xs text-muted">
+              {#each roster.data ?? [] as member (member.id)}
+                <li class="py-0.5">
+                  <Person id={member.id} name={member.name} note={t.statuses[member.status]} />
+                </li>
+              {/each}
+              {#if roster.data?.length === 0}<li class="py-0.5">{t.seasons.empty}</li>{/if}
+            </ul>
+          </Panel>
         {/if}
       </li>
     {/each}

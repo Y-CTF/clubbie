@@ -84,7 +84,7 @@ const t = $derived(words.t);
               {#each providers.data.providers as provider (provider)}
                 <li>
                   <a
-                    href="{Site.API}/auth/{encodeURIComponent(provider)}"
+                    href={Site.Api.start(provider)}
                     data-external
                     aria-label={t.signIn.continueWith(Marks.label(provider))}
                     class="flex w-32 flex-col items-center gap-2 rounded-lg border border-line px-4 py-5

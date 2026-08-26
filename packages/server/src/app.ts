@@ -1,7 +1,7 @@
 import { Api } from '@clubbie/api';
 import { Auth } from '@clubbie/auth';
 import { Bot } from '@clubbie/bot';
-import { Brand } from '@clubbie/core';
+import { Brand, Site } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { Logger, Sink } from '@clubbie/log';
 import { Email, Notify, type Sender, Telegram } from '@clubbie/notify';
@@ -59,7 +59,7 @@ export namespace App {
       baseUrl: config.baseUrl,
       trustProxy: config.trustProxy,
     });
-    const app = new Hono().route(Api.PREFIX, api);
+    const app = new Hono().route(Site.API, api);
     if (options.assets !== false) {
       app.use(ALL, Assets.middleware(config.assets, log.child('assets')));
     }

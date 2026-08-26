@@ -96,13 +96,24 @@ let guests = $state(Club.GUESTS);
 let waitlist = $state(Club.WAITLIST);
 let admission = $state<Admission>(Club.ADMISSION);
 
+/**
+ * Three reads, three effects, because they answer to different things. Filtering or paging the
+ * trail used to re-read the club and refill the form from it, so a committee that typed a new name
+ * and then scrolled down to look at the trail lost the edit without being told.
+ */
 $effect(() => {
   void identity.load().then(fill);
+});
+
+$effect(() => {
+  configured.load();
+  vocabulary.load();
+});
+
+$effect(() => {
   void act;
   void done;
   trail.load();
-  configured.load();
-  vocabulary.load();
 });
 
 /** The club's own words for its evenings. Each row saves itself: they are not part of the form. */

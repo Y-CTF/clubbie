@@ -17,6 +17,38 @@ export namespace Site {
    */
   export const API = '/api';
 
+  /**
+   * The API's own paths, for the things reached by writing a url rather than through the typed
+   * client: the two halves of the sign-in redirect, the files a browser downloads, and the feed a
+   * calendar client polls. `PATHS` is pages, so these five had no owner and were written as
+   * literals in four packages, one of which forgot to encode the id it interpolated.
+   */
+  export namespace Api {
+    export function start(provider: string): string {
+      return `${API}/auth/${encodeURIComponent(provider)}`;
+    }
+
+    export function callback(provider: string): string {
+      return `${Api.start(provider)}/callback`;
+    }
+
+    export function event(id: string): string {
+      return `${API}/events/${encodeURIComponent(id)}/event.ics`;
+    }
+
+    export function sheet(id: string): string {
+      return `${API}/events/${encodeURIComponent(id)}/sheet.csv`;
+    }
+
+    export function roster(): string {
+      return `${API}/members/roster.csv`;
+    }
+
+    export function calendar(token: string): string {
+      return `${API}/calendar/${encodeURIComponent(token)}.ics`;
+    }
+  }
+
   export const PATHS = {
     home: '/',
     events: '/events',
