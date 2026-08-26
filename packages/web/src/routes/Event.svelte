@@ -1,5 +1,5 @@
 <script lang="ts">
-import { type Answer, Event, Rsvp } from '@clubbie/core';
+import { type Answer, Event } from '@clubbie/core';
 import { Action } from '../lib/action.svelte.ts';
 import { api, unwrap } from '../lib/api.ts';
 import { ask } from '../lib/ask.svelte.ts';
@@ -11,6 +11,7 @@ import { Router } from '../lib/router.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
 import Alert from '../ui/Alert.svelte';
+import Answers from '../ui/Answers.svelte';
 import Badge from '../ui/Badge.svelte';
 import Button from '../ui/Button.svelte';
 import Panel from '../ui/Panel.svelte';
@@ -19,9 +20,6 @@ import { look } from '../ui/look.ts';
 import Person from '../ui/Person.svelte';
 
 let { id }: { id: string } = $props();
-
-/** A full event offers the waitlist instead of `going`, which is the only answer that changes. */
-const ANSWERS: readonly Answer[] = Rsvp.ANSWERS;
 
 const event = new Query(async () => unwrap(await api.events[':id'].$get({ param: { id } })));
 const action = new Action();
@@ -36,25 +34,10 @@ $effect(() => {
 /** The same two parsed instants the calendar draws from, so the export links are not built twice. */
 const moment = $derived(event.data ? new Moment(event.data) : null);
 
-const full = $derived(
-  event.data !== null && event.data.capacity !== null && event.data.taken >= event.data.capacity,
-);
-
 /** The organiser of an event may edit it, which is what the API allows: `canOwn('event:manage')`. */
 const mine = $derived(
   session.can('event:manage') || (event.data !== null && event.data.createdBy === session.member?.id),
 );
-
-/**
- * Which answers are worth offering. `going` disappears on a full event and `waitlist` appears in
- * its place: offering both would let a member queue for a seat that is already free, which the
- * API grants immediately and the page then contradicts.
- */
-function offered(answer: Answer, held: Answer | undefined): boolean {
-  if (answer === Rsvp.IMPLIED) return !full || held === Rsvp.IMPLIED;
-  if (answer === Rsvp.QUEUED) return full || held === Rsvp.QUEUED;
-  return true;
-}
 
 /** A refusal here is the interesting case: a full event or a passed deadline says why. */
 async function answer(answer: Answer): Promise<void> {
@@ -131,24 +114,17 @@ async function announce(): Promise<void> {
       </p>
     {/if}
 
-    {#if session.can('event:rsvp')}
-      <div class="mt-6 flex flex-wrap gap-2">
-        {#each ANSWERS as option (option)}
-          {#if offered(option, detail.mine?.answer)}
-            <Button
-              look={detail.mine?.answer === option ? 'solid' : 'quiet'}
-              disabled={!detail.open || action.busy}
-              onclick={() => answer(option)}
-            >
-              {t.answers[option]}
-            </Button>
-          {/if}
-        {/each}
-        {#if detail.mine}
-          <Button look="plain" disabled={!detail.open || action.busy} onclick={withdraw}>{t.event.withdraw}</Button>
-        {/if}
-      </div>
-    {/if}
+    <div class="mt-6">
+      <Answers
+        open={detail.open}
+        capacity={detail.capacity}
+        taken={detail.taken}
+        held={detail.mine?.answer}
+        {action}
+        onanswer={answer}
+        onwithdraw={withdraw}
+      />
+    </div>
 
     {#if session.can('event:manage') && detail.state === Event.LIVE}
       <div class="mt-4">

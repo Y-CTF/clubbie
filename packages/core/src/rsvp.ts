@@ -33,6 +33,26 @@ export class Rsvp {
   /** Counted, but seated by nothing: a maybe is interest rather than a place. */
   static readonly MAYBE: Answer = 'maybe';
 
+  /** Whether an event has no room left. A capacity of null is a room with no door to fit through. */
+  static full(capacity: number | null, taken: number): boolean {
+    return capacity !== null && taken >= capacity;
+  }
+
+  /**
+   * Whether an answer is worth offering, given what the member already said and whether the event
+   * is full. `going` disappears on a full event and `waitlist` appears in its place: offering both
+   * would let a member queue for a seat that is already free, which `Booking` grants immediately
+   * and the page would then contradict.
+   *
+   * It lives here because it is the reading half of `Booking`'s capacity rule, and two components
+   * had each written their own copy of it.
+   */
+  static offers(answer: Answer, held: Answer | null | undefined, full: boolean): boolean {
+    if (answer === Rsvp.IMPLIED) return !full || held === Rsvp.IMPLIED;
+    if (answer === Rsvp.QUEUED) return full || held === Rsvp.QUEUED;
+    return true;
+  }
+
   constructor(fields: RsvpFields) {
     Object.assign(this, fields);
   }

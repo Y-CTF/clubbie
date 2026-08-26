@@ -1,5 +1,5 @@
 <script lang="ts">
-import { type Answer, Event, Rsvp } from '@clubbie/core';
+import { type Answer, Event } from '@clubbie/core';
 import { Action } from '../../lib/action.svelte.ts';
 import { api, unwrap } from '../../lib/api.ts';
 import type { Calendar } from '../../lib/calendar/calendar.svelte.ts';
@@ -10,6 +10,7 @@ import { Router } from '../../lib/router.svelte.ts';
 import { session } from '../../lib/session.svelte.ts';
 import { words } from '../../lib/words/index.svelte.ts';
 import Alert from '../Alert.svelte';
+import Answers from '../Answers.svelte';
 import Badge from '../Badge.svelte';
 import Button from '../Button.svelte';
 import { look } from '../look.ts';
@@ -59,17 +60,6 @@ const place = $derived.by(() => {
   const left = Math.min(Math.max(wanted, MARGIN), Math.max(MARGIN, width - WIDTH - MARGIN));
   return { top: Math.min(top, Math.max(MARGIN, height - MARGIN - HEIGHT)), left };
 });
-
-/** A full event offers the waitlist instead of `going`, exactly as the event page does. */
-const full = $derived(
-  moment !== null && moment.event.capacity !== null && moment.event.taken >= moment.event.capacity,
-);
-
-function offered(answer: Answer, held: Answer | null): boolean {
-  if (answer === Rsvp.IMPLIED) return !full || held === Rsvp.IMPLIED;
-  if (answer === Rsvp.QUEUED) return full || held === Rsvp.QUEUED;
-  return true;
-}
 
 /**
  * Answering from the calendar. The window is reloaded rather than patched: an answer moves a
@@ -145,26 +135,18 @@ let card = $state<HTMLElement | null>(null);
       {#if !detail.open}<span>{t.events.closed}</span>{/if}
     </div>
 
-    {#if session.can('event:rsvp')}
-      <div class="mt-3 flex flex-wrap gap-1.5">
-        {#each Rsvp.ANSWERS as option (option)}
-          {#if offered(option, detail.yours)}
-            <Button
-              look={detail.yours === option ? 'solid' : 'quiet'}
-              disabled={!detail.open || action.busy}
-              onclick={() => answer(detail.id, option)}
-            >
-              {t.answers[option]}
-            </Button>
-          {/if}
-        {/each}
-        {#if detail.yours}
-          <Button look="plain" disabled={!detail.open || action.busy} onclick={() => withdraw(detail.id)}>
-            {t.event.withdraw}
-          </Button>
-        {/if}
-      </div>
-    {/if}
+    <div class="mt-3">
+      <Answers
+        open={detail.open}
+        capacity={detail.capacity}
+        taken={detail.taken}
+        held={detail.yours}
+        {action}
+        gap="gap-1.5"
+        onanswer={(said) => answer(detail.id, said)}
+        onwithdraw={() => withdraw(detail.id)}
+      />
+    </div>
 
     {#if action.error}<div class="mt-3"><Alert error={action.error} /></div>{/if}
 
