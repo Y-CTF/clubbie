@@ -10,9 +10,11 @@ export namespace Brand {
   export const agent = STEM;
   export const scope = STEM;
 
-  /** The default database file, beside whatever directory the server was started in. */
+  /**
+   * The default database file, beside whatever directory the server was started in. The url around
+   * it is `Store.file`, because a scheme is the store's business and `core` has never heard of one.
+   */
   export const db = `${STEM}.db`;
-  export const sqlite = `sqlite:${db}`;
 
   export function cookie(name: string): string {
     return `${STEM}_${name}`;

@@ -2,6 +2,7 @@ import { type Credentials, type Named, Providers, type Spec } from '@clubbie/aut
 import { Brand } from '@clubbie/core';
 import { type Code, Diag, type Span } from '@clubbie/diag';
 import { Level } from '@clubbie/log';
+import { Store } from '@clubbie/store';
 import { markup } from '@clubbie/term';
 import { Codes } from './codes.ts';
 
@@ -54,7 +55,7 @@ export namespace Config {
   } as const;
 
   export const DEFAULTS = {
-    databaseUrl: Brand.sqlite,
+    databaseUrl: Store.file(Brand.db),
     baseUrl: 'http://localhost:3000',
     port: 3000,
     assets: 'packages/web/dist',

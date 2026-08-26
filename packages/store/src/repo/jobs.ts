@@ -1,7 +1,7 @@
 import { Id, JOB_STATES, Job, type JobId, type JobKind, type JobState, type Payload } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
-import type { Kysely, Selectable, SelectQueryBuilder } from 'kysely';
+import type { Kysely, Selectable, SelectQueryBuilder, UpdateQueryBuilder } from 'kysely';
 import { Codes } from '../codes.ts';
 import { Row } from '../row.ts';
 import type { JobTable, Schema } from '../schema.ts';
@@ -30,11 +30,13 @@ export class Jobs {
   constructor(private readonly db: Kysely<Schema>) {}
 
   static of(row: Selectable<JobTable>): Job {
+    /** Parsed once: two calls were two throw sites for one bad row, and two parses per listing. */
+    const payload = Jobs.parse(row.payload);
     return new Job({
       id: row.id,
       kind: row.kind,
-      payload: Jobs.parse(row.payload),
-      subject: row.subject ?? Job.subject(row.kind, Jobs.parse(row.payload)),
+      payload,
+      subject: row.subject ?? Job.subject(row.kind, payload),
       runAt: Row.at(row.runAt),
       state: row.state,
       claimedAt: Row.atOrNull(row.claimedAt),
@@ -149,15 +151,6 @@ export class Jobs {
   }
 
   /**
-   * Marks a claim finished, and only the claim that is actually in force.
-   *
-   * The lease is what makes that necessary. A worker that stalls past `Job.LEASE` has its job
-   * handed back by `reclaim`, a second worker claims and sends it, and the first one then wakes up
-   * and reports on a job that is no longer its own. Without the guard it would write `done` over
-   * somebody else's `running`, or worse, `failed` would push a job that has already gone out back
-   * into the queue for a third send. Matching on the claim instant is what tells the two apart.
-   */
-  /**
    * Renews a claim just before the job runs, and reports whether it is still ours.
    *
    * A batch is claimed in one statement, so all twenty rows carry the same `claimedAt` while they
@@ -167,25 +160,26 @@ export class Jobs {
    * taken while it waited answers `null` rather than running twice.
    */
   async hold(job: Job, now: Date = new Date()): Promise<Job | null> {
-    const row = await this.db
-      .updateTable('job')
-      .set({ claimedAt: Row.ms(now) })
-      .where('id', '=', job.id)
-      .where('state', '=', Job.RUNNING)
-      .where('claimedAt', '=', Row.msOrNull(job.claimedAt))
+    const row = await Jobs.held(this.db.updateTable('job').set({ claimedAt: Row.ms(now) }), job)
       .returningAll()
       .executeTakeFirst();
     return row ? Jobs.of(row) : null;
   }
 
+  /**
+   * Marks a claim finished, and only the claim that is actually in force.
+   *
+   * The lease is what makes that necessary. A worker that stalls past `Job.LEASE` has its job
+   * handed back by `reclaim`, a second worker claims and sends it, and the first one then wakes up
+   * and reports on a job that is no longer its own. Without the guard it would write `done` over
+   * somebody else's `running`, or worse, `failed` would push a job that has already gone out back
+   * into the queue for a third send. Matching on the claim instant is what tells the two apart.
+   */
   async done(job: Job): Promise<void> {
-    await this.db
-      .updateTable('job')
-      .set({ state: Job.DONE, error: null, claimedAt: null })
-      .where('id', '=', job.id)
-      .where('state', '=', Job.RUNNING)
-      .where('claimedAt', '=', Row.msOrNull(job.claimedAt))
-      .execute();
+    await Jobs.held(
+      this.db.updateTable('job').set({ state: Job.DONE, error: null, claimedAt: null }),
+      job,
+    ).execute();
   }
 
   /**
@@ -196,20 +190,28 @@ export class Jobs {
     const attempts = job.attempts + 1;
     const spent = attempts >= Job.TRIES;
 
-    await this.db
-      .updateTable('job')
-      .set({
+    /** Only the claim in force reports on it: see `done`. */
+    await Jobs.held(
+      this.db.updateTable('job').set({
         attempts,
         error: reason,
         state: spent ? Job.FAILED : Job.INITIAL,
         claimedAt: null,
         runAt: Row.ms(spent ? job.runAt : job.retryAt(now)),
-      })
+      }),
+      job,
+    ).execute();
+  }
+
+  /**
+   * The lease guard, written once: this row, still running, still claimed at the instant we hold.
+   * Three writes report on a job and all three owe the same three predicates.
+   */
+  private static held<Q extends UpdateQueryBuilder<Schema, 'job', 'job', Row>, Row>(query: Q, job: Job): Q {
+    return query
       .where('id', '=', job.id)
-      /** Only the claim in force reports on it: see `done`. */
       .where('state', '=', Job.RUNNING)
-      .where('claimedAt', '=', Row.msOrNull(job.claimedAt))
-      .execute();
+      .where('claimedAt', '=', Row.msOrNull(job.claimedAt)) as Q;
   }
 
   async byId(id: JobId): Promise<Job | null> {

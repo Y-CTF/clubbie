@@ -1,7 +1,7 @@
-import { Bytes, type Member, type MemberId } from '@clubbie/core';
-import type { Kysely } from 'kysely';
+import { Bytes, type Member, type MemberId, Millis } from '@clubbie/core';
+import type { Kysely, Selectable } from 'kysely';
 import { Row } from '../row.ts';
-import type { Schema } from '../schema.ts';
+import type { Schema, TelegramTable } from '../schema.ts';
 import { Members } from './members.ts';
 
 export interface Chat {
@@ -17,13 +17,22 @@ export interface Chat {
  */
 export class Links {
   /** A code is worth a session if it leaks, so it lives for minutes and is spent on first use. */
-  static readonly TTL = 15 * 60 * 1000;
+  static readonly TTL = 15 * Millis.MINUTE;
   static readonly BYTES = 12;
 
   constructor(private readonly db: Kysely<Schema>) {}
 
   static code(): string {
     return Bytes.token(Links.BYTES);
+  }
+
+  static of(row: Selectable<TelegramTable>): Chat {
+    return {
+      memberId: row.memberId,
+      chatId: row.chatId,
+      username: row.username,
+      linkedAt: Row.at(row.linkedAt),
+    };
   }
 
   async issue(memberId: MemberId, now: Date = new Date()): Promise<{ token: string; expiresAt: Date }> {
@@ -88,7 +97,7 @@ export class Links {
       .selectAll()
       .where('memberId', '=', memberId)
       .executeTakeFirst();
-    return row ? { ...row, linkedAt: Row.at(row.linkedAt) } : null;
+    return row ? Links.of(row) : null;
   }
 
   /** The chats of particular members, for a notice that goes to some of them rather than all. */
@@ -99,7 +108,7 @@ export class Links {
       .selectAll()
       .where('memberId', 'in', memberIds)
       .execute();
-    return rows.map((row) => ({ ...row, linkedAt: Row.at(row.linkedAt) }));
+    return rows.map(Links.of);
   }
 
   async unlink(memberId: MemberId): Promise<void> {

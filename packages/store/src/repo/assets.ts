@@ -18,7 +18,11 @@ export interface Stored {
 export class Assets {
   constructor(private readonly db: Kysely<Schema>) {}
 
-  static of(row: Selectable<AssetTable>): Asset {
+  /**
+   * The body is not part of what an asset *is*: it is what the asset's own route serves. Demanding
+   * it here made the listing, which deliberately does not select it, fabricate an empty one.
+   */
+  static of(row: Omit<Selectable<AssetTable>, 'body'>): Asset {
     return new Asset({
       id: row.id,
       mime: row.mime as Mime,
@@ -56,7 +60,7 @@ export class Assets {
       .select(['id', 'mime', 'bytes', 'uploadedBy', 'uploadedAt'])
       .orderBy('uploadedAt', 'desc')
       .execute();
-    return rows.map((row) => Assets.of({ ...row, body: '' }));
+    return rows.map(Assets.of);
   }
 
   async remove(id: AssetId): Promise<boolean> {

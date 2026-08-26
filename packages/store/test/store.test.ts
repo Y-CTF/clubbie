@@ -259,6 +259,16 @@ describe('Seasons', () => {
     expect((await store.seasons.byId(first.id))?.current).toBe(false);
   });
 
+  /** Two admins saving different sections at once: the later save must not revert the earlier. */
+  test('a club patch writes the columns it names and leaves the rest as the column held them', async () => {
+    await store.club.update({ name: 'Choir', domains: ['ethz.ch'] });
+    const after = await store.club.update({ tagline: 'we sing' });
+
+    expect(after.name).toBe('Choir');
+    expect(after.domains).toEqual(['ethz.ch']);
+    expect(after.tagline).toBe('we sing');
+  });
+
   test('a member is found by an address typed in any case, because one shape is stored', async () => {
     const member = await store.members.enroll(profile('Ada'), NOW);
 

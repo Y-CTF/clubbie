@@ -10,6 +10,7 @@ import {
   type Width,
 } from '@clubbie/core';
 import type { Kysely, Selectable } from 'kysely';
+import { Lock } from '../lock.ts';
 import { Row } from '../row.ts';
 import type { ClubTable, Schema } from '../schema.ts';
 
@@ -61,7 +62,10 @@ export class Clubs {
   /** What separates one organisation from the next in the column. A domain never contains one. */
   static readonly SEP = ',';
 
-  constructor(private readonly db: Kysely<Schema>) {}
+  constructor(
+    private readonly db: Kysely<Schema>,
+    private readonly lock: Lock = Lock.NONE,
+  ) {}
 
   static of(row: Selectable<ClubTable>): Club {
     return new Club({
@@ -131,9 +135,19 @@ export class Clubs {
    * release that speaks Italian narrows to null here, and carrying that narrowing into the write
    * would turn "this release has no Italian" into "nobody has Italian any more" the next time
    * somebody renamed the club.
+   *
+   * The read and the write are one transaction, and on Postgres the row is held while they run.
+   * They were two statements over every one of thirty-odd columns, so two admins saving different
+   * sections at the same moment had the later save revert the earlier one, the door lists with it.
    */
   async update(patch: Patch, now: Date = new Date()): Promise<Club> {
-    const stored = await this.db.selectFrom('club').selectAll().where('id', '=', Club.ROW).executeTakeFirst();
+    return this.db.transaction().execute(async (tx) => this.write(tx, patch, now));
+  }
+
+  private async write(tx: Kysely<Schema>, patch: Patch, now: Date): Promise<Club> {
+    await this.lock.club(tx);
+
+    const stored = await tx.selectFrom('club').selectAll().where('id', '=', Club.ROW).executeTakeFirst();
     const current = stored ? Clubs.of(stored) : Club.default();
 
     /** Untouched means untouched: the column's own value, whatever this release makes of it. */
@@ -180,7 +194,7 @@ export class Clubs {
       updatedAt: Row.ms(now),
     };
 
-    const row = await this.db
+    const row = await tx
       .insertInto('club')
       .values(values)
       .onConflict((c) => c.column('id').doUpdateSet(values))

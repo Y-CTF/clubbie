@@ -1,5 +1,5 @@
 import { type Act, Audit, Id, type MemberId } from '@clubbie/core';
-import type { Kysely, Selectable } from 'kysely';
+import type { Kysely, Selectable, SelectQueryBuilder } from 'kysely';
 import { Row } from '../row.ts';
 import type { AuditTable, Schema } from '../schema.ts';
 
@@ -61,29 +61,34 @@ export class Audits {
 
   /** How many entries match, ignoring the page: what tells a pager it has somewhere to go. */
   async count(which: Which = {}): Promise<number> {
-    let query = this.db.selectFrom('audit').select((eb) => eb.fn.countAll().as('total'));
-
-    if (which.act) query = query.where('act', '=', which.act);
-    if (which.actorId) query = query.where('actorId', '=', which.actorId);
-    if (which.subject) query = query.where('subject', '=', which.subject);
-
+    const query = this.filtered(
+      this.db.selectFrom('audit').select((eb) => eb.fn.countAll().as('total')),
+      which,
+    );
     return Number((await query.executeTakeFirst())?.total ?? 0);
   }
 
   async list(which: Which = {}): Promise<Audit[]> {
-    let query = this.db
-      .selectFrom('audit')
-      .selectAll()
-      .orderBy('at', 'desc')
-      /** A total order: two acts in the same millisecond must not swap between pages. */
-      .orderBy('id', 'desc')
-      .limit(which.limit ?? Audit.PAGE)
-      .offset(which.offset ?? 0);
-
-    if (which.act) query = query.where('act', '=', which.act);
-    if (which.actorId) query = query.where('actorId', '=', which.actorId);
-    if (which.subject) query = query.where('subject', '=', which.subject);
-
+    const query = this.filtered(
+      this.db
+        .selectFrom('audit')
+        .selectAll()
+        .orderBy('at', 'desc')
+        /** A total order: two acts in the same millisecond must not swap between pages. */
+        .orderBy('id', 'desc')
+        .limit(which.limit ?? Audit.PAGE)
+        .offset(which.offset ?? 0),
+      which,
+    );
     return (await query.execute()).map(Audits.of);
+  }
+
+  /** The one place a filter is turned into `where`s, so a listing and its count cannot disagree. */
+  private filtered<Q extends SelectQueryBuilder<Schema, 'audit', Row>, Row>(query: Q, which: Which): Q {
+    let out = query;
+    if (which.act) out = out.where('act', '=', which.act) as Q;
+    if (which.actorId) out = out.where('actorId', '=', which.actorId) as Q;
+    if (which.subject) out = out.where('subject', '=', which.subject) as Q;
+    return out;
   }
 }

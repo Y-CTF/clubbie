@@ -1,3 +1,4 @@
+import { Brand } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { Logger } from '@clubbie/log';
 import { markup } from '@clubbie/term';
@@ -35,8 +36,13 @@ import { Search } from './search.ts';
 export class Store {
   static readonly SQLITE = 'sqlite:';
   static readonly POSTGRES = ['postgres://', 'postgresql://'];
-  /** What `DATABASE_URL` falls back to, and what a test opens. */
-  static readonly MEMORY = 'sqlite::memory:';
+  /** What `DATABASE_URL` falls back to, and what a test opens. Built, so the two agree. */
+  static readonly MEMORY = `${Store.SQLITE}${SqliteDialect.MEMORY}`;
+  /** A file path as a url this store will open. The one place the scheme is written onto a path. */
+  static file(path: string): string {
+    return `${Store.SQLITE}${path}`;
+  }
+
   /** The variable a bad url is underlined in. */
   static readonly VAR = 'DATABASE_URL';
   /** A query past this is logged at `warn` however well it went. */
@@ -69,7 +75,7 @@ export class Store {
     this.events = new Events(db, search);
     this.rsvps = new Rsvps(db, lock);
     this.links = new Links(db);
-    this.club = new Clubs(db);
+    this.club = new Clubs(db, lock);
     this.schedules = new Schedules(db);
     this.guests = new Guests(db, lock);
     this.jobs = new Jobs(db);
@@ -79,7 +85,7 @@ export class Store {
     this.prefs = new Preferences(db);
   }
 
-  static async open(url: string = Store.MEMORY, parent: Logger = Logger.create('clubbie')): Promise<Store> {
+  static async open(url: string = Store.MEMORY, parent: Logger = Logger.create(Brand.scope)): Promise<Store> {
     const log = parent.child('store', { dialect: Store.kind(url) });
     const db = new Kysely<Schema>({
       dialect: await Store.dialect(url, log),
