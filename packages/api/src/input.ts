@@ -30,6 +30,16 @@ export namespace Input {
   export const TITLE = 200;
   export const TEXT = 5000;
   export const TOKEN = 200;
+  /**
+   * An authorisation code, which is the one string here that another system chose the length of.
+   *
+   * It is not `TOKEN`. That bound fits the things this app mints (a state, a verifier, a calendar
+   * token) and an authorisation code is whatever the provider encoded into it: eduID's is around
+   * seven hundred characters and Entra's longer still, so a two hundred character limit refused
+   * every eduID sign-in at the callback with a schema error. It is still bounded, because it is
+   * still somebody else's string arriving in a url.
+   */
+  export const GRANT = 4096;
   /** A CSS colour as a hex triple, which is the only form the SPA's token needs to accept. */
   export const COLOUR = /^#[0-9a-fA-F]{6}$/;
   /**
@@ -105,7 +115,7 @@ export namespace Input {
    * bounded here like everything else rather than forwarded at whatever length it arrived.
    */
   export const callback = v.object({
-    code: v.optional(v.pipe(v.string(), v.maxLength(TOKEN))),
+    code: v.optional(v.pipe(v.string(), v.maxLength(GRANT))),
     state: v.optional(v.pipe(v.string(), v.maxLength(TOKEN))),
     error: v.optional(v.pipe(v.string(), v.maxLength(TITLE))),
   });
