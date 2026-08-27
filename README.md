@@ -390,3 +390,13 @@ bun test packages/store` proves the other dialect. CI runs both.
 It is a variable of its own rather than `DATABASE_URL` for a reason worth knowing: Bun loads `.env`
 for `bun test` as well, and the fixture empties every table in the database it opens. Pointing it at
 the database a dev server is using would delete the club.
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSES/Apache-2.0.txt](LICENSES/Apache-2.0.txt))
+- MIT license ([LICENSES/MIT.txt](LICENSES/MIT.txt))
+
+at your option, which is `MIT OR Apache-2.0` in one line. Unless you say otherwise, a contribution
+you submit for inclusion is dual licensed the same way.
