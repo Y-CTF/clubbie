@@ -1,7 +1,8 @@
-import { type Credentials, type Named, Providers, type Spec } from '@clubbie/auth';
+import { type Credentials, Key, type Named, Provider, Providers, type Spec } from '@clubbie/auth';
 import { Brand } from '@clubbie/core';
 import { type Code, Diag, type Span } from '@clubbie/diag';
 import { Level } from '@clubbie/log';
+import { type Mailbox, type Transport, Transports } from '@clubbie/notify';
 import { Store } from '@clubbie/store';
 import { markup } from '@clubbie/term';
 import { Codes } from './codes.ts';
@@ -18,14 +19,13 @@ export interface Config {
   readonly telegram: string | null;
   /** Set when something in front of this process rewrites `x-forwarded-for` and its relatives. */
   readonly trustProxy: boolean;
-  /** Set together or not at all: an email channel needs a key and an address it may send from. */
+  /** The email channel, or nothing. What it needs depends on which transport it sends over. */
   readonly email: Mail | null;
 }
 
-export interface Mail {
-  readonly key: string;
-  readonly from: string;
-  readonly endpoint: string | undefined;
+/** An email channel: which wire it leaves on, and the credentials that wire asked for. */
+export interface Mail extends Mailbox {
+  readonly transport: Transport;
 }
 
 /**
@@ -49,8 +49,12 @@ export namespace Config {
     assets: 'ASSETS',
     telegram: 'TELEGRAM_TOKEN',
     trustProxy: 'TRUST_PROXY',
-    emailKey: 'EMAIL_API_KEY',
+    emailTransport: 'EMAIL_TRANSPORT',
     emailFrom: 'EMAIL_FROM',
+    emailKey: 'EMAIL_API_KEY',
+    emailSecret: 'EMAIL_API_SECRET',
+    emailDomain: 'EMAIL_DOMAIN',
+    emailUrl: 'EMAIL_SMTP_URL',
     emailEndpoint: 'EMAIL_ENDPOINT',
   } as const;
 
@@ -75,14 +79,16 @@ export namespace Config {
     VARS.secret,
     VARS.telegram,
     VARS.emailKey,
+    VARS.emailSecret,
   ];
   export const MASK = 8;
   /**
-   * Variables that carry a secret without saying so in their name. A connection string is the
-   * whole list: `DATABASE_URL` reads like an address and is `postgres://user:hunter2@host/db`,
-   * and a boot that refuses a bad `PORT` prints the environment it read while doing it.
+   * Variables that carry a secret without saying so in their name. Both are connection strings:
+   * `DATABASE_URL` reads like an address and is `postgres://user:hunter2@host/db`, an smtp url
+   * carries the mailbox password the same way, and a boot that refuses a bad `PORT` prints the
+   * environment it read while doing it.
    */
-  export const SECRETS: readonly string[] = [VARS.databaseUrl];
+  export const SECRETS: readonly string[] = [VARS.databaseUrl, VARS.emailUrl];
   /** What a redacted password is shown as, so the shape of the url survives the redaction. */
   export const MASKED = '***';
   /** Written in an environment flag, these mean off. Anything else set means on. */
@@ -166,23 +172,77 @@ export namespace Config {
   }
 
   /**
-   * The email channel, which is all of its variables or none of them. Half of it is refused here
-   * for the same reason half a provider is: a club finds out at the moment it needed to send.
+   * The email channel, read through `Transports`: which wire, and everything that wire needs.
+   *
+   * A club sends over one of several providers or over its own mail server, and each of them asks
+   * for something different, so what is required here is the table's answer rather than a list
+   * written twice. What has not changed is when it refuses: a channel that is half configured is
+   * a boot that fails, not a club that finds out at the moment it needed to send.
    */
   function email(env: Source, seen: readonly Entry[]): Mail | null {
-    const key = env[VARS.emailKey];
     const from = env[VARS.emailFrom];
-    if (!key && !from) return null;
+    const credentials: Partial<Mailbox> = {
+      ...(from ? { from } : {}),
+      ...pick(env, { key: VARS.emailKey, secret: VARS.emailSecret }),
+      ...pick(env, { domain: VARS.emailDomain, url: VARS.emailUrl, endpoint: VARS.emailEndpoint }),
+    };
+    const named = env[VARS.emailTransport]?.trim().toLowerCase();
+    /** Nothing at all is a club that sends no email, which is a supported way to run this. */
+    if (!named && Object.keys(credentials).length === 0) return null;
 
-    if (!key || !from) {
-      const missing = key ? VARS.emailFrom : VARS.emailKey;
-      const present = key ? VARS.emailKey : VARS.emailFrom;
-      throw fault(seen, Codes.config.email, missing, 'the email channel is half configured')
-        .note(markup`\`${present}\` is set, \`${missing}\` is not`)
-        .help('set both to send email, or neither to send none');
+    const transport = named ?? Transports.DEFAULT;
+    if (!Transports.known(transport)) {
+      throw fault(
+        seen,
+        Codes.config.transport,
+        VARS.emailTransport,
+        markup`there is no email transport called ${transport}`,
+      ).help(markup`it is one of ${Transports.NAMES.join(', ')}`);
     }
 
-    return { key, from, endpoint: env[VARS.emailEndpoint] };
+    if (!from) {
+      throw fault(seen, Codes.config.email, VARS.emailFrom, 'the email channel has no sender')
+        .note('every provider refuses a message with no address to send it from')
+        .help(markup`set \`${VARS.emailFrom}\` to an address on a domain the provider has verified`);
+    }
+
+    const missing = Transports.missing(transport, credentials);
+    if (missing.length > 0) {
+      const vars = missing.map((need) => NEEDS[need]);
+      throw fault(
+        seen,
+        Codes.config.email,
+        vars[0] ?? VARS.emailTransport,
+        markup`*${transport}* cannot send with what it was given`,
+      )
+        .note(markup`it needs ${vars.map((name) => `\`${name}\``).join(' and ')}`)
+        .help(markup`set them, or choose another transport with \`${VARS.emailTransport}\``);
+    }
+
+    return { transport, from, ...credentials };
+  }
+
+  /**
+   * Which variable carries which credential, so a refusal can name the thing an operator has to
+   * go and set rather than the field this code happens to call it.
+   */
+  const NEEDS: Record<keyof Mailbox, string> = {
+    from: VARS.emailFrom,
+    key: VARS.emailKey,
+    secret: VARS.emailSecret,
+    domain: VARS.emailDomain,
+    url: VARS.emailUrl,
+    endpoint: VARS.emailEndpoint,
+  };
+
+  /** The variables that were actually set, under the names the credentials use. */
+  function pick<K extends string>(env: Source, vars: Record<K, string>): Partial<Record<K, string>> {
+    const out: Partial<Record<K, string>> = {};
+    for (const [field, name] of Object.entries(vars) as [K, string][]) {
+      const value = env[name];
+      if (value) out[field] = value;
+    }
+    return out;
   }
 
   /**
@@ -193,11 +253,32 @@ export namespace Config {
   function providers(env: Source, seen: readonly Entry[]): Config['providers'] {
     const out: Record<string, Partial<Credentials>> = {};
     for (const name of Providers.NAMES) {
-      const credentials = read_(env, Providers.spec(name).vars);
-      whole(name, credentials, Providers.spec(name).vars, seen);
+      const spec = Providers.spec(name);
+      const credentials = read_(env, spec.vars);
+      whole(name, credentials, spec.vars, seen);
+      issued(name, credentials, spec.vars, seen);
       out[name] = credentials;
     }
     return out;
+  }
+
+  /**
+   * Refuses a provider that has credentials and no issuer to use them against. Only the generic
+   * OpenID Connect entry can be in that state: every named provider carries its own issuer, and
+   * this one is whichever one the deployment runs, so nothing but the environment can say.
+   */
+  function issued(
+    name: Named,
+    credentials: Partial<Credentials>,
+    vars: Spec['vars'],
+    seen: readonly Entry[],
+  ): void {
+    if (!vars.issuer || credentials.issuer || !Providers.needsIssuer(name)) return;
+    if (!Provider.configured(credentials)) return;
+
+    throw fault(seen, Codes.config.issuer, vars.issuer, markup`*${name}* has no issuer`)
+      .note('a generic openid connect provider is only identified by the issuer it discovers from')
+      .help(markup`set \`${vars.issuer}\` to its origin, such as \`https://id.example.org\``);
   }
 
   /** One provider's credentials, taking only the variables that were actually set. */
@@ -210,23 +291,61 @@ export namespace Config {
       ...(clientId ? { clientId } : {}),
       ...(clientSecret ? { clientSecret } : {}),
       ...(issuer ? { issuer } : {}),
+      ...(key(env, vars) ? { key: key(env, vars) } : {}),
     };
   }
 
-  /** Refuses an id without a secret, or a secret without an id, naming the one that is missing. */
+  /**
+   * The private key a provider signs its assertions with, when one is configured.
+   *
+   * A PEM carries newlines and an environment variable is one line in most of the places these
+   * are set, so `\n` written literally is read as a newline. Without that a deployment that has
+   * pasted a perfectly good key into a compose file gets "invalid keyData" at the first sign-in.
+   */
+  function key(env: Source, vars: Spec['vars']): Key | undefined {
+    if (!vars.privateKey) return undefined;
+
+    const pem = env[vars.privateKey]?.replace(/\\n/g, '\n').trim();
+    if (!pem) return undefined;
+
+    const id = vars.keyId ? env[vars.keyId] : undefined;
+    return {
+      pem,
+      ...(id ? { id } : {}),
+      algorithm: (vars.algorithm ? env[vars.algorithm] : undefined) || Key.ALGORITHM,
+    };
+  }
+
+  /**
+   * Refuses a provider that is half configured, naming the half that is missing.
+   *
+   * What proves a client is a secret or a key, and a provider that takes keys is complete with
+   * either. A key handed to a provider that cannot use one is refused rather than ignored: it was
+   * set by somebody who believed it was doing something.
+   */
   function whole(
-    name: string,
+    name: Named,
     credentials: Partial<Credentials>,
     vars: Spec['vars'],
     seen: readonly Entry[],
   ): void {
-    if (Boolean(credentials.clientId) === Boolean(credentials.clientSecret)) return;
+    if (credentials.key && !Providers.keyed(name)) {
+      throw fault(seen, Codes.config.provider, vars.clientSecret, markup`*${name}* takes no private key`)
+        .note('only an openid connect provider authenticates with a key instead of a secret')
+        .help(markup`sign in to ${name} with \`${vars.clientSecret}\` instead`);
+    }
+
+    const proof = Boolean(credentials.clientSecret || credentials.key);
+    if (Boolean(credentials.clientId) === proof) return;
 
     const missing = credentials.clientId ? vars.clientSecret : vars.clientId;
     const present = credentials.clientId ? vars.clientId : vars.clientSecret;
-    throw fault(seen, Codes.config.provider, missing, markup`*${name}* is half configured`)
-      .note(markup`\`${present}\` is set, \`${missing}\` is not`)
-      .help('set both, or neither');
+    const diag = fault(seen, Codes.config.provider, missing, markup`*${name}* is half configured`).note(
+      markup`\`${present}\` is set, \`${missing}\` is not`,
+    );
+    throw Providers.keyed(name) && vars.privateKey
+      ? diag.help(markup`set both, or set \`${vars.privateKey}\` instead of a secret, or set neither`)
+      : diag.help('set both, or neither');
   }
 
   /**

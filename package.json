@@ -27,16 +27,19 @@
     "arctic": "^3.7.0",
     "grammy": "^1.45.1",
     "hono": "^4.13.4",
+    "jose": "^6.2.10",
     "kysely": "^0.29.5",
     "valibot": "^1.4.2"
   },
   "optionalDependencies": {
+    "nodemailer": "^9.0.5",
     "pg": "^8.23.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",
     "@types/bun": "latest",
     "@types/node": "^22.10.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.11.10",
     "typescript": "^5.9.3"
   }

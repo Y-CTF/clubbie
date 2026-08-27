@@ -116,7 +116,9 @@ export namespace App {
     const senders: Sender[] = [];
     if (bot) senders.push(new Telegram(bot.tell));
     if (config.email) {
-      senders.push(new Email({ key: config.email.key, from: config.email.from, ...spread(config) }));
+      const { transport, ...mailbox } = config.email;
+      senders.push(Email.over(transport, mailbox));
+      log.debug('email configured', { transport });
     }
 
     const notify = new Notify(store, senders, log);
@@ -130,10 +132,5 @@ export namespace App {
     const scheduler = new Scheduler({ store, notify, log, baseUrl: config.baseUrl });
     await scheduler.start();
     return scheduler;
-  }
-
-  /** `exactOptionalPropertyTypes` again: an endpoint that was never set must not be a key at all. */
-  function spread(config: Config): { endpoint?: string } {
-    return config.email?.endpoint ? { endpoint: config.email.endpoint } : {};
   }
 }
