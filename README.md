@@ -4,25 +4,185 @@
   Event and member management for a small club, in one binary and one database file.
 </p>
 
-Written for associations that run on volunteers: a student CTF club, a choir, a hiking
+## Background
+
+<a href="#installing"><small>cut the small talk and just let me install this</small></a>
+
+We are a small CTF (Capture-the-flag) club established @[HEIG-VD](https://heig-vd.ch/) around
+2020. Up until now, we were using Google Spreadsheets and Forms for enrollment, events
+organization and attendance checking. Needless to say it was becoming quite tedious to manage as
+we grew bigger and bigger (we are now around 50 members).
+
+We began searching for existing solutions online, but couldn't find anything that suited our
+needs:
+
+- Free and Open Source Software (FOSS) - we don't want to depend on any third party service
+- Easy to deploy and maintain (we don't have a dedicated sysadmin)
+- Simple and user-friendly interface for both members and organizers
+- Features tailored for club management (event enrollment, attendance tracking, member
+  management, etc.)
+
+So we decided to build our own solution, and `clubbie` was born !
+
+Find more about us on our [website](https://yctf.ch/).
+
+It is written for any association that runs on volunteers: a student CTF club, a choir, a hiking
 group. Members sign in with an identity they already have, answer events, and get counted;
 organisers admit members, publish events, take attendance, and are told who turned up. Nothing
 else.
 
-## Running it
+## Installing
 
-```sh
-cp .env.example .env          # set SESSION_SECRET at least
-bun install
-bun run dev                   # api on :3000, spa on :5173
+### Docker Compose (recommended)
+
+1. Clone this repository:
+
+    ```bash
+    git clone https://github.com/Y-CTF/clubbie.git
+    cd clubbie
+    ```
+
+2. Copy the example environment file and configure your environment variables:
+
+    ```bash
+    cp docker/.env.example docker/.env
+    ```
+
+    It is `docker/.env` rather than the repository's own `.env` on purpose: what a container needs
+    is not what a dev server needs, starting with where the database lives. Edit it and configure:
+    - `SESSION_SECRET`: generate with `openssl rand -base64 32`
+    - `BASE_URL`: the origin members reach, which is the address behind your proxy in production
+    - **Authentication (choose at least one)**:
+      - **GitHub**: `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from
+        [GitHub OAuth Apps](https://github.com/settings/developers)
+      - **eduID**: `EDUID_CLIENT_ID` and `EDUID_CLIENT_SECRET` from
+        [eduID](https://www.eduid.ch/) (Swiss academic identity)
+    - `DATABASE_URL`: leave it alone for SQLite in the volume, or point it at the Postgres
+      profile below
+
+3. Get it up and running:
+
+    ```bash
+    docker compose -f docker/compose.yml up -d
+    ```
+
+    Podman is the same command with `podman compose`, and the image is built from
+    `docker/Containerfile` either way.
+
+4. Access the interface at `http://localhost:3000`.
+
+The database, and every image the club uploads, live in the `clubbie-data` volume, so the image
+stays disposable and an upgrade is `up -d --build`. For Postgres instead of SQLite, set
+`DATABASE_URL=postgres://clubbie:clubbie@postgres:5432/clubbie` in `docker/.env` and start the
+profile:
+
+```bash
+docker compose -f docker/compose.yml --profile postgres up -d
 ```
 
-The first person to sign in becomes the admin. Everyone after them arrives as `pending`
-and waits to be admitted.
+> [!WARNING]
+> The first person to sign in becomes the admin. Everyone after them arrives as `pending` and
+> waits to be admitted.
+
+### Manual installation
+
+#### Prerequisites
+
+- **Bun** 1.2 or higher (install with `curl -fsSL https://bun.sh/install | bash`)
+- **Git**
+- **PostgreSQL** 16 or higher, only if you would rather not use SQLite. There is nothing else to
+  install for SQLite: the database is a file the process creates.
+
+#### Installation Steps
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/Y-CTF/clubbie.git
+    cd clubbie
+    ```
+
+2. Install dependencies:
+
+    ```bash
+    bun install
+    ```
+
+3. Configure environment variables:
+
+    Copy the example environment file:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edit `.env` and configure:
+
+    ```bash
+    # Where the database lives. A file, or a Postgres you already run.
+    DATABASE_URL="sqlite:clubbie.db"
+    # DATABASE_URL="postgres://postgres:password@localhost:5432/clubbie"
+
+    # Generate a secret (run this command and paste the output)
+    # openssl rand -base64 32
+    SESSION_SECRET="your-generated-secret-here"
+
+    # The origin members reach. OAuth redirects and every link in a reminder are built from it.
+    BASE_URL="http://localhost:3000"
+
+    # Authentication (choose at least one)
+
+    # Option 1: GitHub OAuth (recommended for general use)
+    GITHUB_CLIENT_ID="your-github-client-id"
+    GITHUB_CLIENT_SECRET="your-github-client-secret"
+
+    # Option 2: eduID OIDC (Swiss academic identity)
+    EDUID_CLIENT_ID="your-eduid-client-id"
+    EDUID_CLIENT_SECRET="your-eduid-client-secret"
+    ```
+
+    GitHub credentials come from [GitHub OAuth Apps](https://github.com/settings/developers),
+    eduID's from [eduID](https://www.eduid.ch/). A provider with only half its credentials set is
+    refused at boot rather than at the redirect, and a deployment with no provider configured says
+    so on the sign-in page. Which eduID home organisations may join is a club setting, not an
+    environment variable: set it on the settings page and an identity from anywhere else is turned
+    away at sign-in.
+
+4. Run database migrations:
+
+    ```bash
+    bun run migrate
+    ```
+
+    Booting the server does this too. The command exists so a deployment can apply the schema
+    before it starts taking requests.
+
+5. (Optional) Seed the database with sample data:
+
+    ```bash
+    bun run seed
+    ```
+
+6. Start the development server:
+
+    ```bash
+    bun run dev
+    ```
+
+    The API listens on `:3000` and the SPA on `:5173`, which is the one to open while developing.
+
+7. Access the application at `http://localhost:5173`
+
+> [!TIP]
+> The first person to sign in becomes the admin. Everyone after them arrives as `pending` and
+> waits to be admitted. `bun run migrate && bun packages/server/src/main.ts admin you@example.com`
+> promotes somebody later.
+
+### Deploying without a container
 
 For a real deployment, one binary serves the API, the built SPA and the scheduler on one origin:
 
-```sh
+```bash
 bun run build                 # dist/clubbie, plus packages/web/dist
 DATABASE_URL=sqlite:clubbie.db ./dist/clubbie serve
 ```
@@ -39,6 +199,58 @@ admin <email>  make an existing member an admin
 backup <path>  copy the database to a file, safely, while it runs
 work           run one pass of the job queue, then exit
 ```
+
+Put it behind a reverse proxy that terminates TLS, set `BASE_URL` to the public origin and
+`TRUST_PROXY` if that proxy rewrites `x-forwarded-for`.
+
+### Optional: Telegram Bot Setup
+
+If you want announcements and reminders to reach members in a chat:
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token
+
+2. Set it in `.env`:
+
+    ```bash
+    TELEGRAM_TOKEN="your-telegram-bot-token"
+    ```
+
+3. Restart the server. The bot runs inside the same process, so there is nothing else to start.
+
+A member links their account from their profile page: they take a code and send it to the bot,
+which then answers `/events` and `/whoami` for them. The bot holds no authority of its own; every
+answer goes through the same permission table as the web app.
+
+### Optional: Email
+
+For members who never link a chat, set both of:
+
+```bash
+EMAIL_API_KEY="your-provider-api-key"
+EMAIL_FROM="clubbie@yourclub.example"
+```
+
+It is one POST to a provider's API, no dependency. The endpoint defaults to Resend's;
+`EMAIL_ENDPOINT` points it at anything that takes the same JSON. Setting one of the two and not
+the other is refused at boot.
+
+### Troubleshooting
+
+- **Bad environment variable**: it is refused at boot with a diagnostic pointing at the line, so
+  read what it says rather than the stack trace above it
+- **Database connection errors**: verify PostgreSQL is running and `DATABASE_URL` is correct. For
+  SQLite, check the process can write the directory the file is in
+- **`SESSION_SECRET` refused**: it has to be 32 characters or more, `openssl rand -base64 32`
+- **Port already in use**: set `PORT=3001`
+- **Sign-in page says no provider is configured**: set both halves of at least one provider's
+  credentials, then restart
+- **eduID authentication issues**: verify the client id and secret are correct, and that the
+  member's home organisation is on the club's allowed list
+- **Nothing at `/` in production**: `ASSETS` points at the built SPA, which `bun run build`
+  produces at `packages/web/dist`. The image sets it to `/app/web` and copies it there
+- **The container starts and stops**: `docker compose -f docker/compose.yml logs clubbie` prints
+  the diagnostic that refused the environment. Under the Postgres profile it is usually the
+  database still starting, which the restart policy rides out
 
 ## Configuration
 
@@ -71,10 +283,6 @@ error[config.port]: a port is a whole number between 1 and 65535
 | `EDUID_ISSUER` | `https://login.eduid.ch` | the OIDC issuer discovery starts from |
 | `TZ` | the host's | read by the runtime, not by the config: the wall clock a repeating event keeps when the club has set no timezone. Not validated at boot, and an empty value means UTC |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | unset | |
-
-A provider with only half its credentials set is refused at boot rather than at the
-redirect, the email channel likewise, and a deployment with no provider configured says so on the
-sign-in page.
 
 ## What is in the box
 

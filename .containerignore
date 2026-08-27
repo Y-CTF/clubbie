@@ -1,0 +1,14 @@
+.git
+.jj
+node_modules
+dist
+packages/*/dist
+coverage
+.scratch
+.env
+*.db
+*.db-shm
+*.db-wal
+docker
+LICENSES
+*.md

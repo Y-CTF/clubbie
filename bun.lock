@@ -48,6 +48,10 @@
       "name": "@clubbie/log",
       "version": "0.1.0",
     },
+    "packages/notify": {
+      "name": "@clubbie/notify",
+      "version": "0.1.0",
+    },
     "packages/server": {
       "name": "@clubbie/server",
       "version": "0.1.0",
@@ -103,6 +107,8 @@
     "@clubbie/diag": ["@clubbie/diag@workspace:packages/diag"],
 
     "@clubbie/log": ["@clubbie/log@workspace:packages/log"],
+
+    "@clubbie/notify": ["@clubbie/notify@workspace:packages/notify"],
 
     "@clubbie/server": ["@clubbie/server@workspace:packages/server"],
 

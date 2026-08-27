@@ -1,0 +1,55 @@
+# One service, one volume, SQLite inside it. That is the whole deployment for a club.
+#
+#   cp docker/.env.example docker/.env    # then set SESSION_SECRET and a provider
+#   podman compose -f docker/compose.yml up -d
+#   docker compose -f docker/compose.yml up -d
+#
+# Compose reads `docker/.env` beside this file, not the repository's own `.env`: what the
+# container needs is not what a dev server needs, starting with where the database lives.
+#
+# For Postgres instead, start the profile and point DATABASE_URL at it in `docker/.env`:
+#
+#   DATABASE_URL=postgres://clubbie:clubbie@postgres:5432/clubbie
+#   docker compose -f docker/compose.yml --profile postgres up -d
+
+name: clubbie
+
+services:
+  clubbie:
+    build:
+      context: ..
+      dockerfile: docker/Containerfile
+    image: clubbie
+    env_file: .env
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+    volumes:
+      - clubbie-data:/data
+    # Declared here as well as in the image, because podman drops HEALTHCHECK from an OCI image.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+  postgres:
+    profiles: [postgres]
+    image: docker.io/postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clubbie}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clubbie}
+      POSTGRES_DB: ${POSTGRES_DB:-clubbie}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clubbie}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  clubbie-data:
+  postgres-data:

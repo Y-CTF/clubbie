@@ -1,0 +1,59 @@
+# The release image, in two stages: bun builds the SPA and compiles the server into one
+# executable, and the runtime carries that executable, the built assets and nothing else.
+#
+# Build from the repository root:
+#   podman build -f docker/Containerfile -t clubbie .
+#   docker build -f docker/Containerfile -t clubbie .
+
+FROM docker.io/oven/bun:1 AS build
+
+WORKDIR /src
+
+# The manifests first, so a source-only change reuses the installed layer.
+COPY package.json bun.lock bunfig.toml tsconfig.json ./
+COPY packages/api/package.json packages/api/
+COPY packages/auth/package.json packages/auth/
+COPY packages/bot/package.json packages/bot/
+COPY packages/core/package.json packages/core/
+COPY packages/diag/package.json packages/diag/
+COPY packages/log/package.json packages/log/
+COPY packages/notify/package.json packages/notify/
+COPY packages/server/package.json packages/server/
+COPY packages/store/package.json packages/store/
+COPY packages/term/package.json packages/term/
+COPY packages/web/package.json packages/web/
+RUN bun install --frozen-lockfile
+
+COPY scripts scripts
+COPY packages packages
+RUN bun run build
+
+FROM docker.io/debian:bookworm-slim AS runtime
+
+# ca-certificates for the OAuth issuer and the notification providers, libstdc++6 for the
+# compiled binary, curl for the healthcheck below.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates libstdc++6 curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# The database and any uploaded asset live in the volume, so the image stays disposable.
+RUN useradd --system --create-home --home-dir /app --shell /usr/sbin/nologin clubbie \
+  && mkdir -p /data && chown clubbie:clubbie /data
+
+WORKDIR /app
+COPY --from=build --chown=clubbie:clubbie /src/dist/clubbie /usr/local/bin/clubbie
+COPY --from=build --chown=clubbie:clubbie /src/packages/web/dist /app/web
+
+ENV DATABASE_URL=sqlite:/data/clubbie.db \
+    ASSETS=/app/web \
+    PORT=3000
+
+USER clubbie
+VOLUME /data
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -fsS "http://127.0.0.1:${PORT}/api/health" || exit 1
+
+ENTRYPOINT ["clubbie"]
+CMD ["serve"]
