@@ -2,15 +2,19 @@ import { Club } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import type { Profile } from '@clubbie/store';
 import { markup } from '@clubbie/term';
-import { CodeChallengeMethod, decodeIdToken, OAuth2Client } from 'arctic';
+import { decodeIdToken } from 'arctic';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { Codes } from '../codes.ts';
 import type { Credentials, Pending, Provider } from '../provider.ts';
+import { Exchange } from './exchange.ts';
 
 /** The subset of a discovery document this flow uses. */
 interface Discovery {
   authorization_endpoint: string;
   token_endpoint: string;
   userinfo_endpoint?: string;
+  /** Where the issuer publishes the public halves of the keys it signs id tokens with. */
+  jwks_uri?: string;
 }
 
 /**
@@ -44,10 +48,14 @@ const CLAIM = {
  * Any OpenID Connect provider, configured by issuer alone: the endpoints come from the issuer's
  * discovery document, fetched once and kept.
  *
- * The id token is read, not verified against the issuer's keys. It arrives in the response of a
- * TLS-authenticated call to the token endpoint made with the client secret, which is the case
- * OpenID Connect explicitly allows to skip signature checks. An id token reaching this code by
- * any other route would have to be verified, so no other route exists.
+ * How this app proves it is itself is `Exchange`: a shared secret, or a key the provider only
+ * ever sees the public half of. The class does not care which, because the difference is entirely
+ * in the token request.
+ *
+ * The id token's signature is checked against the issuer's published keys whenever it publishes
+ * any. It arrives over a TLS-authenticated call to the token endpoint, which OpenID Connect
+ * allows as a reason to skip the check, but the keys are one cached fetch and the alternative is
+ * an app that would accept an id token from anywhere if a route ever handed it one.
  */
 export class Oidc implements Provider {
   static readonly DISCOVERY = '/.well-known/openid-configuration';
@@ -58,17 +66,18 @@ export class Oidc implements Provider {
    */
   static readonly SCOPES = ['openid', 'profile', 'email'];
 
-  private client: OAuth2Client;
+  private exchange: Exchange;
   private endpoints: Promise<Discovery> | null = null;
+  private keys: ReturnType<typeof createRemoteJWKSet> | null = null;
 
   constructor(
     readonly name: string,
     private readonly issuer: string,
-    credentials: Credentials,
+    private readonly credentials: Credentials,
     redirect: string,
     private readonly scopes: string[] = Oidc.SCOPES,
   ) {
-    this.client = new OAuth2Client(credentials.clientId, credentials.clientSecret, redirect);
+    this.exchange = Exchange.of(name, credentials, redirect);
   }
 
   /**
@@ -95,26 +104,20 @@ export class Oidc implements Provider {
 
   async begin(state: string, verifier: string): Promise<Pending> {
     const { authorization_endpoint } = await this.discover();
-    const url = this.client.createAuthorizationURLWithPKCE(
-      authorization_endpoint,
-      state,
-      CodeChallengeMethod.S256,
-      verifier,
-      this.scopes,
-    );
+    const url = this.exchange.authorize(authorization_endpoint, state, verifier, this.scopes);
     return { url, state, verifier };
   }
 
   async finish(code: string, verifier: string): Promise<Profile> {
     const { token_endpoint } = await this.discover();
-    const tokens = await this.client
-      .validateAuthorizationCode(token_endpoint, code, verifier)
-      .catch((error: unknown) => {
-        throw Diag.error(Codes.exchange, markup`*${this.name}* would not exchange the sign-in code`)
-          .note(markup`it said: ${error instanceof Error ? error.message : String(error)}`)
-          .help('start again from the sign-in page; a code is only good once and only for minutes');
-      });
-    const token = decodeIdToken(tokens.idToken()) as Claims;
+    const tokens = await this.exchange.code(token_endpoint, code, verifier).catch((error: unknown) => {
+      /** An `Exchange` that already said what went wrong keeps its own sentence. */
+      if (error instanceof Diag) throw error;
+      throw Diag.error(Codes.exchange, markup`*${this.name}* would not exchange the sign-in code`)
+        .note(markup`it said: ${error instanceof Error ? error.message : String(error)}`)
+        .help('start again from the sign-in page; a code is only good once and only for minutes');
+    });
+    const token = await this.claims(tokens.idToken());
     /**
      * The id token says who, and often no more than that. What a provider puts in it is its own
      * business: eduID releases `sub` there and keeps the address and the home organisation at the
@@ -166,6 +169,41 @@ export class Oidc implements Provider {
        */
       organisations: home ? [Club.organisation(this.name, home)] : [],
     };
+  }
+
+  /**
+   * The id token's claims, with its signature checked against the issuer's published keys.
+   *
+   * The audience is this client and the issuer is the one discovery came from, so a token minted
+   * for another application at the same provider is refused here rather than becoming a member.
+   * An issuer that publishes no key set has nothing to check against: the token is then read as
+   * it always was, on the strength of the TLS call it arrived in.
+   */
+  private async claims(id: string): Promise<Claims> {
+    const keys = await this.jwks();
+    if (!keys) return decodeIdToken(id) as Claims;
+
+    const { payload } = await jwtVerify(id, keys, {
+      issuer: this.issuer,
+      audience: this.credentials.clientId,
+    }).catch((error: unknown) => {
+      throw Diag.error(Codes.claims, markup`*${this.name}* signed in with a token this app cannot trust`)
+        .note(markup`it said: ${error instanceof Error ? error.message : String(error)}`)
+        .help('start again from the sign-in page; if it keeps happening, check the client id');
+    });
+    return payload as Claims;
+  }
+
+  /**
+   * The issuer's key set, resolved once. `jose` handles the caching and the re-fetch when a token
+   * names a `kid` it has not seen, which is what makes a provider's key rotation a non-event.
+   */
+  private async jwks(): Promise<ReturnType<typeof createRemoteJWKSet> | null> {
+    const { jwks_uri } = await this.discover();
+    if (!jwks_uri) return null;
+
+    this.keys ??= createRemoteJWKSet(new URL(jwks_uri));
+    return this.keys;
   }
 
   /**

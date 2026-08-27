@@ -1,7 +1,10 @@
 export { Auth, type Config, type Resolved } from './auth.ts';
 export { Codes } from './codes.ts';
+export { Discord } from './provider/discord.ts';
+export { Exchange } from './provider/exchange.ts';
 export { GitHub } from './provider/github.ts';
 export { Oidc } from './provider/oidc.ts';
-export { type Credentials, type Pending, Provider } from './provider.ts';
-export { EDUID, type Named, Providers, type Spec } from './registry.ts';
+export { Rest } from './provider/rest.ts';
+export { type Credentials, Key, type Pending, Provider } from './provider.ts';
+export { EDUID, GITLAB, GOOGLE, MICROSOFT, type Named, Providers, SCHAC, type Spec } from './registry.ts';
 export { type Minted, Token } from './session.ts';

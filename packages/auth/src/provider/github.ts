@@ -1,10 +1,8 @@
-import { Brand, Club } from '@clubbie/core';
-import { Diag } from '@clubbie/diag';
+import { Club } from '@clubbie/core';
 import type { Profile } from '@clubbie/store';
-import { markup } from '@clubbie/term';
 import { GitHub as Arctic } from 'arctic';
-import { Codes } from '../codes.ts';
-import type { Credentials, Pending, Provider } from '../provider.ts';
+import { type Credentials, type Pending, Provider } from '../provider.ts';
+import { Rest } from './rest.ts';
 
 interface User {
   id: number;
@@ -42,13 +40,22 @@ export class GitHub implements Provider {
    * refused at a door they are actually behind.
    */
   static readonly SCOPES = ['read:user', 'user:email', 'read:org'];
-  static readonly VERSION = '2022-11-28';
+  /**
+   * The api version every call is pinned to. Unpinned requests default to the oldest supported
+   * one, so this is the only place the app decides which GitHub it is talking to.
+   */
+  static readonly VERSION = '2026-03-10';
+  /** GitHub wants its own media type and a pinned api version on every call. */
+  static readonly HEADERS = {
+    accept: 'application/vnd.github+json',
+    'x-github-api-version': GitHub.VERSION,
+  };
 
   readonly name = 'github';
   private client: Arctic;
 
   constructor(credentials: Credentials, redirect: string) {
-    this.client = new Arctic(credentials.clientId, credentials.clientSecret, redirect);
+    this.client = new Arctic(credentials.clientId, Provider.secret('github', credentials), redirect);
   }
 
   begin(state: string, verifier: string): Pending {
@@ -57,24 +64,18 @@ export class GitHub implements Provider {
 
   async finish(code: string): Promise<Profile> {
     const tokens = await this.client.validateAuthorizationCode(code).catch((error: unknown) => {
-      throw Diag.error(Codes.exchange, markup`*github* would not exchange the sign-in code`)
-        .note(markup`it said: ${error instanceof Error ? error.message : String(error)}`)
-        .help('start again from the sign-in page; a code is only good once and only for minutes');
+      throw Rest.exchange(this.name, error);
     });
     const token = tokens.accessToken();
 
-    const user = await GitHub.get<User>('/user', token);
-    const emails = await GitHub.get<Email[]>('/user/emails', token);
-    const organisations = await GitHub.organisations(token);
+    const user = await this.get<User>('/user', token);
+    const emails = await this.get<Email[]>('/user/emails', token);
+    const organisations = await this.organisations(token);
     /** An answer that is not a list is a broken provider, not an account without an email. */
     const primary = Array.isArray(emails)
       ? emails.find((entry) => entry.primary && entry.verified)
       : undefined;
-    if (!primary) {
-      throw Diag.error(Codes.unverified, markup`*github* has no verified primary email for ${user.login}`)
-        .note('an unverified address cannot identify a member: it would merge two people into one')
-        .help('verify your primary address on github, then sign in again');
-    }
+    if (!primary) throw Rest.unverified(this.name, user.login);
 
     return {
       provider: this.name,
@@ -97,24 +98,12 @@ export class GitHub implements Provider {
    * saying so is better than refusing somebody a sign-in because GitHub had a bad minute. A club
    * that names no organisation never notices either way.
    */
-  private static async organisations(token: string): Promise<string[]> {
-    const listing = await GitHub.get<Organisation[]>('/user/orgs', token).catch(() => []);
+  private async organisations(token: string): Promise<string[]> {
+    const listing = await this.get<Organisation[]>('/user/orgs', token).catch(() => []);
     return Array.isArray(listing) ? listing.map((one) => one.login.toLowerCase()) : [];
   }
 
-  private static async get<T>(path: string, token: string): Promise<T> {
-    const response = await fetch(GitHub.API + path, {
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: 'application/vnd.github+json',
-        'x-github-api-version': GitHub.VERSION,
-        'user-agent': Brand.agent,
-      },
-    });
-    if (response.ok) return (await response.json()) as T;
-
-    throw Diag.error(Codes.profile, markup`*github* refused to describe the account`)
-      .note(markup`${path} answered ${response.status}`)
-      .help("sign in again; if it keeps happening the app's github credentials may be revoked");
+  private get<T>(path: string, token: string): Promise<T> {
+    return Rest.get<T>(this.name, GitHub.API, path, token, GitHub.HEADERS);
   }
 }
