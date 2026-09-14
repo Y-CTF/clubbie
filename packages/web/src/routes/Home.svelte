@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Site } from '@clubbie/core';
+import { Signin, Site } from '@clubbie/core';
 import { api, unwrap } from '../lib/api.ts';
 import { club } from '../lib/club.svelte.ts';
 import { Format } from '../lib/format.ts';
@@ -7,6 +7,7 @@ import { Query } from '../lib/query.svelte.ts';
 import { Router } from '../lib/router.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
+import Enrol from '../ui/Enrol.svelte';
 import Mark from '../ui/Mark.svelte';
 import { Marks } from '../ui/marks.ts';
 import Panel from '../ui/Panel.svelte';
@@ -32,6 +33,9 @@ $effect(() => {
 });
 
 const t = $derived(words.t);
+const offered = $derived(providers.data?.providers ?? []);
+/** The ones that hand the browser somewhere else; the address is a form rather than a tile. */
+const redirected = $derived(offered.filter((one) => one !== Signin.PROVIDER));
 </script>
 
 <div class="-mx-6 -mt-10">
@@ -73,7 +77,16 @@ const t = $derived(words.t);
         </a>
       {:else}
         <Panel query={providers}>
-          {#if providers.data?.providers.length}
+          {#if offered.includes(Signin.PROVIDER)}
+            <div class="mx-auto max-w-sm text-start">
+              <Enrol />
+            </div>
+            {#if redirected.length > 0}
+              <p class="my-4 text-xs text-muted">{t.signIn.email.other}</p>
+            {/if}
+          {/if}
+
+          {#if redirected.length > 0}
             <!--
               One tile per provider, its own mark on it. A club has one or two of these and every
               member uses the same one every term, so the logo is what they are actually looking
@@ -81,7 +94,7 @@ const t = $derived(words.t);
               carries the sentence for a screen reader.
             -->
             <ul class="flex flex-wrap justify-center gap-3">
-              {#each providers.data.providers as provider (provider)}
+              {#each redirected as provider (provider)}
                 <li>
                   <a
                     href={Site.Api.start(provider)}
@@ -96,7 +109,7 @@ const t = $derived(words.t);
                 </li>
               {/each}
             </ul>
-          {:else}
+          {:else if offered.length === 0}
             <p class="text-sm text-muted">
               {t.signIn.noProvider}
               <span class="mt-1 block font-mono text-xs">{t.signIn.noProviderHelp}</span>

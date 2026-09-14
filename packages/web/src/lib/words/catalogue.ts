@@ -142,6 +142,19 @@ export interface Catalogue {
     readonly noProviderHelp: string;
     readonly signedInAs: (name: string) => string;
     readonly upcoming: string;
+    /** Signing in with an address alone: the form, the code box, and what it says back. */
+    readonly email: {
+      readonly label: string;
+      readonly hint: string;
+      readonly send: string;
+      readonly sending: string;
+      readonly sent: (email: string) => string;
+      readonly code: string;
+      readonly codeHint: string;
+      readonly verify: string;
+      readonly again: string;
+      readonly other: string;
+    };
   };
 
   readonly events: {

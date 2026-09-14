@@ -7,6 +7,7 @@ let {
   look: name = 'quiet',
   field = false,
   disabled = false,
+  type = 'button',
   onclick,
   children,
 }: {
@@ -14,13 +15,16 @@ let {
   /** Standing beside a text box: the same height as the box, rather than shorter than it. */
   field?: boolean;
   disabled?: boolean;
-  onclick?: () => void;
+  /** `submit` is what makes Enter work inside a form, which nothing in the app used to do. */
+  type?: 'button' | 'submit';
+  disabledReason?: never;
+  onclick?: (event: MouseEvent) => void;
   children: Snippet;
 } = $props();
 </script>
 
 <button
-  type="button"
+  {type}
   {disabled}
   {onclick}
   class="{look(name, field)} disabled:cursor-not-allowed disabled:opacity-40"

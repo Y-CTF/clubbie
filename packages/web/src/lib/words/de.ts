@@ -113,6 +113,18 @@ export const de: Catalogue = {
     noProviderHelp: 'setze EDUID_CLIENT_ID oder GITHUB_CLIENT_ID und starte den Server neu.',
     signedInAs: (name) => `angemeldet als ${name}.`,
     upcoming: 'was ansteht',
+    email: {
+      label: 'E-Mail-Adresse',
+      hint: 'wir schicken einen Link und einen Code. nie ein Passwort.',
+      send: 'schick mir einen Link',
+      sending: 'wird gesendet…',
+      sent: (email) => `schau in ${email}. Link und Code gelten beide, fünfzehn Minuten lang.`,
+      code: 'Code aus der E-Mail',
+      codeHint: 'sechs Ziffern.',
+      verify: 'anmelden',
+      again: 'nochmal senden',
+      other: 'oder weiter mit',
+    },
   },
 
   events: {
