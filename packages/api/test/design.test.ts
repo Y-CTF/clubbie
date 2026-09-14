@@ -120,26 +120,11 @@ describe('the design a club chooses', () => {
   });
 
   test('a stored value this release does not know reads back as the default', async () => {
+    /** The row migration 16 created, as a release that knew a palette this one does not would hold it. */
     await h.store.db
-      .insertInto('club')
-      .values({
-        id: 'club',
-        name: 'Polytech',
-        tagline: null,
-        accent: Design.ACCENT,
-        logo: null,
-        listed: 0,
-        locale: null,
-        timezone: null,
-        palette: 'neon',
-        font: null,
-        radius: null,
-        density: null,
-        banner: null,
-        blurb: null,
-        organisations: null,
-        updatedAt: Date.now(),
-      })
+      .updateTable('club')
+      .set({ name: 'Polytech', palette: 'neon', updatedAt: Date.now() })
+      .where('id', '=', 'club')
       .execute();
 
     const club = await h.store.club.read();
@@ -148,25 +133,9 @@ describe('the design a club chooses', () => {
 
   test('an unrelated edit leaves a column this release cannot read alone', async () => {
     await h.store.db
-      .insertInto('club')
-      .values({
-        id: 'club',
-        name: 'Polytech',
-        tagline: null,
-        accent: Design.ACCENT,
-        logo: null,
-        listed: 0,
-        locale: 'it',
-        timezone: null,
-        palette: null,
-        font: null,
-        radius: null,
-        density: null,
-        banner: null,
-        blurb: null,
-        organisations: null,
-        updatedAt: Date.now(),
-      })
+      .updateTable('club')
+      .set({ name: 'Polytech', locale: 'it', updatedAt: Date.now() })
+      .where('id', '=', 'club')
       .execute();
 
     await h.store.club.update({ name: 'Polytech CTF' });

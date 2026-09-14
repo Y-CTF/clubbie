@@ -1,5 +1,6 @@
-import { Design, Kind, type KindId } from '@clubbie/core';
+import { Club, Design, Kind, type KindId } from '@clubbie/core';
 import type { Kysely } from 'kysely';
+import { Row } from './row.ts';
 import type { Schema } from './schema.ts';
 
 export interface Migration {
@@ -429,6 +430,37 @@ export const MIGRATIONS: readonly Migration[] = [
         .join(',');
 
       await db.updateTable('club').set({ organisations: qualified }).where('id', '=', 'club').execute();
+    },
+  },
+  {
+    version: 16,
+    name: 'the club row exists from the start, so an enrolment has something to queue behind',
+    /**
+     * The club is the singleton every enrolment reads through, and `Lock.club` holds it so that
+     * two first-ever sign-ins cannot both decide they are the founder. Nothing created it: the row
+     * appeared on the first settings save, so until a committee had saved that page the lock was
+     * `SELECT … FOR UPDATE` over an empty table, which locks nothing and waits for nobody. Two
+     * people finishing OAuth in the same second both came out `admin`, permanently.
+     *
+     * Every column but the three the table requires stays null, which is what every reader already
+     * treats as "this club has not chosen": the row decodes to exactly what `Club.default()`
+     * returns, so no club's page changes on upgrade.
+     */
+    async up(db) {
+      const existing = await db.selectFrom('club').select('id').where('id', '=', Club.ROW).executeTakeFirst();
+      if (existing) return;
+
+      const club = Club.default();
+      await db
+        .insertInto('club')
+        .values({
+          id: Club.ROW,
+          name: club.name,
+          accent: club.design.accent,
+          listed: Row.bit(club.listed),
+          updatedAt: Row.ms(club.updatedAt),
+        })
+        .execute();
     },
   },
 ];

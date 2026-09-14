@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { KindId } from '@clubbie/core';
+import { Club, type KindId } from '@clubbie/core';
 import { MIGRATIONS, type Profile, Store } from '../src/index.ts';
 import { Fixture } from './harness.ts';
 
@@ -35,6 +35,16 @@ describe('Store', () => {
 
   test('migrating twice applies nothing the second time', async () => {
     expect(await store.migrate()).toEqual([]);
+  });
+
+  /**
+   * `Lock.club` holds this row so two first-ever sign-ins cannot both come out the founder, and a
+   * `for update` over a table with no rows waits for nobody. The row existing is the whole lock.
+   */
+  test('a fresh database already holds the club row the enrolment lock is taken on', async () => {
+    const rows = await store.db.selectFrom('club').selectAll().execute();
+    expect(rows).toHaveLength(1);
+    expect(await store.club.read()).toEqual(Club.default((await store.club.read()).updatedAt));
   });
 
   /**
