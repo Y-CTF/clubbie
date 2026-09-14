@@ -42,6 +42,7 @@ export interface Patch {
   readonly allowed?: readonly string[] | undefined;
   readonly blocked?: readonly string[] | undefined;
   readonly providers?: readonly string[] | undefined;
+  readonly embeds?: readonly string[] | undefined;
   readonly admission?: Admission | undefined;
   readonly deadline?: number | undefined;
   readonly remind?: number | undefined;
@@ -81,6 +82,7 @@ export class Clubs {
       allowed: Clubs.list(row.allowed),
       blocked: Clubs.list(row.blocked),
       providers: Clubs.list(row.providers),
+      embeds: Clubs.list(row.embeds),
       admission: Club.admission(row.admission ?? Club.ADMISSION),
       deadline: row.deadline ?? Club.DEADLINE,
       remind: row.remind ?? Club.REMIND,
@@ -178,6 +180,7 @@ export class Clubs {
       allowed: Clubs.line(patch.allowed, kept('allowed', undefined)),
       blocked: Clubs.line(patch.blocked, kept('blocked', undefined)),
       providers: Clubs.line(patch.providers, kept('providers', undefined)),
+      embeds: Clubs.line(patch.embeds, kept('embeds', undefined)),
       admission: kept('admission', patch.admission),
       deadline: kept('deadline', patch.deadline),
       remind: kept('remind', patch.remind),

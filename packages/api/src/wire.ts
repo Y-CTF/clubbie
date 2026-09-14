@@ -268,6 +268,7 @@ export namespace Wire {
       allowed: settings ? club.allowed : null,
       blocked: settings ? club.blocked : null,
       providers: settings ? club.providers : null,
+      embeds: settings ? club.embeds : null,
       admission: settings ? club.admission : null,
       /**
        * How an evening runs is sent to every member, not only to an admin: the compose form fills

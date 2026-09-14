@@ -208,7 +208,7 @@ $effect(() => {
     {:else if page.name === 'Profile'}
       <Profile />
     {:else if page.name === 'Welcome'}
-      <Welcome />
+      <Welcome {router} />
     {:else}
       <Home />
     {/if}

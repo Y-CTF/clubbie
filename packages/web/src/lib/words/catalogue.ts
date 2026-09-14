@@ -154,9 +154,8 @@ export interface Catalogue {
 
   /** The page the club's own website links to, written for somebody who is not a member yet. */
   readonly join: {
-    readonly lead: string;
-    readonly steps: readonly string[];
-    readonly already: string;
+    readonly next: string;
+    readonly nextLead: string;
   };
 
   /** The first run, which is a different list depending on who just arrived. */
@@ -174,6 +173,10 @@ export interface Catalogue {
     readonly identity: string;
     readonly kinds: string;
     readonly first: string;
+    readonly chatHow: string;
+    readonly identityHow: string;
+    readonly firstHow: string;
+    readonly left: (count: number) => string;
     readonly done: string;
     readonly skip: string;
     readonly waiting: string;

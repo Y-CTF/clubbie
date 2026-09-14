@@ -1,6 +1,5 @@
 <script lang="ts">
-import { Login } from '@clubbie/auth';
-import { Signin, Site } from '@clubbie/core';
+
 import { api, unwrap } from '../lib/api.ts';
 import { club } from '../lib/club.svelte.ts';
 import { Format } from '../lib/format.ts';
@@ -8,11 +7,8 @@ import { Query } from '../lib/query.svelte.ts';
 import { Router } from '../lib/router.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
-import Chat from '../ui/Chat.svelte';
-import Enrol from '../ui/Enrol.svelte';
-import Mark from '../ui/Mark.svelte';
-import { Marks } from '../ui/marks.ts';
 import Panel from '../ui/Panel.svelte';
+import Ways from '../ui/Ways.svelte';
 
 /**
  * The way in, and the shop window around it.
@@ -21,27 +17,16 @@ import Panel from '../ui/Panel.svelte';
  * sent by a friend, somebody checking whether the club still meets. So it says who the club is
  * before it asks anybody to prove who they are, and it says what is coming up without an account.
  *
- * The providers come from the server, so a deployment that configured only eduID shows only eduID
- * and never advertises a button that would 404; the events come from the public listing, which is
- * empty unless the club turned it on.
+ * Which ways in this deployment offers is `Ways`; the events come from the public listing, which
+ * is empty unless the club turned it on.
  */
-const providers = new Query(async () => unwrap(await api.auth.providers.$get()));
 const listing = new Query(async () => unwrap(await api.public.events.$get()));
 
 $effect(() => {
-  /** Nobody signed in needs the list of ways to sign in. */
-  if (!session.signedIn) providers.load();
   listing.load();
 });
 
 const t = $derived(words.t);
-const offered = $derived(providers.data?.providers ?? []);
-/** The ones that hand the browser somewhere else; the address is a form rather than a tile. */
-const redirected = $derived(
-  offered.filter((one) => one !== Signin.PROVIDER && one !== Login.NAME),
-);
-/** The bot's own name, which is the one thing Telegram's widget script needs. */
-const chat = $derived(providers.data?.telegram ?? null);
 </script>
 
 <div class="-mx-6 -mt-10">
@@ -82,50 +67,7 @@ const chat = $derived(providers.data?.telegram ?? null);
           {t.signIn.enter}
         </a>
       {:else}
-        <Panel query={providers}>
-          {#if offered.includes(Signin.PROVIDER)}
-            <div class="mx-auto max-w-sm text-start">
-              <Enrol />
-            </div>
-            {#if redirected.length > 0 || chat}
-              <p class="my-4 text-xs text-muted">{t.signIn.email.other}</p>
-            {/if}
-          {/if}
-
-          {#if chat}
-            <div class="mb-3 flex justify-center"><Chat username={chat} /></div>
-          {/if}
-
-          {#if redirected.length > 0}
-            <!--
-              One tile per provider, its own mark on it. A club has one or two of these and every
-              member uses the same one every term, so the logo is what they are actually looking
-              for; the name stays under it because an icon alone is a guess, and the whole tile
-              carries the sentence for a screen reader.
-            -->
-            <ul class="flex flex-wrap justify-center gap-3">
-              {#each redirected as provider (provider)}
-                <li>
-                  <a
-                    href={Site.Api.start(provider)}
-                    data-external
-                    aria-label={t.signIn.continueWith(Marks.label(provider))}
-                    class="flex w-32 flex-col items-center gap-2 rounded-lg border border-line px-4 py-5
-                           transition-colors hover:border-accent hover:text-accent"
-                  >
-                    <Mark {provider} />
-                    <span class="text-sm font-medium">{Marks.label(provider)}</span>
-                  </a>
-                </li>
-              {/each}
-            </ul>
-          {:else if offered.length === 0}
-            <p class="text-sm text-muted">
-              {t.signIn.noProvider}
-              <span class="mt-1 block font-mono text-xs">{t.signIn.noProviderHelp}</span>
-            </p>
-          {/if}
-        </Panel>
+        <div class="mx-auto max-w-sm text-start"><Ways /></div>
       {/if}
     </div>
 

@@ -253,6 +253,8 @@ export interface ClubTable {
   updatedAt: number;
   /** When somebody first set this club up. Null is a deployment nobody has configured. */
   setupAt: number | null;
+  /** Origins allowed to frame the club's own events widget. Null is nobody. */
+  embeds: string | null;
 }
 
 /**

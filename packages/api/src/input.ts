@@ -466,6 +466,13 @@ export namespace Input {
         v.maxLength(Club.LISTS),
       ),
     ),
+    /** Sites that may frame the club's events widget, each a scheme and a host. */
+    embeds: v.optional(
+      v.pipe(
+        v.array(v.pipe(v.string(), v.trim(), v.toLowerCase(), v.regex(Club.ORIGIN, 'expected an origin'))),
+        v.maxLength(Club.LISTS),
+      ),
+    ),
     /** Whether a first sign-in waits for an organiser. A closed list, like every other choice. */
     admission: v.optional(literals(Club.ADMISSIONS)),
     deadline: v.optional(measure(Club.DEADLINES)),

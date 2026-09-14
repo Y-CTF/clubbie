@@ -551,4 +551,16 @@ export const MIGRATIONS: readonly Migration[] = [
       await db.updateTable('member').set({ welcomedAt: Date.now() }).execute();
     },
   },
+  {
+    version: 20,
+    name: 'the sites a club lets embed its events',
+    /**
+     * Null, which reads as none: a page nobody named may not be framed anywhere. An allow-list
+     * rather than a flag, because "may this be embedded" is not the question a browser asks; it
+     * asks which origins, and answering it with `*` is answering a different one.
+     */
+    async up(db) {
+      await db.schema.alterTable('club').addColumn('embeds', 'text').execute();
+    },
+  },
 ];

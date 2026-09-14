@@ -63,6 +63,11 @@ export interface ClubFields {
    * society says "eduID or nothing" without the operator having to unconfigure GitHub.
    */
   readonly providers: readonly string[];
+  /**
+   * Origins that may put the club's events in a frame, as `https://yctf.ch`. Empty is nobody:
+   * a browser asks which origins rather than whether, and `*` answers a different question.
+   */
+  readonly embeds: readonly string[];
   /** Whether a new arrival waits for an organiser, or is a member the moment they sign in. */
   readonly admission: Admission;
   /** How many hours before an event answers close, when the event does not say for itself. */
@@ -139,6 +144,8 @@ export class Club {
    * more institutions than this is describing a federation rather than a club.
    */
   static readonly LISTS = 200;
+  /** What an entry in `embeds` looks like: a scheme and a host, and nothing after them. */
+  static readonly ORIGIN = /^https?:\/\/[a-z0-9.-]+(:\d+)?$/;
   /** What a club that has not thought about it does: nobody joins without being let in. */
   static readonly ADMISSION: Admission = 'review';
   /** Answers close when the event starts, unless a club says how long before. */
@@ -249,6 +256,7 @@ export class Club {
       allowed: [],
       blocked: [],
       providers: [],
+      embeds: [],
       admission: Club.ADMISSION,
       deadline: Club.DEADLINE,
       remind: Club.REMIND,

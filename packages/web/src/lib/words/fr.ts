@@ -125,13 +125,10 @@ export const fr: Catalogue = {
   makers: { member: "n'importe quel membre", organiser: 'organisateurs seulement' },
 
   join: {
-    lead: 'inscris-toi avec ton adresse e-mail. pas de mot de passe, et tu peux partir quand tu veux.',
-    steps: [
-      'donne-nous une adresse, on t’envoie un lien',
-      'un organisateur te laisse entrer',
-      'réponds aux événements où tu veux venir',
-    ],
-    already: 'déjà membre ? c’est le même bouton.',
+    next: 'la suite',
+    nextLead:
+      'on t’envoie un lien. suis-le et te voilà connecté. un organisateur te laisse ensuite ' +
+      'entrer, et tu peux répondre à tous les événements du calendrier.',
   },
 
   welcome: {
@@ -148,7 +145,11 @@ export const fr: Catalogue = {
     identity: 'nommer le club et choisir son apparence',
     kinds: 'dire quels types d’événements vous organisez',
     first: 'mettre le premier événement au calendrier',
-    done: 'terminé',
+    chatHow: 'lier ton compte',
+    identityHow: 'ouvrir les réglages',
+    firstHow: 'écrire le premier',
+    left: (count) => (count === 1 ? 'encore 1 chose' : `encore ${count} choses`),
+    done: 'voir les événements',
     skip: 'plus tard',
     waiting: 'un organisateur doit encore te laisser entrer. tu recevras un message quand ce sera fait.',
   },

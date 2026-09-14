@@ -124,13 +124,10 @@ export const de: Catalogue = {
   makers: { member: 'jedes Mitglied', organiser: 'nur Organisatoren' },
 
   join: {
-    lead: 'melde dich mit deiner E-Mail-Adresse an. kein Passwort, und du kannst jederzeit wieder gehen.',
-    steps: [
-      'gib uns eine Adresse, wir schicken dir einen Link',
-      'ein Organisator lässt dich rein',
-      'sag zu, wozu du kommen willst',
-    ],
-    already: 'schon Mitglied? es ist derselbe Knopf.',
+    next: 'wie es weitergeht',
+    nextLead:
+      'wir schicken dir einen Link. folge ihm, und du bist angemeldet. dann schaltet dich ein ' +
+      'Organisator frei, und danach kannst du zu jedem Termin im Kalender zusagen.',
   },
 
   welcome: {
@@ -147,7 +144,11 @@ export const de: Catalogue = {
     identity: 'den Verein benennen und sein Aussehen wählen',
     kinds: 'sagen, was für Termine ihr macht',
     first: 'den ersten Termin eintragen',
-    done: 'fertig',
+    chatHow: 'Konto verknüpfen',
+    identityHow: 'Einstellungen öffnen',
+    firstHow: 'den ersten schreiben',
+    left: (count) => (count === 1 ? 'noch 1 Sache' : `noch ${count} Sachen`),
+    done: 'zu den Terminen',
     skip: 'später',
     waiting: 'ein Organisator muss dich noch freischalten. du bekommst eine Nachricht, sobald das passiert.',
   },
