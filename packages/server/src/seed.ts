@@ -11,8 +11,11 @@ import {
   Schedule,
   type Season,
 } from '@clubbie/core';
+import { Diag } from '@clubbie/diag';
 import type { Logger } from '@clubbie/log';
 import type { EventDraft, Store } from '@clubbie/store';
+import { markup } from '@clubbie/term';
+import { Codes } from './codes.ts';
 
 /**
  * Development data: a season, a handful of members, a few events with answers. It exists so the
@@ -62,6 +65,7 @@ export namespace Seed {
   ];
 
   export async function run(store: Store, log: Logger, now: Date = new Date()): Promise<void> {
+    await empty(store);
     await store.club.update(CLUB, now);
     const season = await term(store, now);
     const members = await roster(store, season, now);
@@ -74,6 +78,23 @@ export namespace Seed {
       schedule: repeating,
       season: season.name,
     });
+  }
+
+  /**
+   * The refusal this namespace has always claimed to make, and did not.
+   *
+   * Seeding renames the club, promotes a new current season and invents six members. Against a
+   * database with a real club in it, that is not test data: it is every member's membership no
+   * longer being current, because a promoted season is what `Ability` reads. There is no undo, so
+   * the only safe answer is to look before writing anything.
+   */
+  async function empty(store: Store): Promise<void> {
+    const members = await store.members.count();
+    if (members === 0) return;
+
+    throw Diag.error(Codes.cli.seed, markup`this database already holds ${members} members`)
+      .note('seeding renames the club and promotes a season, which would retire every membership')
+      .help('seed an empty database, or point `DATABASE_URL` at one');
   }
 
   /** A weekly meeting, so the seeded database shows what a schedule does rather than describing it. */
@@ -104,8 +125,8 @@ export namespace Seed {
       now,
     );
 
-    const { timezone } = await store.club.read();
-    const { created } = await Expand.run(store, schedule, log, timezone, now);
+    const club = await store.club.read();
+    const { created } = await Expand.run(store, schedule, log, club, now);
     return created.length;
   }
 

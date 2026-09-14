@@ -186,9 +186,15 @@ export class Design {
     return typeof label === 'string' && label !== '' && typeof url === 'string' && Design.reachable(url);
   }
 
-  /** A link the browser may follow: somewhere else over TLS, or somewhere in this app. */
+  /**
+   * A link the browser may follow: somewhere else over TLS, or somewhere in this app.
+   *
+   * `//host/x` starts with a slash and is not in this app: it is another origin over whatever
+   * scheme the page happens to be on. It read as internal, so it was offered as an in-app link
+   * and rendered without `rel="noopener noreferrer"` while the browser navigated off-site.
+   */
   static reachable(url: string): boolean {
-    return url.startsWith('https://') || url.startsWith('/');
+    return url.startsWith('https://') || (url.startsWith('/') && !url.startsWith('//'));
   }
 
   /**

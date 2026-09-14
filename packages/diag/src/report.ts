@@ -139,7 +139,13 @@ export namespace Report {
   function carets(source: Source, line: number, label: Label): string {
     const start = source.start(line);
     const text = source.line(line);
-    const from = Math.max(0, label.span.start - start);
+    /**
+     * Both ends are clipped to the line. `Source.locate` already clamps a stale span to the text,
+     * and this used the raw one: a span past the end located to the last line, `from` stayed past
+     * it, `to` clamped back, and `repeat` was handed a negative count. That threw a `RangeError`
+     * out of the one path that must never throw, since it runs while something is already failing.
+     */
+    const from = Math.min(text.length, Math.max(0, label.span.start - start));
     const to = Math.min(text.length, Math.max(from + 1, label.span.end - start));
     return Glyph.space.repeat(from) + Glyph.caret.repeat(to - from);
   }
