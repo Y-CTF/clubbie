@@ -22,6 +22,8 @@ export interface Options {
    * looks like, the way `Notify` never learns what a chat client is.
    */
   readonly post?: ((to: string, url: string, code: string) => Promise<void>) | undefined;
+  /** Mints a one-person invitation to a chat group. The server wires it to the bot. */
+  readonly invite?: ((group: string) => Promise<string>) | undefined;
 }
 
 /**

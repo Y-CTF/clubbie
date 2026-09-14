@@ -11,6 +11,7 @@ import { assets } from './routes/assets.ts';
 import { auth } from './routes/auth.ts';
 import { calendar } from './routes/calendar.ts';
 import { club } from './routes/club.ts';
+import { embed } from './routes/embed.ts';
 import { events } from './routes/events.ts';
 import { jobs } from './routes/jobs.ts';
 import { kinds } from './routes/kinds.ts';
@@ -101,6 +102,7 @@ export namespace Api {
         .route('/assets', assets)
         .route('/kinds', kinds)
         .route('/public', open)
+        .route('/embed', embed)
         .route('/calendar', calendar)
         /** Liveness, and nothing else: the schema version is the deployment's business. */
         .get('/health', async (c) => {

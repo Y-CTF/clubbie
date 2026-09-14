@@ -563,4 +563,12 @@ export const MIGRATIONS: readonly Migration[] = [
       await db.schema.alterTable('club').addColumn('embeds', 'text').execute();
     },
   },
+  {
+    version: 21,
+    name: 'the chat group a member is invited into',
+    /** Null is a club that runs no group, which is most of them until somebody sets one up. */
+    async up(db) {
+      await db.schema.alterTable('club').addColumn('group', 'text').execute();
+    },
+  },
 ];

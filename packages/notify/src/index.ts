@@ -8,5 +8,4 @@ export { Smtp } from './mail/smtp.ts';
 export { type Mail, type Mailbox, Post, type Wire } from './mail/transport.ts';
 export { FACTS, type Fact, type From, type Link, Message, Notices, type Role } from './message.ts';
 export { type Delivery, Notify } from './notify.ts';
-export { Stamp } from './stamp.ts';
 export { type Chat, Telegram } from './telegram.ts';

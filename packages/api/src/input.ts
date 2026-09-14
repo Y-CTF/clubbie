@@ -473,6 +473,8 @@ export namespace Input {
         v.maxLength(Club.LISTS),
       ),
     ),
+    /** The chat group members are invited into, as its numeric id or its `@name`. */
+    group: v.nullish(v.pipe(v.string(), v.trim(), v.maxLength(TITLE), v.regex(LINE, 'one line'))),
     /** Whether a first sign-in waits for an organiser. A closed list, like every other choice. */
     admission: v.optional(literals(Club.ADMISSIONS)),
     deadline: v.optional(measure(Club.DEADLINES)),

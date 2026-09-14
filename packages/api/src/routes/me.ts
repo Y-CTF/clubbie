@@ -1,7 +1,10 @@
+import { Diag } from '@clubbie/diag';
 import { vValidator } from '@hono/valibot-validator';
 import { Hono } from 'hono';
 import { Check } from '../check.ts';
+import { Codes } from '../codes.ts';
 import type { Env } from '../context.ts';
+import { Fail, Refusal } from '../fail.ts';
 import { Feed } from '../feed.ts';
 import { Guard } from '../guard.ts';
 import { Input } from '../input.ts';
@@ -32,6 +35,40 @@ export const me = new Hono<Env>()
     const member = Guard.member(c);
     const updated = await c.get('store').members.update(member.id, c.req.valid('json'));
     return c.json(Wire.member(updated ?? member));
+  })
+
+  /**
+   * A one-off invitation into the club's chat group.
+   *
+   * Minted per member rather than handed out as one link everybody shares, because a shared link
+   * is a group anybody who ever saw it can walk into. It is not stored: it is worth one seat for
+   * an hour, and the member is looking at it.
+   */
+  .post('/group', Guard.needs('profile:write'), async (c) => {
+    const { group } = await c.get('store').club.read();
+    const invite = c.get('options').invite;
+
+    if (!group || !invite) {
+      throw Fail.because(
+        Refusal.Closed,
+        Diag.error(Codes.club.group, 'this club has no chat group to join')
+          .note('an organiser names one in the settings, and the bot has to be in it')
+          .help('ask an organiser'),
+      );
+    }
+
+    const link = await invite(group).catch((error: unknown) => {
+      c.get('log').error('could not mint a group invitation', error);
+      throw Fail.because(
+        Refusal.Unavailable,
+        Diag.error(Codes.club.group, 'the invitation could not be made')
+          .note('the bot has to be in the group and allowed to invite people')
+          .help('ask an organiser to check the bot’s permissions'),
+      );
+    });
+
+    c.get('log').info('group invitation minted', { member: Guard.member(c).id });
+    return c.json({ url: link });
   })
 
   /** The first run is done. Idempotent, so the last button may be pressed twice. */

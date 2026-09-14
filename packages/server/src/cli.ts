@@ -96,8 +96,8 @@ export namespace Cli {
   }
 
   async function serve(config: Config): Promise<number> {
-    const { app, store, log, email } = await App.wire(config);
-    const bot = await App.telegram(config, store, log);
+    const { app, store, log, email, bot: made } = await App.wire(config);
+    const bot = await App.telegram(config, store, log, made);
     const notify = App.channels(config, store, log, bot, email);
     const scheduler = await App.scheduler(config, store, notify, log);
 

@@ -17,7 +17,7 @@ export const Codes = {
   event: Code.group('event', ['state', 'capacity', 'guest']),
   team: Code.group('team', ['off', 'settled', 'full', 'taken']),
   schedule: Code.group('schedule', ['rule', 'range']),
-  club: Code.group('club', ['colour']),
+  club: Code.group('club', ['colour', 'group']),
   asset: Code.group('asset', ['type', 'size', 'empty']),
   member: Code.group('member', ['nothing']),
   kind: Code.group('kind', ['unknown', 'slug', 'taken', 'used', 'last', 'many']),

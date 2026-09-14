@@ -1,4 +1,4 @@
-import { Ability, Event } from '@clubbie/core';
+import { Ability, Event, Millis } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import type { Logger } from '@clubbie/log';
 import type { Store } from '@clubbie/store';
@@ -24,6 +24,10 @@ export interface Options {
  * that the web app would not tell them either.
  */
 export class Bot {
+  /** What one invitation is worth: one person, for an hour. */
+  static readonly SEATS = 1;
+  static readonly INVITE = Millis.HOUR;
+  static readonly SECOND = Millis.SECOND;
   /** The only kind of chat a member may link: a one-to-one conversation with the bot. */
   static readonly PRIVATE = 'private';
 
@@ -190,6 +194,27 @@ export class Bot {
       await this.bot.api.sendMessage(chatId, text, { parse_mode: Bot.FORMAT });
     } catch (error) {
       throw Diag.of(error, Codes.send).note(markup`chat \`${chatId}\` did not take the message`);
+    }
+  };
+
+  /**
+   * A one-off invitation to the club's group, good for one person and for an hour.
+   *
+   * One person is the whole point: a club's group link passed around is a group anybody can walk
+   * into, and the reason to mint these per member is that the app already knows who asked. The
+   * expiry is belt and braces, since a link nobody spent is still a link.
+   */
+  invite = async (group: string, now: Date = new Date()): Promise<string> => {
+    try {
+      const link = await this.bot.api.createChatInviteLink(group, {
+        member_limit: Bot.SEATS,
+        expire_date: Math.floor((now.getTime() + Bot.INVITE) / Bot.SECOND),
+      });
+      return link.invite_link;
+    } catch (error) {
+      throw Diag.of(error, Codes.send)
+        .note(markup`the bot could not make an invitation for \`${group}\``)
+        .help('the bot has to be in the group and allowed to invite people');
     }
   };
 }

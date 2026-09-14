@@ -18,6 +18,8 @@ export interface Wired {
   readonly log: Logger;
   /** Built here because the API needs it to send a sign-in mail, and reused by `channels`. */
   readonly email: Email | null;
+  /** Built here for the same reason: the API mints group invitations through it. */
+  readonly bot: Bot | null;
 }
 
 export interface Options {
@@ -45,6 +47,7 @@ export namespace App {
     const log = options.log ?? logger(config);
     const store = await Store.open(config.databaseUrl, log);
     const email = App.mail(config, log);
+    const bot = App.bot(config, store, log);
     const auth = Auth.create(store, {
       baseUrl: config.baseUrl,
       providers: config.providers,
@@ -73,13 +76,14 @@ export namespace App {
         post: async (to: string, url: string, code: string) =>
           email.send(to, Notices.signin(await store.club.read(), url, code)),
       }),
+      ...(bot && { invite: (group: string) => bot.invite(group) }),
     });
     const app = new Hono().route(Site.API, api);
     if (options.assets !== false) {
       app.use(ALL, Assets.middleware(config.assets, log.child('assets')));
     }
 
-    return { app, store, auth, log, email };
+    return { app, store, auth, log, email, bot };
   }
 
   /** The mail sender a deployment configured, or null for one that sends no mail at all. */
@@ -95,8 +99,13 @@ export namespace App {
    * The bot, when a token is set. It is optional on purpose: a club that does not use Telegram
    * should not have to hold a token, and its absence is a `debug` line rather than a warning.
    */
-  export async function telegram(config: Config, store: Store, log: Logger): Promise<Bot | null> {
-    const bot = App.bot(config, store, log);
+  export async function telegram(
+    config: Config,
+    store: Store,
+    log: Logger,
+    made: Bot | null = App.bot(config, store, log),
+  ): Promise<Bot | null> {
+    const bot = made;
     if (!bot) return null;
 
     /**

@@ -57,9 +57,16 @@ export class Session {
     return this.viewer?.renewable ?? false;
   }
 
-  /** Whether to ask them to renew: there is a season, they are not on it, and they still may. */
+  /**
+   * Whether to ask them to renew: there is a season, they are not on it, they still may, and they
+   * are allowed to ask at all.
+   *
+   * `renewable` is a fact about the season (its deadline has not passed), not about the member, so
+   * on its own it offered the button to somebody still waiting to be admitted, who holds no
+   * `season:read` and got a refusal for pressing it.
+   */
   get lapsed(): boolean {
-    return this.season !== null && !this.renewed && this.renewable;
+    return this.season !== null && !this.renewed && this.renewable && this.can('season:read');
   }
 
   /** Renews into the open season and re-reads the session, which is what clears the strip. */

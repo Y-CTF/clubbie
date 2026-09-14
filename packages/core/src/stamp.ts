@@ -1,4 +1,6 @@
-import { type Club, type Language, Locale, Zone } from '@clubbie/core';
+import type { Club } from './club.ts';
+import { type Language, Locale } from './locale.ts';
+import { Zone } from './zone.ts';
 
 /**
  * How a notice writes an instant: on the club's clock, in the club's language.

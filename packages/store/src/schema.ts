@@ -255,6 +255,8 @@ export interface ClubTable {
   setupAt: number | null;
   /** Origins allowed to frame the club's own events widget. Null is nobody. */
   embeds: string | null;
+  /** The chat group members are invited into, as its id or `@name`. Null is a club with none. */
+  group: string | null;
 }
 
 /**

@@ -70,11 +70,26 @@ const steps = $derived<Step[]>(
     : [
         { key: 'name', label: t.welcome.name, done: named },
         { key: 'chat', label: t.welcome.chat, done: chat.data !== null },
-        ...(session.season ? [{ key: 'season', label: t.welcome.season, done: session.renewed }] : []),
+        /**
+         * Only when renewing is theirs to do. A member still waiting to be admitted holds no
+         * `season:read`, so offering them the button was offering a refusal: the waiting notice
+         * below already says what they are waiting for.
+         */
+        ...(session.season && session.can('season:read')
+          ? [{ key: 'season', label: t.welcome.season, done: session.renewed }]
+          : []),
       ],
 );
 
 const left = $derived(steps.filter((step) => !step.done).length);
+
+/** Through `Action`, so a refusal is drawn on the page instead of escaping as a rejection. */
+async function renew(): Promise<void> {
+  await action.run(async () => {
+    await session.renew();
+    return true;
+  });
+}
 
 async function rename(): Promise<void> {
   const wanted = name.trim();
@@ -138,7 +153,7 @@ async function finish(): Promise<void> {
             </a>
           {:else if step.key === 'season' && !step.done}
             <div class="mt-2">
-              <Button disabled={action.busy} onclick={() => session.renew()}>
+              <Button disabled={action.busy || !session.renewable} onclick={renew}>
                 {session.season?.name ?? t.welcome.season}
               </Button>
             </div>

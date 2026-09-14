@@ -68,6 +68,8 @@ export interface ClubFields {
    * a browser asks which origins rather than whether, and `*` answers a different question.
    */
   readonly embeds: readonly string[];
+  /** The chat group a member may ask to be let into, or null for a club that runs none. */
+  readonly group: string | null;
   /** Whether a new arrival waits for an organiser, or is a member the moment they sign in. */
   readonly admission: Admission;
   /** How many hours before an event answers close, when the event does not say for itself. */
@@ -257,6 +259,7 @@ export class Club {
       blocked: [],
       providers: [],
       embeds: [],
+      group: null,
       admission: Club.ADMISSION,
       deadline: Club.DEADLINE,
       remind: Club.REMIND,

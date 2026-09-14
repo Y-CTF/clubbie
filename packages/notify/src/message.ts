@@ -1,6 +1,5 @@
-import { type Club, type Event, type Member, type Season, Signin } from '@clubbie/core';
+import { type Club, type Event, type Member, type Season, Signin, Stamp } from '@clubbie/core';
 import { markup } from '@clubbie/term';
-import { Stamp } from './stamp.ts';
 import { Phrases, type Seat } from './words.ts';
 
 /**
