@@ -99,4 +99,39 @@ export class Fail extends HTTPException {
   static conflict(diag: Diag): Fail {
     return new Fail(Refusal.Conflict, diag);
   }
+
+  /**
+   * A refusal hono raised before any route saw the request, turned into one of ours.
+   *
+   * The framework throws a bare `HTTPException` for the things it checks itself, a malformed JSON
+   * body above all. Letting those fall through to "anything else is a bug" answered a client typo
+   * with a 503 blaming the server, logged it at `error`, and offered a request id as the next
+   * step, which is advice nobody can act on. The status it already chose is the refusal.
+   */
+  static from(error: HTTPException): Fail {
+    const refusal = BY_STATUS[error.status] ?? Refusal.Invalid;
+    return new Fail(
+      refusal,
+      Diag.error(Codes.api.request, markup`${error.message || 'this request could not be read'}`).help(
+        refusal === Refusal.Invalid
+          ? 'check the request body and send it again'
+          : 'check the request and retry',
+      ),
+    );
+  }
 }
+
+/**
+ * What hono's own statuses mean in this app's vocabulary. Only the ones the framework actually
+ * raises are named; anything else it invents is an invalid request, which is what it was.
+ */
+const BY_STATUS: Partial<Record<number, Refusal>> = {
+  400: Refusal.Invalid,
+  401: Refusal.Anonymous,
+  403: Refusal.Forbidden,
+  404: Refusal.Missing,
+  413: Refusal.Invalid,
+  415: Refusal.Invalid,
+  422: Refusal.Invalid,
+  429: Refusal.Throttled,
+};

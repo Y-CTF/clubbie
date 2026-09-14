@@ -22,5 +22,5 @@ export const Codes = {
   kind: Code.group('kind', ['unknown', 'slug', 'taken', 'used', 'last', 'many']),
   feed: Code.group('feed', ['token']),
   job: Code.group('job', ['missing', 'state']),
-  api: Code.group('api', ['unhandled', 'throttled']),
+  api: Code.group('api', ['unhandled', 'throttled', 'body', 'request']),
 } as const;

@@ -1,5 +1,7 @@
-import { type Issue, Issues } from '@clubbie/diag';
+import { Diag, type Issue, Issues } from '@clubbie/diag';
+import { markup } from '@clubbie/term';
 import type { Context } from 'hono';
+import { Codes } from './codes.ts';
 import type { Env } from './context.ts';
 import { Fail } from './fail.ts';
 
@@ -26,8 +28,28 @@ export namespace Check {
   export const PATH = 'path';
   export const UNREADABLE = '(unreadable body)';
   export const INDENT = 2;
+  /** What a body has to be sent as. Hono's own test for it, which decides whether it reads one. */
+  export const JSON_TYPE = /^application\/([a-z\-.]+\+)?json(;\s*[a-zA-Z0-9-]+=([^;]+))*$/i;
 
+  /**
+   * Every JSON body, whether it validated or not.
+   *
+   * The content type is checked here rather than trusted, because hono reads a body only when one
+   * is declared and hands the validator `{}` when it is not. An all-optional patch schema accepts
+   * that empty object happily, so a request sent as `text/plain` used to answer 200, record an
+   * edit in the audit trail, and change nothing: a trail entry describing an edit that never
+   * happened is worse than a refusal. This is the one place every JSON route passes through, so
+   * it is the one place that can say so.
+   */
   export async function body(result: Result, c: Context<Env>): Promise<void> {
+    const type = c.req.header('content-type');
+    if (!type || !JSON_TYPE.test(type)) {
+      throw Fail.invalid(
+        Diag.error(Codes.api.body, markup`this request has to carry a JSON body`)
+          .note(type ? markup`it was sent as \`${type}\`` : 'it named no content type at all')
+          .help('send it with `content-type: application/json`'),
+      );
+    }
     if (result.success) return;
     throw Fail.invalid(Issues.diag(result.issues ?? [], { name: BODY, text: await source(c) }));
   }

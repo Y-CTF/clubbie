@@ -1,6 +1,7 @@
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { Codes } from './codes.ts';
 import type { Env, Options } from './context.ts';
 import { Fail, Refusal } from './fail.ts';
@@ -57,17 +58,22 @@ export namespace Api {
          */
         .onError((error, c) => {
           const log = c.get('log') ?? options.log;
+          /**
+           * A refusal hono raised itself is still a refusal. It is checked before the fallback
+           * because `Fail` is an `HTTPException` too, and the order is what keeps ours ours.
+           */
+          const refused =
+            error instanceof Fail ? error : error instanceof HTTPException ? Fail.from(error) : null;
           const fail =
-            error instanceof Fail
-              ? error
-              : new Fail(
-                  Refusal.Unavailable,
-                  Diag.error(Codes.api.unhandled, 'something went wrong on our side')
-                    .note(markup`request id: \`${c.get('requestId') ?? 'unknown'}\``)
-                    .help('try again, and quote the request id if it keeps happening'),
-                );
+            refused ??
+            new Fail(
+              Refusal.Unavailable,
+              Diag.error(Codes.api.unhandled, 'something went wrong on our side')
+                .note(markup`request id: \`${c.get('requestId') ?? 'unknown'}\``)
+                .help('try again, and quote the request id if it keeps happening'),
+            );
 
-          if (error instanceof Fail) log.debug('refused', { refusal: fail.refusal, code: fail.diag.code });
+          if (refused) log.debug('refused', { refusal: fail.refusal, code: fail.diag.code });
           else
             log.error('unhandled error', Diag.of(error, Codes.api.unhandled), {
               path: new URL(c.req.url).pathname,
