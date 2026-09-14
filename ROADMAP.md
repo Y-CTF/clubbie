@@ -40,6 +40,12 @@ The daily path is complete: a club can be run from the web app without anybody r
   thing that does not fit in one file.
 - **A member directory.** Names are visible on sheets; contact details deliberately are not. If a
   club wants a directory, it wants per-member consent with it.
+- **Teams across events.** A team is one event's, like a guest. A club that wants a standing
+  squad with a season's standings wants a second membership model, and every question about it
+  ("is this the same team as last term?") has to be answered by somebody.
+- **Bounce handling for the sign-in mail.** An address that cannot be written to is a member who
+  cannot get in and no way for them to find out why, because the page deliberately says the same
+  thing whether or not it knows the address.
 - **More languages.** Adding one is two catalogues, a line in `LOCALES` and the language's own
   name in `Words.NAMES`, and the compiler lists every string that is missing. It is deliberately
   not open-ended: a language nobody maintains is a page half in English.
@@ -93,7 +99,8 @@ Honest notes about what is built, rather than future features.
 - **Search is a scan.** `lower(col) like ?` over a few hundred rows, with no index. The one
   function that would change is `Search.any`.
 - **The public page is one query deep.** It lists the next few events and nothing else: no
-  detail page, no sign-up without an account.
+  detail page. Signing up without an account is now the join page, but a stranger still cannot
+  read one event's detail without one.
 - **Guests are per event.** The same friend at four events is four rows, and nothing links them.
   That is deliberate for now, and it is also why there is no guest history.
 - **The rate limiter is in memory.** One process is the deployment this is for; a second process
