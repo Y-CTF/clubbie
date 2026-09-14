@@ -57,7 +57,7 @@ function snap(given: number): number {
       max={range.max}
       step={range.step}
       aria-label={label}
-      class="scale-club block w-full"
+      class="slider-club block w-full"
     />
 
     {#if marks > 0}

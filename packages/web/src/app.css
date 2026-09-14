@@ -29,7 +29,6 @@
   /** The measures, as the design page's defaults. Each is overwritten by the club's own value. */
   --corner-club: 8px;
   --space-club: 1;
-  --scale-club: 100%;
   --radius-club: var(--corner-club);
   /**
    * What a kind's colour is worth. The hue is derived from the kind's own slug in `hues.ts`, which
@@ -149,6 +148,13 @@
   --font-club: var(--font-sans);
   --display-club: var(--font-sans);
   --width-club: 48rem;
+  /**
+   * The text size is the one measure deliberately declared here rather than in `@theme`. Every
+   * name in there also mints a utility class, and `--scale-*` is the namespace behind `scale-…`,
+   * so this token quietly created a `scale-club` transform. The slider on the design page wore
+   * that class for its own styling, which made it the only thing on the page that changed size.
+   */
+  --scale-club: 100%;
 }
 
 html,
@@ -157,10 +163,17 @@ body {
   color: var(--color-ink);
 }
 
+html {
+  /**
+   * The base size the whole page is measured in rems from, so one number scales everything. It
+   * has to be here rather than on `body`: a rem is the *root* element's size, so every size in
+   * the app resolved against the browser's 16px no matter what the club chose.
+   */
+  font-size: var(--scale-club);
+}
+
 body {
   font-family: var(--font-club);
-  /** The base size the whole page is measured in rems from, so one number scales everything. */
-  font-size: var(--scale-club);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -432,25 +445,25 @@ dialog::backdrop {
  * a browser refuses to style through ordinary properties, so its track and its thumb are named
  * here for both engines.
  */
-.scale-club {
+.slider-club {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
 }
 
-.scale-club::-webkit-slider-runnable-track {
+.slider-club::-webkit-slider-runnable-track {
   height: 0.35rem;
   border-radius: 9999px;
   background: var(--color-line);
 }
 
-.scale-club::-moz-range-track {
+.slider-club::-moz-range-track {
   height: 0.35rem;
   border-radius: 9999px;
   background: var(--color-line);
 }
 
-.scale-club::-webkit-slider-thumb {
+.slider-club::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   margin-top: -0.33rem;
@@ -461,7 +474,7 @@ dialog::backdrop {
   background: var(--color-accent);
 }
 
-.scale-club::-moz-range-thumb {
+.slider-club::-moz-range-thumb {
   width: 1rem;
   height: 1rem;
   border: none;
