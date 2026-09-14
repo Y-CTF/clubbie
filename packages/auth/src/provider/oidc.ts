@@ -1,8 +1,7 @@
-import { Club } from '@clubbie/core';
+import { Club, Net } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import type { Profile } from '@clubbie/store';
 import { markup } from '@clubbie/term';
-import { decodeIdToken } from 'arctic';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { Codes } from '../codes.ts';
 import type { Credentials, Pending, Provider } from '../provider.ts';
@@ -10,6 +9,12 @@ import { Exchange } from './exchange.ts';
 
 /** The subset of a discovery document this flow uses. */
 interface Discovery {
+  /**
+   * What the issuer calls itself, which is what an id token's `iss` carries and not always the
+   * url a deployment typed to reach it. It is optional here because a provider that omits it
+   * leaves the configured url as the only thing to check against.
+   */
+  issuer?: string;
   authorization_endpoint: string;
   token_endpoint: string;
   userinfo_endpoint?: string;
@@ -52,13 +57,27 @@ const CLAIM = {
  * ever sees the public half of. The class does not care which, because the difference is entirely
  * in the token request.
  *
- * The id token's signature is checked against the issuer's published keys whenever it publishes
- * any. It arrives over a TLS-authenticated call to the token endpoint, which OpenID Connect
- * allows as a reason to skip the check, but the keys are one cached fetch and the alternative is
- * an app that would accept an id token from anywhere if a route ever handed it one.
+ * The id token's signature is always checked against the issuer's published keys. It arrives over
+ * a TLS-authenticated call to the token endpoint, which OpenID Connect allows as a reason to skip
+ * the check, and this does not take it: the endpoint it came from is itself whatever the discovery
+ * document named, so trusting the call is trusting that document twice. A provider that publishes
+ * no key set is refused rather than believed, because the alternative is reading `sub` and `email`
+ * out of an unsigned blob and enrolling a member from it.
  */
 export class Oidc implements Provider {
-  static readonly DISCOVERY = '/.well-known/openid-configuration';
+  /**
+   * Relative, and joined to the issuer's own path rather than to its origin. An issuer is allowed
+   * a path (`/common/v2.0` at Microsoft, `/realms/<club>` at Keycloak) and the discovery document
+   * lives underneath it; resolving an absolute `/.well-known/...` would throw that path away and
+   * ask the origin, which answers 404.
+   */
+  static readonly DISCOVERY = '.well-known/openid-configuration';
+  /**
+   * A segment of a published issuer that stands for whatever the token carries there. Microsoft's
+   * multi-tenant document names itself `https://login.microsoftonline.com/{tenantid}/v2.0`, and
+   * every token it signs writes a real tenant in that segment.
+   */
+  static readonly PLACEHOLDER = /^\{.+\}$/;
   /**
    * What any OpenID Connect provider is asked for. A provider that releases more than this asks
    * for the extra scope in its own entry in `Providers`: what eduID calls its SCHAC attributes is
@@ -88,11 +107,11 @@ export class Oidc implements Provider {
    * the process: every later attempt awaited the same stale rejection.
    */
   private discover(): Promise<Discovery> {
-    this.endpoints ??= fetch(new URL(Oidc.DISCOVERY, this.issuer))
+    this.endpoints ??= fetch(this.document(), { signal: Net.patience() })
       .then(async (response) => {
         if (response.ok) return (await response.json()) as Discovery;
         throw Diag.error(Codes.discovery, markup`*${this.name}* did not answer with its configuration`)
-          .note(markup`${new URL(Oidc.DISCOVERY, this.issuer)} answered ${response.status}`)
+          .note(markup`${this.document()} answered ${response.status}`)
           .help(markup`check the issuer url, then restart`);
       })
       .catch((error: unknown) => {
@@ -100,6 +119,11 @@ export class Oidc implements Provider {
         throw error;
       });
     return this.endpoints;
+  }
+
+  /** Where the issuer's configuration is, which is its own url with the well-known path under it. */
+  private document(): URL {
+    return new URL(Oidc.DISCOVERY, this.issuer.endsWith('/') ? this.issuer : `${this.issuer}/`);
   }
 
   async begin(state: string, verifier: string): Promise<Pending> {
@@ -181,17 +205,95 @@ export class Oidc implements Provider {
    */
   private async claims(id: string): Promise<Claims> {
     const keys = await this.jwks();
-    if (!keys) return decodeIdToken(id) as Claims;
+    if (!keys) {
+      throw Diag.error(Codes.discovery, markup`*${this.name}* publishes no signing keys`)
+        .note('an id token nothing can check cannot say who signed in')
+        .help('check the issuer url: an OpenID Connect provider publishes a `jwks_uri`');
+    }
 
-    const { payload } = await jwtVerify(id, keys, {
-      issuer: this.issuer,
-      audience: this.credentials.clientId,
-    }).catch((error: unknown) => {
-      throw Diag.error(Codes.claims, markup`*${this.name}* signed in with a token this app cannot trust`)
-        .note(markup`it said: ${error instanceof Error ? error.message : String(error)}`)
-        .help('start again from the sign-in page; if it keeps happening, check the client id');
-    });
+    const { payload } = await jwtVerify(id, keys, { audience: this.credentials.clientId }).catch(
+      (error: unknown) => {
+        throw Diag.error(Codes.claims, markup`*${this.name}* signed in with a token this app cannot trust`)
+          .note(markup`it said: ${error instanceof Error ? error.message : String(error)}`)
+          .help('start again from the sign-in page; if it keeps happening, check the client id');
+      },
+    );
+
+    const named = await this.named();
+    if (!Oidc.issued(named, payload.iss)) {
+      throw Diag.error(Codes.claims, markup`*${this.name}* signed in with a token from another issuer`)
+        .note(markup`the token says ${payload.iss ?? 'nothing'}, and ${named} is who signed it`)
+        .help('check the issuer url, then sign in again');
+    }
     return payload as Claims;
+  }
+
+  /**
+   * Who the token's `iss` has to name: the identifier the issuer publishes for itself, which is
+   * the authority on its own name. A deployment types a url to reach the provider and the provider
+   * writes its own: eduID is reached at `https://login.eduid.ch` and calls itself
+   * `https://login.eduid.ch/`, and comparing those two strings refuses every sign-in it makes.
+   *
+   * It still has to be the same origin the deployment named. The document arrives over TLS from
+   * that origin, so an origin saying what its own paths are called is an origin describing itself;
+   * one naming somebody else's host would be pointing this app's trust at a provider nobody chose.
+   */
+  private async named(): Promise<string> {
+    const { issuer } = await this.discover();
+    if (!issuer) return this.issuer;
+    if (new URL(issuer).origin !== new URL(this.issuer).origin) {
+      throw Diag.error(Codes.discovery, markup`*${this.name}* publishes a configuration for another issuer`)
+        .note(markup`${this.document()} answered for ${issuer}`)
+        .help('check the issuer url, then restart');
+    }
+    return issuer;
+  }
+
+  /**
+   * Whether a token's `iss` is the issuer that published `named`.
+   *
+   * The published identifier is a pattern rather than a literal, because a multi-tenant issuer
+   * writes one document for every tenant and marks the segment that varies. So the origins must be
+   * the same and the path must match segment for segment, with a `{...}` segment matching whatever
+   * the token put there. Splitting on `/` is also what makes a trailing slash a non-difference.
+   */
+  private static issued(named: string, stated: unknown): boolean {
+    if (typeof stated !== 'string') return false;
+
+    let want: URL;
+    let got: URL;
+    try {
+      want = new URL(named);
+      got = new URL(stated);
+    } catch {
+      return false;
+    }
+    if (want.origin !== got.origin) return false;
+
+    const wanted = Oidc.segments(want);
+    const given = Oidc.segments(got);
+    return (
+      wanted.length === given.length &&
+      wanted.every((segment, at) => segment === given[at] || Oidc.PLACEHOLDER.test(segment))
+    );
+  }
+
+  /**
+   * A url's path, segment by segment, as the document wrote it. `URL` percent-encodes a path, so
+   * the braces a multi-tenant issuer marks its variable segment with arrive as `%7B...%7D` and no
+   * pattern would ever see them. Decoding is also what makes the two sides comparable at all.
+   */
+  private static segments(url: URL): string[] {
+    return url.pathname
+      .split('/')
+      .filter((segment) => segment !== '')
+      .map((segment) => {
+        try {
+          return decodeURIComponent(segment);
+        } catch {
+          return segment;
+        }
+      });
   }
 
   /**
@@ -235,7 +337,8 @@ export class Oidc implements Provider {
     if (!userinfo_endpoint) return {};
 
     const response = await fetch(userinfo_endpoint, {
-      headers: { authorization: `Bearer ${access}`, accept: 'application/json' },
+      signal: Net.patience(),
+      headers: { authorization: `Bearer ${access}`, accept: Net.TYPE },
     }).catch(() => null);
     if (!response?.ok) return {};
 
