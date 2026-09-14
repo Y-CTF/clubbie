@@ -12,7 +12,6 @@ export interface Minted {
 
 export namespace Token {
   export const BYTES = 32;
-  export const ALG = 'SHA-256';
   /** How long a session lasts without being renewed. */
   export const TTL = 30 * Millis.DAY;
   /** A session is renewed once it is this fraction of the way through its life. */
@@ -34,6 +33,6 @@ export namespace Token {
   }
 
   export async function digest(token: string): Promise<string> {
-    return Bytes.hex(await crypto.subtle.digest(ALG, new TextEncoder().encode(token)));
+    return Bytes.digest(token);
   }
 }

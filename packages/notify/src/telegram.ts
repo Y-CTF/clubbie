@@ -40,6 +40,7 @@ export class Telegram implements Sender {
     places: '👥',
     closes: '⏳',
     until: '⏳',
+    code: '🔑',
   };
 
   constructor(private readonly chat: Chat) {}

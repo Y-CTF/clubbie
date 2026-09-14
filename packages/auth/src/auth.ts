@@ -4,6 +4,7 @@ import type { Profile, Session, Store } from '@clubbie/store';
 import { markup } from '@clubbie/term';
 import { generateCodeVerifier, generateState } from 'arctic';
 import { Codes } from './codes.ts';
+import { Address } from './provider/address.ts';
 import { type Credentials, type Pending, Provider } from './provider.ts';
 import { type Named, Providers } from './registry.ts';
 import { type Minted, Token } from './session.ts';
@@ -17,6 +18,8 @@ export interface Config {
   readonly baseUrl: string;
   /** What each provider was configured with, keyed by the registry's own names. */
   readonly providers: Partial<Record<Named, Partial<Credentials>>>;
+  /** Whether mail can be sent, since an address nothing can write to is not a way in. */
+  readonly email?: boolean | undefined;
 }
 
 /**
@@ -33,6 +36,8 @@ export class Auth {
   private constructor(
     private readonly store: Store,
     private readonly providers: Map<string, Provider>,
+    /** Signing in by address, when the deployment can send mail. */
+    readonly address: Address | null,
   ) {}
 
   /** Builds every provider the config supplied credentials for, and no others. */
@@ -45,16 +50,25 @@ export class Auth {
       providers.set(name, Providers.spec(name).make(credentials, Auth.callback(config.baseUrl, name)));
     }
 
-    return new Auth(store, providers);
+    return new Auth(store, providers, config.email ? new Address(store) : null);
   }
 
   /** The providers a deployment actually offers, which is what the sign-in page renders. */
   get names(): string[] {
-    return [...this.providers.keys()];
+    return [...this.providers.keys(), ...(this.address ? [this.address.name] : [])];
   }
 
   get empty(): boolean {
-    return this.providers.size === 0;
+    return this.names.length === 0;
+  }
+
+  /** Signing in by address, or a refusal saying this deployment cannot. */
+  get mail(): Address {
+    if (this.address) return this.address;
+
+    throw Diag.error(Codes.provider, 'this club cannot sign anybody in by email')
+      .note('no mail transport is configured, so it has no way to prove an address')
+      .help(markup`set the email variables, then restart \`${Brand.cli}\``);
   }
 
   /**
@@ -70,13 +84,23 @@ export class Auth {
    * a session. The caller has already checked that the returned state matches the one it stored.
    */
   async complete(name: string, code: string, verifier: string): Promise<{ member: Member } & Minted> {
-    const profile = await this.provider(name).finish(code, verifier);
+    return this.admit(await this.provider(name).finish(code, verifier));
+  }
+
+  /**
+   * An identity, whoever proved it, as a member with a session.
+   *
+   * Every way in ends here: the redirect providers, and the address that proves itself. The door
+   * and the enrolment are checked once, in one place, because a second entry point that forgot
+   * either would create exactly the member a club said it did not want.
+   */
+  async admit(profile: Profile, now: Date = new Date()): Promise<{ member: Member } & Minted> {
     const club = await this.store.club.read();
     this.admissible(profile, club);
 
     /** A club with an open door has no waiting room: a first sign-in is a member straight away. */
-    const member = await this.store.members.enroll(profile, new Date(), Club.admits(club.admission));
-    const minted = await Token.mint();
+    const member = await this.store.members.enroll(profile, now, Club.admits(club.admission));
+    const minted = await Token.mint(now);
     await this.store.sessions.open(minted.digest, member.id, minted.expiresAt);
     return { member, ...minted };
   }

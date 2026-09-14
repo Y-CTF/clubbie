@@ -22,6 +22,7 @@ import { Rsvps } from './repo/rsvps.ts';
 import { Schedules } from './repo/schedules.ts';
 import { Seasons } from './repo/seasons.ts';
 import { Sessions } from './repo/sessions.ts';
+import { Signins } from './repo/signins.ts';
 import type { Schema } from './schema.ts';
 import { Search } from './search.ts';
 
@@ -54,6 +55,7 @@ export class Store {
   readonly events: Events;
   readonly rsvps: Rsvps;
   readonly links: Links;
+  readonly signins: Signins;
   readonly club: Clubs;
   readonly schedules: Schedules;
   readonly guests: Guests;
@@ -75,6 +77,7 @@ export class Store {
     this.events = new Events(db, search);
     this.rsvps = new Rsvps(db, lock);
     this.links = new Links(db);
+    this.signins = new Signins(db);
     this.club = new Clubs(db, lock);
     this.schedules = new Schedules(db);
     this.guests = new Guests(db, lock);

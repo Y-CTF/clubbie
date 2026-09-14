@@ -36,4 +36,14 @@ export namespace Bytes {
   export function token(count: number): string {
     return base64url(random(count));
   }
+
+  export const ALG = 'SHA-256';
+
+  /**
+   * The stored form of a secret. Session tokens, linking codes and sign-in requests are all
+   * written down as this and never as themselves, so a leaked database holds nothing presentable.
+   */
+  export async function digest(value: string): Promise<string> {
+    return hex(await crypto.subtle.digest(ALG, new TextEncoder().encode(value)));
+  }
 }

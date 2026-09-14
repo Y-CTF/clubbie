@@ -463,4 +463,30 @@ export const MIGRATIONS: readonly Migration[] = [
         .execute();
     },
   },
+  {
+    version: 17,
+    name: 'signing in with an address alone',
+    /**
+     * One row per attempt to sign in by email, holding the digests of the two things that redeem
+     * it and never the things themselves: a link carries a long token, a page carries a short
+     * code, and either spends the same row. A leaked database is then a list of addresses that
+     * asked to sign in, not a list of ways to become them.
+     *
+     * `tries` is what makes six digits safe: a code has a million values and a row that has been
+     * guessed at too often is spent, so the number is a budget rather than a hope.
+     */
+    async up(db) {
+      await db.schema
+        .createTable('signin')
+        .addColumn('id', 'text', (c) => c.primaryKey())
+        .addColumn('email', 'text', (c) => c.notNull())
+        .addColumn('token', 'text', (c) => c.notNull().unique())
+        .addColumn('code', 'text', (c) => c.notNull())
+        .addColumn('tries', 'integer', (c) => c.notNull().defaultTo(0))
+        .addColumn('expiresAt', 'bigint', (c) => c.notNull())
+        .addColumn('usedAt', 'bigint')
+        .execute();
+      await db.schema.createIndex('signin_email').on('signin').column('email').execute();
+    },
+  },
 ];

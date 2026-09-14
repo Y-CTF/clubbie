@@ -67,6 +67,17 @@ export interface Phrases {
     readonly lead: (season: string) => string;
     readonly action: string;
   };
+  /**
+   * The one mail sent to somebody who is not a member yet, so its foot cannot say they are one.
+   */
+  readonly signin: {
+    readonly subject: (club: string) => string;
+    readonly lead: (club: string) => string;
+    readonly code: string;
+    readonly action: string;
+    readonly why: (club: string) => string;
+    readonly ignore: string;
+  };
 }
 
 const en: Phrases = {
@@ -111,6 +122,15 @@ const en: Phrases = {
     lead: (season) =>
       markup`${season} has started, and you are not on its roster yet. after the deadline an organiser has to do it for you.`,
     action: 'renew',
+  },
+  signin: {
+    subject: (club) => markup`${club}: your sign-in link`,
+    lead: (club) => markup`press the button to sign in to ${club}. the link works once, for fifteen minutes.`,
+    code: 'or type this code',
+    action: 'sign in',
+    why: (club) =>
+      markup`you are getting this because somebody asked to sign in to ${club} with this address.`,
+    ignore: 'if that was not you, nothing has happened and you can ignore this.',
   },
 };
 
@@ -157,6 +177,15 @@ const de: Phrases = {
       markup`${season} hat begonnen, und du stehst noch nicht auf der Liste. nach dem Stichtag muss es jemand vom Vorstand für dich tun.`,
     action: 'verlängern',
   },
+  signin: {
+    subject: (club) => markup`${club}: dein Anmeldelink`,
+    lead: (club) =>
+      markup`druck auf den Knopf, um dich bei ${club} anzumelden. der Link gilt einmal, fur funfzehn Minuten.`,
+    code: 'oder gib diesen Code ein',
+    action: 'anmelden',
+    why: (club) => markup`du bekommst das, weil jemand sich mit dieser Adresse bei ${club} anmelden wollte.`,
+    ignore: 'warst du das nicht, ist nichts passiert und du kannst das ignorieren.',
+  },
 };
 
 const fr: Phrases = {
@@ -201,6 +230,16 @@ const fr: Phrases = {
     lead: (season) =>
       markup`${season} a commencé, et vous n'êtes pas encore sur la liste. après la date limite, il faudra passer par le comité.`,
     action: 'renouveler',
+  },
+  signin: {
+    subject: (club) => markup`${club} : ton lien de connexion`,
+    lead: (club) =>
+      markup`appuie sur le bouton pour te connecter a ${club}. le lien fonctionne une fois, pendant quinze minutes.`,
+    code: 'ou saisis ce code',
+    action: 'se connecter',
+    why: (club) =>
+      markup`tu recois ceci parce que quelqu'un a demande a se connecter a ${club} avec cette adresse.`,
+    ignore: "si ce n'etait pas toi, rien ne s'est passe et tu peux ignorer ce message.",
   },
 };
 

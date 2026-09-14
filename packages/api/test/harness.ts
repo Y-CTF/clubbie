@@ -22,11 +22,30 @@ export const KIND = 'workshop' as KindId;
 
 export type Harness = Awaited<ReturnType<typeof harness>>;
 
-export async function harness() {
+/** Every sign-in mail the app tried to send, so a test can read the link and the code it carried. */
+export interface Sent {
+  readonly to: string;
+  readonly url: string;
+  readonly code: string;
+}
+
+export async function harness({ email = true }: { email?: boolean } = {}) {
   const { log } = Logger.memory();
   const store = await Store.open(Store.MEMORY, log);
-  const auth = Auth.create(store, { baseUrl: BASE, providers: {} });
-  const app = Api.create({ store, auth, log, secret: SECRET, baseUrl: BASE });
+  const auth = Auth.create(store, { baseUrl: BASE, providers: {}, email });
+  const posted: Sent[] = [];
+  const app = Api.create({
+    store,
+    auth,
+    log,
+    secret: SECRET,
+    baseUrl: BASE,
+    ...(email && {
+      post: async (to: string, url: string, code: string) => {
+        posted.push({ to, url, code });
+      },
+    }),
+  });
 
   /** Signs a member in the way the callback does, without going near a provider. */
   async function signIn(member: Member): Promise<string> {
@@ -75,7 +94,7 @@ export async function harness() {
       },
     });
 
-  return { store, app, call, signIn, member, event };
+  return { store, app, call, signIn, member, event, posted };
 }
 
 /** The refusal a response carries, which is what a test about a refusal actually asserts on. */

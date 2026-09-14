@@ -1,4 +1,5 @@
 import { Codes as AuthCodes } from '@clubbie/auth';
+import { Site } from '@clubbie/core';
 import { type Code, Diag } from '@clubbie/diag';
 import { Codes as StoreCodes } from '@clubbie/store';
 import { markup } from '@clubbie/term';
@@ -30,6 +31,8 @@ const REFUSALS: Partial<Record<Code, Refusal>> = {
   [AuthCodes.profile]: Refusal.Forbidden,
   [AuthCodes.discovery]: Refusal.Unavailable,
   [AuthCodes.exchange]: Refusal.Unavailable,
+  /** A spent or mistyped code is the caller's to fix, not an outage. */
+  [AuthCodes.expired]: Refusal.Invalid,
 };
 
 /** Rethrows whatever sign-in threw, as the refusal it deserves. A stranger is never a 503. */
@@ -47,6 +50,71 @@ function refuse(error: unknown): never {
  */
 export const auth = new Hono<Env>()
   .get('/providers', (c) => c.json({ providers: c.get('auth').names }))
+
+  /**
+   * Asking for a sign-in mail. It answers the same way whether or not the address is one this
+   * club knows, because a page that said "no such member" would be a way to ask who is one.
+   */
+  .post('/email', vValidator('json', Input.signin, Check.body), async (c) => {
+    const { email } = c.req.valid('json');
+    const log = c.get('log').child('auth', { provider: 'email' });
+    const post = c.get('options').post;
+
+    if (!post) {
+      throw Fail.because(
+        Refusal.Unavailable,
+        Diag.error(Codes.auth.callback, 'this club cannot sign anybody in by email')
+          .note('no mail transport is configured')
+          .help('sign in with one of the other providers, or ask an organiser'),
+      );
+    }
+
+    const requested = await c
+      .get('auth')
+      .mail.open(email)
+      .catch((error: unknown) => refuse(error));
+
+    const url = new URL(Site.Api.signin(requested.token), c.get('options').baseUrl).toString();
+    await post(requested.email, url, requested.code).catch((error: unknown) => {
+      log.error('could not send a sign-in mail', error);
+      throw Fail.because(
+        Refusal.Unavailable,
+        Diag.error(Codes.auth.callback, 'the sign-in mail could not be sent')
+          .note('the club\u2019s mail provider would not take it')
+          .help('try again in a minute, or sign in another way'),
+      );
+    });
+
+    log.info('sign-in mail sent');
+    return c.json({ sent: true, expiresAt: requested.expiresAt.toISOString() });
+  })
+
+  /** The link half. A browser follows it, so it redirects rather than answering JSON. */
+  .get('/email/:token', vValidator('param', Input.params.signin, Check.param), async (c) => {
+    const session = await c
+      .get('auth')
+      .mail.claim(c.req.valid('param').token)
+      .then((profile) => c.get('auth').admit(profile))
+      .catch((error: unknown) => refuse(error));
+
+    Cookie.session(c, session.token, session.expiresAt);
+    c.get('log').info('signed in', { member: session.member.id, provider: 'email' });
+    return c.redirect(c.get('options').home ?? '/');
+  })
+
+  /** The code half, answered in the tab that asked. */
+  .post('/email/code', vValidator('json', Input.code, Check.body), async (c) => {
+    const { email, code } = c.req.valid('json');
+    const session = await c
+      .get('auth')
+      .mail.answer(email, code)
+      .then((profile) => c.get('auth').admit(profile))
+      .catch((error: unknown) => refuse(error));
+
+    Cookie.session(c, session.token, session.expiresAt);
+    c.get('log').info('signed in', { member: session.member.id, provider: 'email' });
+    return c.json({ ok: true });
+  })
 
   .get('/:provider', vValidator('param', Input.params.provider, Check.param), async (c) => {
     const { provider } = c.req.valid('param');

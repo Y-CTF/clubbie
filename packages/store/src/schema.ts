@@ -14,6 +14,7 @@ import type {
   Role,
   ScheduleId,
   SeasonId,
+  SigninId,
   State,
   Status,
 } from '@clubbie/core';
@@ -37,6 +38,7 @@ export interface Schema {
   event: EventTable;
   rsvp: RsvpTable;
   link: LinkTable;
+  signin: SigninTable;
   telegram: TelegramTable;
   asset: AssetTable;
   club: ClubTable;
@@ -129,6 +131,20 @@ export interface RsvpTable {
 export interface LinkTable {
   token: string;
   memberId: MemberId;
+  expiresAt: number;
+  usedAt: number | null;
+}
+
+/**
+ * One request to sign in by address. Both secrets are held as digests, and `tries` bounds how
+ * often the short one may be guessed at before the row is spent.
+ */
+export interface SigninTable {
+  id: SigninId;
+  email: string;
+  token: string;
+  code: string;
+  tries: number;
   expiresAt: number;
   usedAt: number | null;
 }

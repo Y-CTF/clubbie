@@ -1,5 +1,6 @@
 export { Auth, type Config, type Resolved } from './auth.ts';
 export { Codes } from './codes.ts';
+export { Address } from './provider/address.ts';
 export { Discord } from './provider/discord.ts';
 export { Exchange } from './provider/exchange.ts';
 export { GitHub } from './provider/github.ts';

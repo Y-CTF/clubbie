@@ -108,6 +108,10 @@ export namespace Input {
      * is a different question, answered by `Auth` with a refusal that names the ones it has.
      */
     provider: v.object({ provider: literals(Providers.NAMES) }),
+    /** The token in a sign-in link. Base64url, and bounded like every other thing a stranger sends. */
+    signin: v.object({
+      token: v.pipe(v.string(), v.regex(/^[A-Za-z0-9_-]+$/, 'expected a token'), v.maxLength(TITLE)),
+    }),
   } as const;
 
   /**
@@ -476,4 +480,13 @@ export namespace Input {
 
   /** What the roll-over of a season takes: which season the members come from. */
   export const rollover = v.object({ from: seasonId });
+
+  /** An address asking to sign in, bounded like every other address the app takes. */
+  export const signin = v.object({ email: address });
+
+  /** The code from a sign-in mail, with whatever spacing was copied along with it. */
+  export const code = v.object({
+    email: address,
+    code: v.pipe(v.string(), v.maxLength(TITLE)),
+  });
 }

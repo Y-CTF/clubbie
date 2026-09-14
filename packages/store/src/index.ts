@@ -27,6 +27,7 @@ export {
 } from './repo/schedules.ts';
 export { type Draft as SeasonDraft, Seasons } from './repo/seasons.ts';
 export { type Session, Sessions } from './repo/sessions.ts';
+export { REJECTIONS, type Rejection, type Requested, Signins } from './repo/signins.ts';
 export { Row } from './row.ts';
 export type * from './schema.ts';
 export { Search } from './search.ts';

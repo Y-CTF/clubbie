@@ -1,4 +1,4 @@
-import type { Club, Event, Member, Season } from '@clubbie/core';
+import { type Club, type Event, type Member, type Season, Signin } from '@clubbie/core';
 import { markup } from '@clubbie/term';
 import { Stamp } from './stamp.ts';
 import { Phrases, type Seat } from './words.ts';
@@ -8,7 +8,7 @@ import { Phrases, type Seat } from './words.ts';
  * instead of a word needs to know which fact it is holding, and the label is already translated by
  * the time it gets here.
  */
-export const FACTS = ['when', 'kind', 'where', 'places', 'closes', 'until'] as const;
+export const FACTS = ['when', 'kind', 'where', 'places', 'closes', 'until', 'code'] as const;
 export type Role = (typeof FACTS)[number];
 
 /** One labelled thing about the notice: when it is, where it is, how many places it has. */
@@ -213,6 +213,23 @@ export namespace Notices {
       facts: [],
       note: null,
       action: { label: say.action, url },
+    });
+  }
+
+  /**
+   * The one mail sent to somebody who is not a member yet, so its foot says why it arrived rather
+   * than "you are a member". The code is a fact rather than a sentence: it is the thing to copy.
+   */
+  export function signin(club: Club, url: string, code: string): Message {
+    const say = Phrases.of(club.locale);
+    return new Message({
+      subject: say.signin.subject(club.name),
+      from: { name: club.name, accent: club.design.accent, why: say.signin.why(club.name) },
+      title: markup`*${club.name}*`,
+      lead: say.signin.lead(club.name),
+      facts: [{ of: 'code', label: say.signin.code, value: markup`${Signin.grouped(code)}` }],
+      note: say.signin.ignore,
+      action: { label: say.signin.action, url },
     });
   }
 

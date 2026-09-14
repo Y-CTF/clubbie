@@ -13,4 +13,6 @@ export const Codes = Code.group('auth', [
   'unverified',
   'profile',
   'organisation',
+  /** A sign-in link or code that is spent, timed out, or guessed at too often. */
+  'expired',
 ]);

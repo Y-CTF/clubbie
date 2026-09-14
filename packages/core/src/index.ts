@@ -58,5 +58,6 @@ export { FREQUENCIES, type Frequency, Recur, type RecurFields } from './recur.ts
 export { ANSWERS, type Answer, Rsvp, type RsvpFields } from './rsvp.ts';
 export { Schedule, type ScheduleFields, type ScheduleId } from './schedule.ts';
 export { type Membership, Season, type SeasonFields, type SeasonId } from './season.ts';
+export { Signin, type SigninId } from './signin.ts';
 export { Site } from './site.ts';
 export { Zone } from './zone.ts';

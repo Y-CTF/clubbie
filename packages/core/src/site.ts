@@ -1,3 +1,5 @@
+import { Signin } from './signin.ts';
+
 /**
  * Every page of the web app, as a path. The SPA's router builds its table from this, and anything
  * that has to write a link into a chat message, an email or a redirect asks here.
@@ -46,6 +48,11 @@ export namespace Site {
 
     export function calendar(token: string): string {
       return `${API}/calendar/${encodeURIComponent(token)}.ics`;
+    }
+
+    /** The link a sign-in mail carries. The only url in the app a stranger is sent. */
+    export function signin(token: string): string {
+      return `${API}/auth/${Signin.PROVIDER}/${encodeURIComponent(token)}`;
     }
   }
 

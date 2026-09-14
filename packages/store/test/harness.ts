@@ -33,6 +33,7 @@ export namespace Fixture {
     'preference',
     'telegram',
     'link',
+    'signin',
     'session',
     'account',
     'member',

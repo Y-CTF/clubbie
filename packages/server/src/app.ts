@@ -4,7 +4,7 @@ import { Bot, Codes as BotCodes } from '@clubbie/bot';
 import { Brand, Site } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { Logger, Sink } from '@clubbie/log';
-import { Email, Notify, type Sender, Telegram } from '@clubbie/notify';
+import { Email, Notices, Notify, type Sender, Telegram } from '@clubbie/notify';
 import { Store } from '@clubbie/store';
 import { Hono } from 'hono';
 import { Assets } from './assets.ts';
@@ -16,6 +16,8 @@ export interface Wired {
   readonly store: Store;
   readonly auth: Auth;
   readonly log: Logger;
+  /** Built here because the API needs it to send a sign-in mail, and reused by `channels`. */
+  readonly email: Email | null;
 }
 
 export interface Options {
@@ -42,7 +44,12 @@ export namespace App {
   export async function wire(config: Config, options: Options = {}): Promise<Wired> {
     const log = options.log ?? logger(config);
     const store = await Store.open(config.databaseUrl, log);
-    const auth = Auth.create(store, { baseUrl: config.baseUrl, providers: config.providers });
+    const email = App.mail(config, log);
+    const auth = Auth.create(store, {
+      baseUrl: config.baseUrl,
+      providers: config.providers,
+      email: email !== null,
+    });
 
     if (auth.empty) {
       log.warn('no sign-in provider is configured', {
@@ -57,13 +64,30 @@ export namespace App {
       secret: config.secret,
       baseUrl: config.baseUrl,
       trustProxy: config.trustProxy,
+      /**
+       * A sign-in mail goes out now rather than as a job: the queue ticks every thirty seconds,
+       * and nobody waits half a minute at a sign-in page wondering whether it worked.
+       */
+      ...(email && {
+        post: async (to: string, url: string, code: string) =>
+          email.send(to, Notices.signin(await store.club.read(), url, code)),
+      }),
     });
     const app = new Hono().route(Site.API, api);
     if (options.assets !== false) {
       app.use(ALL, Assets.middleware(config.assets, log.child('assets')));
     }
 
-    return { app, store, auth, log };
+    return { app, store, auth, log, email };
+  }
+
+  /** The mail sender a deployment configured, or null for one that sends no mail at all. */
+  export function mail(config: Config, log: Logger): Email | null {
+    if (!config.email) return null;
+
+    const { transport, ...mailbox } = config.email;
+    log.debug('email configured', { transport });
+    return Email.over(transport, mailbox);
   }
 
   /**
@@ -112,14 +136,16 @@ export namespace App {
    * The channels a deployment actually has. A club with neither configured is not broken: nothing
    * is sent, every job still runs, and the app is a web app that says so once at boot.
    */
-  export function channels(config: Config, store: Store, log: Logger, bot: Bot | null): Notify {
+  export function channels(
+    config: Config,
+    store: Store,
+    log: Logger,
+    bot: Bot | null,
+    email: Email | null = App.mail(config, log),
+  ): Notify {
     const senders: Sender[] = [];
     if (bot) senders.push(new Telegram(bot.tell));
-    if (config.email) {
-      const { transport, ...mailbox } = config.email;
-      senders.push(Email.over(transport, mailbox));
-      log.debug('email configured', { transport });
-    }
+    if (email) senders.push(email);
 
     const notify = new Notify(store, senders, log);
     if (notify.silent)

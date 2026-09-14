@@ -17,6 +17,11 @@ export interface Options {
    * a caller writes them itself otherwise and a throttle keyed on one would be no throttle.
    */
   readonly trustProxy?: boolean | undefined;
+  /**
+   * Sends a sign-in mail. The server wires it to `Notify`; the API never learns what a letter
+   * looks like, the way `Notify` never learns what a chat client is.
+   */
+  readonly post?: ((to: string, url: string, code: string) => Promise<void>) | undefined;
 }
 
 /**
