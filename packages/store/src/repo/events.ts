@@ -135,6 +135,38 @@ export class Events {
     private readonly search: Search = Search.ASCII,
   ) {}
 
+  /**
+   * How each field of a patch is written down. A table rather than a spread per column: the
+   * spreads were one branch each, so a patch of fifteen fields read as fifteen decisions, and
+   * adding a column meant copying a line into two methods that had to agree.
+   */
+  private static readonly COLUMNS = {
+    title: (value) => value,
+    description: (value) => value,
+    kind: (value) => value,
+    state: (value) => value,
+    startsAt: (value) => Row.ms(value as Date),
+    endsAt: (value) => Row.msOrNull(value as Date | null),
+    closesAt: (value) => Row.msOrNull(value as Date | null),
+    location: (value) => value,
+    capacity: (value) => value,
+    seasonId: (value) => value,
+    scheduleId: (value) => value,
+    listed: (value) => Row.bit(value as boolean),
+    teams: (value) => Row.bit(value as boolean),
+    teamSize: (value) => value,
+    teamsBy: (value) => value,
+  } satisfies { [K in keyof Draft]-?: (value: Draft[K]) => unknown };
+
+  /** The columns a patch writes: the fields it named, and only those. */
+  private static changed(patch: Patch): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(patch)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [key, Events.COLUMNS[key as keyof Draft](value as never) as unknown]),
+    );
+  }
+
   static of(row: Selectable<EventTable>): Event {
     return new Event({
       id: row.id,
@@ -279,6 +311,9 @@ export class Events {
       seasonId: draft.seasonId ?? null,
       scheduleId: draft.scheduleId ?? null,
       listed: Row.bit(draft.listed ?? false),
+      teams: Row.bit(draft.teams ?? false),
+      teamSize: draft.teamSize ?? null,
+      teamsBy: draft.teamsBy ?? Team.MAKER,
       createdBy,
       createdAt: Row.ms(now),
     };
@@ -300,20 +335,7 @@ export class Events {
   }
 
   async update(id: EventId, patch: Patch): Promise<Event | null> {
-    const values = {
-      ...(patch.title !== undefined && { title: patch.title }),
-      ...(patch.description !== undefined && { description: patch.description }),
-      ...(patch.kind !== undefined && { kind: patch.kind }),
-      ...(patch.state !== undefined && { state: patch.state }),
-      ...(patch.startsAt !== undefined && { startsAt: Row.ms(patch.startsAt) }),
-      ...(patch.endsAt !== undefined && { endsAt: Row.msOrNull(patch.endsAt) }),
-      ...(patch.closesAt !== undefined && { closesAt: Row.msOrNull(patch.closesAt) }),
-      ...(patch.location !== undefined && { location: patch.location }),
-      ...(patch.capacity !== undefined && { capacity: patch.capacity }),
-      ...(patch.seasonId !== undefined && { seasonId: patch.seasonId }),
-      ...(patch.scheduleId !== undefined && { scheduleId: patch.scheduleId }),
-      ...(patch.listed !== undefined && { listed: Row.bit(patch.listed) }),
-    };
+    const values = Events.changed(patch);
     if (Object.keys(values).length === 0) return this.byId(id);
 
     const row = await this.db
@@ -340,17 +362,7 @@ export class Events {
     from: Date,
     patch: Omit<Patch, 'startsAt' | 'scheduleId' | 'state'>,
   ): Promise<EventId[]> {
-    const values = {
-      ...(patch.title !== undefined && { title: patch.title }),
-      ...(patch.description !== undefined && { description: patch.description }),
-      ...(patch.kind !== undefined && { kind: patch.kind }),
-      ...(patch.endsAt !== undefined && { endsAt: Row.msOrNull(patch.endsAt) }),
-      ...(patch.closesAt !== undefined && { closesAt: Row.msOrNull(patch.closesAt) }),
-      ...(patch.location !== undefined && { location: patch.location }),
-      ...(patch.capacity !== undefined && { capacity: patch.capacity }),
-      ...(patch.seasonId !== undefined && { seasonId: patch.seasonId }),
-      ...(patch.listed !== undefined && { listed: Row.bit(patch.listed) }),
-    };
+    const values = Events.changed(patch);
     if (Object.keys(values).length === 0) return [];
 
     const touched = await this.db

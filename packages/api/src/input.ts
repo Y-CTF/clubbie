@@ -16,6 +16,7 @@ import {
   type Range,
   Recur,
   Rsvp,
+  Team,
   Zone,
 } from '@clubbie/core';
 import { markup } from '@clubbie/term';
@@ -100,6 +101,7 @@ export namespace Input {
     asset: v.object({ id: id<'asset'>() }),
     eventMember: v.object({ id: id<'event'>(), memberId: id<'member'>() }),
     eventGuest: v.object({ id: id<'event'>(), guestId: id<'guest'>() }),
+    eventTeam: v.object({ id: id<'event'>(), teamId: id<'team'>() }),
     seasonMember: v.object({ id: id<'season'>(), memberId: id<'member'>() }),
     /** The calendar token, which is a member id and a signature and is checked by `Feed`. */
     feed: v.object({ token: v.pipe(v.string(), v.minLength(1), v.maxLength(TOKEN)) }),
@@ -265,6 +267,10 @@ export namespace Input {
     seasonId: v.nullish(seasonId),
     /** Whether a signed-out visitor may see it, which only matters when the club is listed too. */
     listed: v.optional(v.boolean()),
+    /** Teams, per event, because a club runs both kinds of evening. */
+    teams: v.optional(v.boolean()),
+    teamSize: v.nullish(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(Team.LIMIT))),
+    teamsBy: v.optional(literals(Team.MAKERS)),
   });
 
   export const eventPatch = v.partial(event);
@@ -493,6 +499,17 @@ export namespace Input {
 
   /** What the roll-over of a season takes: which season the members come from. */
   export const rollover = v.object({ from: seasonId });
+
+  /** What a team is called. One line, like every other name a member types. */
+  export const team = v.object({
+    name: v.pipe(
+      v.string(),
+      v.trim(),
+      v.minLength(1),
+      v.maxLength(Team.NAME),
+      v.regex(LINE, 'a team name is one line'),
+    ),
+  });
 
   /** An address asking to sign in, bounded like every other address the app takes. */
   export const signin = v.object({ email: address });

@@ -23,6 +23,7 @@ import { Schedules } from './repo/schedules.ts';
 import { Seasons } from './repo/seasons.ts';
 import { Sessions } from './repo/sessions.ts';
 import { Signins } from './repo/signins.ts';
+import { Teams } from './repo/teams.ts';
 import type { Schema } from './schema.ts';
 import { Search } from './search.ts';
 
@@ -59,6 +60,7 @@ export class Store {
   readonly club: Clubs;
   readonly schedules: Schedules;
   readonly guests: Guests;
+  readonly teams: Teams;
   readonly jobs: Jobs;
   readonly audit: Audits;
   readonly assets: Assets;
@@ -81,6 +83,7 @@ export class Store {
     this.club = new Clubs(db, lock);
     this.schedules = new Schedules(db);
     this.guests = new Guests(db, lock);
+    this.teams = new Teams(db, lock);
     this.jobs = new Jobs(db);
     this.audit = new Audits(db);
     this.assets = new Assets(db);

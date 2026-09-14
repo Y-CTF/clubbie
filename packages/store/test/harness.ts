@@ -34,6 +34,8 @@ export namespace Fixture {
     'telegram',
     'link',
     'signin',
+    'team',
+    'teammate',
     'session',
     'account',
     'member',

@@ -19,6 +19,7 @@ import { members } from './routes/members.ts';
 import { open } from './routes/public.ts';
 import { schedules } from './routes/schedules.ts';
 import { seasons } from './routes/seasons.ts';
+import { teams } from './routes/teams.ts';
 import { trail } from './routes/trail.ts';
 import { Trace } from './trace.ts';
 
@@ -91,6 +92,7 @@ export namespace Api {
         .route('/me', me)
         .route('/members', members)
         .route('/events', events)
+        .route('/events', teams)
         .route('/schedules', schedules)
         .route('/seasons', seasons)
         .route('/club', club)

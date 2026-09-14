@@ -13,7 +13,7 @@ import type {
   Season,
 } from '@clubbie/core';
 import { Asset } from '@clubbie/core';
-import type { Entry, Tally } from '@clubbie/store';
+import type { Entry, Roster, Tally } from '@clubbie/store';
 import { Expand } from './expand.ts';
 
 /**
@@ -69,6 +69,9 @@ export namespace Wire {
       seasonId: event.seasonId,
       scheduleId: event.scheduleId,
       listed: event.listed,
+      teams: event.teams,
+      teamSize: event.teamSize,
+      teamsBy: event.teamsBy,
       createdBy: event.createdBy,
       createdAt: event.createdAt.toISOString(),
       open: event.open(),
@@ -144,6 +147,16 @@ export namespace Wire {
   export function attendee(guest: Guest) {
     const { email, invitedBy, ...rest } = Wire.guest(guest);
     return rest;
+  }
+
+  /** A team with whoever is on it. Names only: a roster is not a way to read contact details. */
+  export function team(roster: Roster) {
+    return {
+      id: roster.team.id,
+      name: roster.team.name,
+      captainId: roster.team.captainId,
+      members: roster.members.map(({ id, name }) => ({ id, name })),
+    };
   }
 
   export function kind(kind: Kind) {
