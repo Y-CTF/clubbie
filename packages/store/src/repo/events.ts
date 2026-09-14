@@ -197,6 +197,12 @@ export class Events {
           .as('present'),
       ])
       .orderBy('event.startsAt', 'asc')
+      /**
+       * A total order, so page two is not page one again with two rows swapped. Ties on the start
+       * are the normal case here, a whole term stamped from one schedule, and Postgres returns
+       * equal keys in whatever order the heap holds them, which `retemplate` rewrites wholesale.
+       */
+      .orderBy('event.id', 'asc')
       .limit(filter.limit ?? (filter.window ? Events.WINDOW : Event.PAGE))
       .offset(filter.offset ?? 0);
 
