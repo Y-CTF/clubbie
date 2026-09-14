@@ -49,6 +49,7 @@ export namespace App {
       baseUrl: config.baseUrl,
       providers: config.providers,
       email: email !== null,
+      telegram: config.telegram,
     });
 
     if (auth.empty) {

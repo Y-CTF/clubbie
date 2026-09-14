@@ -5,6 +5,7 @@ import { markup } from '@clubbie/term';
 import { generateCodeVerifier, generateState } from 'arctic';
 import { Codes } from './codes.ts';
 import { Address } from './provider/address.ts';
+import { Login } from './provider/telegram.ts';
 import { type Credentials, type Pending, Provider } from './provider.ts';
 import { type Named, Providers } from './registry.ts';
 import { type Minted, Token } from './session.ts';
@@ -20,6 +21,8 @@ export interface Config {
   readonly providers: Partial<Record<Named, Partial<Credentials>>>;
   /** Whether mail can be sent, since an address nothing can write to is not a way in. */
   readonly email?: boolean | undefined;
+  /** The bot's token, which is what the login widget signs with. */
+  readonly telegram?: string | null | undefined;
 }
 
 /**
@@ -38,6 +41,8 @@ export class Auth {
     private readonly providers: Map<string, Provider>,
     /** Signing in by address, when the deployment can send mail. */
     readonly address: Address | null,
+    /** Signing in through the bot's login widget, when a bot is configured. */
+    readonly login: Login | null,
   ) {}
 
   /** Builds every provider the config supplied credentials for, and no others. */
@@ -50,16 +55,34 @@ export class Auth {
       providers.set(name, Providers.spec(name).make(credentials, Auth.callback(config.baseUrl, name)));
     }
 
-    return new Auth(store, providers, config.email ? new Address(store) : null);
+    return new Auth(
+      store,
+      providers,
+      config.email ? new Address(store) : null,
+      config.telegram ? new Login(config.telegram) : null,
+    );
   }
 
   /** The providers a deployment actually offers, which is what the sign-in page renders. */
   get names(): string[] {
-    return [...this.providers.keys(), ...(this.address ? [this.address.name] : [])];
+    return [
+      ...this.providers.keys(),
+      ...(this.address ? [this.address.name] : []),
+      ...(this.login ? [Login.NAME] : []),
+    ];
   }
 
   get empty(): boolean {
     return this.names.length === 0;
+  }
+
+  /** The login widget, or a refusal saying this deployment has no bot. */
+  get chat(): Login {
+    if (this.login) return this.login;
+
+    throw Diag.error(Codes.provider, 'this club has no Telegram bot')
+      .note('the login widget is signed with the bot\u2019s own token, so there is nothing to check against')
+      .help(markup`set ${'TELEGRAM_TOKEN'}, then restart \`${Brand.cli}\``);
   }
 
   /** Signing in by address, or a refusal saying this deployment cannot. */
@@ -87,6 +110,13 @@ export class Auth {
     return this.admit(await this.provider(name).finish(code, verifier));
   }
 
+  /** A session for a member who has already been identified, without going near the door again. */
+  async session(member: Member, now: Date = new Date()): Promise<Minted> {
+    const minted = await Token.mint(now);
+    await this.store.sessions.open(minted.digest, member.id, minted.expiresAt);
+    return minted;
+  }
+
   /**
    * An identity, whoever proved it, as a member with a session.
    *
@@ -100,9 +130,7 @@ export class Auth {
 
     /** A club with an open door has no waiting room: a first sign-in is a member straight away. */
     const member = await this.store.members.enroll(profile, now, Club.admits(club.admission));
-    const minted = await Token.mint(now);
-    await this.store.sessions.open(minted.digest, member.id, minted.expiresAt);
-    return { member, ...minted };
+    return { member, ...(await this.session(member, now)) };
   }
 
   /**

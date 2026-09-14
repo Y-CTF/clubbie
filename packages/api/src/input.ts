@@ -131,6 +131,19 @@ export namespace Input {
     verifier: v.pipe(v.string(), v.minLength(1), v.maxLength(TOKEN)),
   });
 
+  /**
+   * A verified Telegram identity, parked while the member proves an address. Telegram releases
+   * no address and a member is keyed on one, so the chat waits for the mail rather than enrolling.
+   */
+  export const chatter = v.object({
+    id: v.pipe(v.string(), v.minLength(1), v.maxLength(TOKEN)),
+    name: v.pipe(v.string(), v.maxLength(TITLE)),
+    username: v.nullable(v.pipe(v.string(), v.maxLength(TITLE))),
+  });
+
+  /** What the Telegram widget posts back. Its own fields are whatever Telegram decided to sign. */
+  export const login = v.record(v.string(), v.union([v.string(), v.number()]));
+
   /** What every heading a member types has to satisfy: one line, not empty, not endless. */
   export const heading = v.pipe(
     v.string(),

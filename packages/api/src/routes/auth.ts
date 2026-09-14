@@ -1,10 +1,10 @@
 import { Codes as AuthCodes } from '@clubbie/auth';
-import { Site } from '@clubbie/core';
+import { type MemberId, Site } from '@clubbie/core';
 import { type Code, Diag } from '@clubbie/diag';
 import { Codes as StoreCodes } from '@clubbie/store';
 import { markup } from '@clubbie/term';
 import { vValidator } from '@hono/valibot-validator';
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { Check } from '../check.ts';
 import { Codes } from '../codes.ts';
 import type { Env } from '../context.ts';
@@ -35,6 +35,19 @@ const REFUSALS: Partial<Record<Code, Refusal>> = {
   [AuthCodes.expired]: Refusal.Invalid,
 };
 
+/**
+ * Links the chat that was waiting on an address, if there was one. Signing in with Telegram and
+ * then proving an address is one act, so the member comes out with both rather than being asked
+ * to link the bot again from their profile.
+ */
+async function adopt(c: Context<Env>, memberId: MemberId): Promise<void> {
+  const waiting = await Cookie.held(c, c.get('options').secret);
+  if (!waiting) return;
+
+  await c.get('store').links.attach(memberId, waiting.id, waiting.username);
+  c.get('log').info('telegram linked by enrolment', { member: memberId });
+}
+
 /** Rethrows whatever sign-in threw, as the refusal it deserves. A stranger is never a 503. */
 function refuse(error: unknown): never {
   if (error instanceof Diag) throw Fail.because(REFUSALS[error.code] ?? Refusal.Unavailable, error);
@@ -50,6 +63,35 @@ function refuse(error: unknown): never {
  */
 export const auth = new Hono<Env>()
   .get('/providers', (c) => c.json({ providers: c.get('auth').names }))
+
+  /**
+   * The Telegram login widget. It proves a chat and nothing else: Telegram releases no address,
+   * and a member is keyed on one, so a chat nobody here knows waits in a signed cookie while the
+   * address is proved by mail. An existing member simply gets a session.
+   */
+  .post('/telegram', vValidator('json', Input.login, Check.body), async (c) => {
+    const store = c.get('store');
+    const secret = c.get('options').secret;
+    const log = c.get('log').child('auth', { provider: 'telegram' });
+
+    const chatter = await c
+      .get('auth')
+      .chat.verify(c.req.valid('json'))
+      .catch((error: unknown) => refuse(error));
+
+    const member = await store.links.byChat(chatter.id);
+    if (!member) {
+      await Cookie.hold(c, secret, { id: chatter.id, name: chatter.name, username: chatter.username });
+      log.info('telegram proved a chat with no member');
+      return c.json({ enrol: true });
+    }
+
+    await store.links.attach(member.id, chatter.id, chatter.username);
+    const minted = await c.get('auth').session(member);
+    Cookie.session(c, minted.token, minted.expiresAt);
+    log.info('signed in', { member: member.id });
+    return c.json({ enrol: false });
+  })
 
   /**
    * Asking for a sign-in mail. It answers the same way whether or not the address is one this
@@ -97,6 +139,7 @@ export const auth = new Hono<Env>()
       .then((profile) => c.get('auth').admit(profile))
       .catch((error: unknown) => refuse(error));
 
+    await adopt(c, session.member.id);
     Cookie.session(c, session.token, session.expiresAt);
     c.get('log').info('signed in', { member: session.member.id, provider: 'email' });
     return c.redirect(c.get('options').home ?? '/');
@@ -111,6 +154,7 @@ export const auth = new Hono<Env>()
       .then((profile) => c.get('auth').admit(profile))
       .catch((error: unknown) => refuse(error));
 
+    await adopt(c, session.member.id);
     Cookie.session(c, session.token, session.expiresAt);
     c.get('log').info('signed in', { member: session.member.id, provider: 'email' });
     return c.json({ ok: true });

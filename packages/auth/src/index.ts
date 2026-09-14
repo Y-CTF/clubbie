@@ -6,6 +6,7 @@ export { Exchange } from './provider/exchange.ts';
 export { GitHub } from './provider/github.ts';
 export { Oidc } from './provider/oidc.ts';
 export { Rest } from './provider/rest.ts';
+export { type Chatter, Login } from './provider/telegram.ts';
 export { type Credentials, Key, type Pending, Provider } from './provider.ts';
 export { EDUID, GITLAB, GOOGLE, MICROSOFT, type Named, Providers, SCHAC, type Spec } from './registry.ts';
 export { type Minted, Token } from './session.ts';

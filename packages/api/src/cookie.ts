@@ -7,6 +7,8 @@ import { Input } from './input.ts';
 
 /** An OAuth flow in progress, parked in a signed cookie between the redirect and the callback. */
 export type Flow = v.InferOutput<typeof Input.flow>;
+/** A Telegram identity waiting for the address that will make it a member. */
+export type Chatter = v.InferOutput<typeof Input.chatter>;
 
 /**
  * The two cookies the app sets. Both are host-only, http-only and `lax`: the session must survive
@@ -16,6 +18,7 @@ export type Flow = v.InferOutput<typeof Input.flow>;
 export namespace Cookie {
   export const SESSION = Brand.cookie('session');
   export const FLOW = Brand.cookie('flow');
+  export const CHAT = Brand.cookie('chat');
   /** What a TLS-terminating proxy calls the scheme the member actually used. */
   export const FORWARDED = 'x-forwarded-proto';
   /** A flow that has not completed in ten minutes is abandoned, not resumed. */
@@ -57,6 +60,29 @@ export namespace Cookie {
     try {
       /** A signed cookie is still input: what was parked is checked on the way back out. */
       const parsed = v.safeParse(Input.flow, JSON.parse(raw));
+      return parsed.success ? parsed.output : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** The chat waiting on an address. Parked like a flow, and consumed the same way. */
+  export async function hold(c: Context<Env>, secret: string, chatter: Chatter): Promise<void> {
+    await setSignedCookie(c, CHAT, JSON.stringify(chatter), secret, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: secure(c),
+      maxAge: FLOW_TTL,
+    });
+  }
+
+  export async function held(c: Context<Env>, secret: string): Promise<Chatter | null> {
+    const raw = await getSignedCookie(c, secret, CHAT);
+    deleteCookie(c, CHAT, { path: '/' });
+    if (!raw) return null;
+    try {
+      const parsed = v.safeParse(Input.chatter, JSON.parse(raw));
       return parsed.success ? parsed.output : null;
     } catch {
       return null;

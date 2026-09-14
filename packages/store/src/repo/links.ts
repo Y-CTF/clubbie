@@ -111,6 +111,23 @@ export class Links {
     return rows.map(Links.of);
   }
 
+  /**
+   * Links a chat to a member without spending a code, for the sign-in that already proved the
+   * chat. `redeem` is the other way round: a code proves the member and the bot supplies the chat.
+   */
+  async attach(
+    memberId: MemberId,
+    chatId: string,
+    username: string | null,
+    now: Date = new Date(),
+  ): Promise<void> {
+    await this.db
+      .insertInto('telegram')
+      .values({ memberId, chatId, username, linkedAt: Row.ms(now) })
+      .onConflict((c) => c.column('memberId').doUpdateSet({ chatId, username, linkedAt: Row.ms(now) }))
+      .execute();
+  }
+
   async unlink(memberId: MemberId): Promise<void> {
     await this.db.deleteFrom('telegram').where('memberId', '=', memberId).execute();
   }

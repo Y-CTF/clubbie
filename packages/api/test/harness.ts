@@ -29,10 +29,18 @@ export interface Sent {
   readonly code: string;
 }
 
-export async function harness({ email = true }: { email?: boolean } = {}) {
+export const BOT = '8354471971:AAFtest-bot-token';
+
+export async function harness({
+  email = true,
+  telegram = BOT,
+}: {
+  email?: boolean;
+  telegram?: string | null;
+} = {}) {
   const { log } = Logger.memory();
   const store = await Store.open(Store.MEMORY, log);
-  const auth = Auth.create(store, { baseUrl: BASE, providers: {}, email });
+  const auth = Auth.create(store, { baseUrl: BASE, providers: {}, email, telegram });
   const posted: Sent[] = [];
   const app = Api.create({
     store,
