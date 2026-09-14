@@ -1,4 +1,4 @@
-import { Ability, Brand, Event, Millis, Site } from '@clubbie/core';
+import { Ability, Brand, Millis, Site } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { vValidator } from '@hono/valibot-validator';
@@ -54,8 +54,14 @@ export const calendar = new Hono<Env>().get(
       );
     }
 
+    /**
+     * Cancelled nights stay in the feed, as `STATUS:CANCELLED`, which is what `Ical` writes them
+     * as and what a calendar app draws a line through. Filtering to `published` took them out of
+     * the member's calendar entirely on the next refresh, so a cancelled training read as a free
+     * evening rather than as a cancelled one: exactly the outcome the state exists to prevent.
+     * Drafts stay out, which is the repository's own default.
+     */
     const listing = await store.events.list({
-      state: Event.LIVE,
       upcoming: new Date(Date.now() - Calendar.BACK),
       limit: Calendar.WINDOW,
     });

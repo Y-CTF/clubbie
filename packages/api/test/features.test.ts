@@ -260,6 +260,30 @@ describe('exports', () => {
     expect(forged.status).toBe(403);
   });
 
+  /**
+   * A cancelled night has to reach the calendar as cancelled. Leaving it out looks identical to
+   * an evening nobody ever scheduled, which is how somebody turns up to a locked door.
+   */
+  test('a cancelled event stays in the feed, crossed out rather than gone', async () => {
+    const ada = await h.member('ada');
+    const event = await h.event(ada);
+    await h.store.events.update(event.id, { state: 'cancelled' });
+
+    const body = await (await h.call(`/calendar/${await Feed.sign(ada.id, SECRET)}.ics`)).text();
+
+    expect(body).toContain('SUMMARY:Workshop\\, Zürich');
+    expect(body).toContain('STATUS:CANCELLED');
+  });
+
+  test('a draft never reaches it', async () => {
+    const ada = await h.member('ada');
+    const event = await h.event(ada);
+    await h.store.events.update(event.id, { state: 'draft' });
+
+    const body = await (await h.call(`/calendar/${await Feed.sign(ada.id, SECRET)}.ics`)).text();
+    expect(body).not.toContain('BEGIN:VEVENT');
+  });
+
   test('a member who is no longer active reads nothing from their old feed', async () => {
     const lapsed = await h.member('ken', 'pending');
     const token = await Feed.sign(lapsed.id, SECRET);
