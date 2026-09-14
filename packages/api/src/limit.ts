@@ -30,8 +30,23 @@ export class Limit {
   static readonly TRIES = 10;
   static readonly HEADER = 'retry-after';
   static readonly SECOND = Millis.SECOND;
-  /** Headers a trusted proxy sets, in the order they are believed. */
-  static readonly FORWARDED = ['cf-connecting-ip', 'x-real-ip', 'x-forwarded-for'];
+  /**
+   * The one header a trusted proxy is believed through.
+   *
+   * It used to be three, `cf-connecting-ip` first. Only Cloudflare writes that one, and every
+   * other proxy passes an unknown header through untouched, so a deployment behind nginx let any
+   * caller name themselves and take a fresh bucket per request. A header only one vendor sets is
+   * not evidence anywhere else, and `x-forwarded-for` is the one every proxy appends to.
+   */
+  static readonly FORWARDED = 'x-forwarded-for';
+  /**
+   * How many proxies sit in front of this process, so the caller is that many entries from the
+   * right. Reading the leftmost entry is reading whatever the caller sent: nginx's own
+   * `$proxy_add_x_forwarded_for` appends the peer it saw to the header it was given, so the chain
+   * is `<what the client claimed>, <who the client actually is>`. Only the right-hand end was
+   * written by something trusted.
+   */
+  static readonly HOPS = 1;
   /** The bucket callers share when the runtime cannot name them: still bounded, just coarser. */
   static readonly SHARED = 'unknown';
   /** How many callers are remembered, so a flood of addresses cannot grow the map forever. */
@@ -87,13 +102,17 @@ export class Limit {
    * runtime adapter into the API.
    */
   static who(c: Context<Env>): string {
-    if (c.get('options').trustProxy) {
-      for (const name of Limit.FORWARDED) {
-        const value = c.req.header(name)?.split(',')[0]?.trim();
-        if (value) return value;
-      }
-    }
-    return Limit.peer(c) ?? Limit.SHARED;
+    const peer = Limit.peer(c);
+    if (!c.get('options').trustProxy) return peer ?? Limit.SHARED;
+
+    const chain =
+      c.req
+        .header(Limit.FORWARDED)
+        ?.split(',')
+        .map((one) => one.trim())
+        .filter((one) => one !== '') ?? [];
+
+    return chain[chain.length - Limit.HOPS] ?? peer ?? Limit.SHARED;
   }
 
   private static peer(c: Context<Env>): string | null {
