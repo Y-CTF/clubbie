@@ -1,4 +1,4 @@
-import { Millis } from '@clubbie/core';
+import { Millis, Net } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { Codes } from '../codes.ts';
 
@@ -33,7 +33,32 @@ export class Login {
   /** Telegram writes seconds; everything here is milliseconds. */
   static readonly SECOND = Millis.SECOND;
 
+  /** Where the bot's own account is asked about, which is the one thing the widget needs. */
+  static readonly API = 'https://api.telegram.org/bot';
+  static readonly ME = '/getMe';
+
+  private handle: Promise<string | null> | null = null;
+
   constructor(private readonly token: string) {}
+
+  /**
+   * The bot's `@name`, which is what the widget script is configured with. Asked once and kept; a
+   * failure is cleared rather than cached, so an outage at Telegram does not disable the button
+   * until somebody restarts.
+   */
+  username(): Promise<string | null> {
+    this.handle ??= fetch(`${Login.API}${this.token}${Login.ME}`, { signal: Net.patience() })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        const body = (await response.json()) as { result?: { username?: string } };
+        return body.result?.username ?? null;
+      })
+      .catch(() => {
+        this.handle = null;
+        return null;
+      });
+    return this.handle;
+  }
 
   /**
    * The identity a payload proves, or a refusal.

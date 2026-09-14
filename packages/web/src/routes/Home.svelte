@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Login } from '@clubbie/auth';
 import { Signin, Site } from '@clubbie/core';
 import { api, unwrap } from '../lib/api.ts';
 import { club } from '../lib/club.svelte.ts';
@@ -7,6 +8,7 @@ import { Query } from '../lib/query.svelte.ts';
 import { Router } from '../lib/router.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
+import Chat from '../ui/Chat.svelte';
 import Enrol from '../ui/Enrol.svelte';
 import Mark from '../ui/Mark.svelte';
 import { Marks } from '../ui/marks.ts';
@@ -35,7 +37,11 @@ $effect(() => {
 const t = $derived(words.t);
 const offered = $derived(providers.data?.providers ?? []);
 /** The ones that hand the browser somewhere else; the address is a form rather than a tile. */
-const redirected = $derived(offered.filter((one) => one !== Signin.PROVIDER));
+const redirected = $derived(
+  offered.filter((one) => one !== Signin.PROVIDER && one !== Login.NAME),
+);
+/** The bot's own name, which is the one thing Telegram's widget script needs. */
+const chat = $derived(providers.data?.telegram ?? null);
 </script>
 
 <div class="-mx-6 -mt-10">
@@ -81,9 +87,13 @@ const redirected = $derived(offered.filter((one) => one !== Signin.PROVIDER));
             <div class="mx-auto max-w-sm text-start">
               <Enrol />
             </div>
-            {#if redirected.length > 0}
+            {#if redirected.length > 0 || chat}
               <p class="my-4 text-xs text-muted">{t.signIn.email.other}</p>
             {/if}
+          {/if}
+
+          {#if chat}
+            <div class="mb-3 flex justify-center"><Chat username={chat} /></div>
           {/if}
 
           {#if redirected.length > 0}

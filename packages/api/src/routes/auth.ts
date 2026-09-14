@@ -62,7 +62,14 @@ function refuse(error: unknown): never {
  * whether or not it matches, so a replayed callback finds nothing to compare against.
  */
 export const auth = new Hono<Env>()
-  .get('/providers', (c) => c.json({ providers: c.get('auth').names }))
+  /** The ways in this deployment offers, and the one fact the Telegram widget needs to render. */
+  .get('/providers', async (c) => {
+    const auth = c.get('auth');
+    return c.json({
+      providers: auth.names,
+      telegram: auth.login ? await auth.login.username() : null,
+    });
+  })
 
   /**
    * The Telegram login widget. It proves a chat and nothing else: Telegram releases no address,
@@ -80,17 +87,18 @@ export const auth = new Hono<Env>()
       .catch((error: unknown) => refuse(error));
 
     const member = await store.links.byChat(chatter.id);
-    if (!member) {
+    if (member) {
+      await store.links.attach(member.id, chatter.id, chatter.username);
+      const minted = await c.get('auth').session(member);
+      Cookie.session(c, minted.token, minted.expiresAt);
+      log.info('signed in', { member: member.id });
+    } else {
       await Cookie.hold(c, secret, { id: chatter.id, name: chatter.name, username: chatter.username });
       log.info('telegram proved a chat with no member');
-      return c.json({ enrol: true });
     }
 
-    await store.links.attach(member.id, chatter.id, chatter.username);
-    const minted = await c.get('auth').session(member);
-    Cookie.session(c, minted.token, minted.expiresAt);
-    log.info('signed in', { member: member.id });
-    return c.json({ enrol: false });
+    /** One shape either way: the caller reloads regardless, and branches on what it is told. */
+    return c.json({ enrol: member === null });
   })
 
   /**
