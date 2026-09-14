@@ -44,11 +44,11 @@ export const schedules = new Hono<Env>()
       { ...draft, ...(season && { seasonId: season.id }) },
       Guard.member(c).id,
     );
-    const { timezone } = await store.club.read();
-    const { created: events } = await Expand.run(store, created, c.get('log'), timezone);
+    const club = await store.club.read();
+    const { created: events } = await Expand.run(store, created, c.get('log'), club);
 
     await Trail.record(c, 'schedule.create', created.id, { title: created.title, events: events.length });
-    return c.json({ ...Wire.schedule(created, timezone), events }, 201);
+    return c.json({ ...Wire.schedule(created, club.timezone), events }, 201);
   })
 
   .get(
@@ -87,7 +87,7 @@ export const schedules = new Hono<Env>()
 
       const before = await Guard.find('schedule', store.schedules.byId(id));
       /** Once, at the top: stretching a term and reconciling it must not read two different zones. */
-      const { timezone } = await store.club.read();
+      const club = await store.club.read();
 
       Schedules.range(
         patch.startsAt ?? before.startsAt,
@@ -115,7 +115,7 @@ export const schedules = new Hono<Env>()
         }
       }
 
-      const { created, dropped } = await Expand.reconcile(store, after, c.get('log'), timezone, now);
+      const { created, dropped } = await Expand.reconcile(store, after, c.get('log'), club, now);
 
       await Trail.record(c, 'schedule.update', id, {
         title: after.title,
@@ -124,7 +124,7 @@ export const schedules = new Hono<Env>()
         created: created.length,
       });
       return c.json({
-        ...Wire.schedule(after, timezone),
+        ...Wire.schedule(after, club.timezone),
         updated: updated.length,
         dropped,
         created: created.length,
@@ -141,8 +141,8 @@ export const schedules = new Hono<Env>()
       const store = c.get('store');
       const schedule = await Guard.find('schedule', store.schedules.byId(c.req.valid('param').id));
 
-      const { timezone } = await store.club.read();
-      const result = await Expand.run(store, schedule, c.get('log'), timezone);
+      const club = await store.club.read();
+      const result = await Expand.run(store, schedule, c.get('log'), club);
       /** It creates events, and every sibling on this route records what it did. */
       await Trail.record(c, 'schedule.update', schedule.id, { expanded: result.created });
       return c.json({ created: result.created, skipped: result.skipped });

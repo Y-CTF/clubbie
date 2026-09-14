@@ -46,6 +46,29 @@ describe('editing a schedule', () => {
     admin = await h.signIn(await h.member('ada', 'active', 'admin'));
   });
 
+  /**
+   * The club states its answering deadline once. A stamped night never asked for it, so the rule a
+   * committee set applied to the events they typed and not to the training they actually run.
+   */
+  test('a stamped night closes on the club deadline, like an event somebody typed', async () => {
+    await h.store.club.update({ deadline: 24 });
+    const schedule = await make();
+
+    const nights = await h.store.events.list({ scheduleId: schedule.id as never });
+    expect(nights.length).toBeGreaterThan(0);
+
+    for (const { event } of nights) {
+      expect(event.closesAt?.getTime()).toBe(event.startsAt.getTime() - 24 * 60 * 60 * 1000);
+    }
+  });
+
+  test('and a club that closes answers at the start leaves them open until then', async () => {
+    const schedule = await make();
+
+    const nights = await h.store.events.list({ scheduleId: schedule.id as never });
+    expect(nights.every(({ event }) => event.closesAt === null)).toBe(true);
+  });
+
   test('a changed room reaches every night that has not happened, and keeps the answers', async () => {
     const schedule = await make();
     const [first] = await h.store.events.list({ scheduleId: schedule.id as never });

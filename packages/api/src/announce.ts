@@ -48,8 +48,7 @@ export namespace Announce {
     if (!owed(event, now)) return;
 
     /** How long before is the club's, so a club that meets weekly can remind people on the day. */
-    const { remind: ahead } = await store.club.read();
-    const remind = new Date(event.startsAt.getTime() - ahead * HOUR);
+    const remind = (await store.club.read()).reminds(event.startsAt);
     if (remind.getTime() > now.getTime()) {
       await store.jobs.schedule('event.remind', { eventId: event.id }, remind, now);
     }

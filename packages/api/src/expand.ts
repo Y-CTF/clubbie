@@ -1,4 +1,4 @@
-import { Event, type EventId, Recur, Schedule } from '@clubbie/core';
+import { type Club, Event, type EventId, Recur, Schedule } from '@clubbie/core';
 import type { Logger } from '@clubbie/log';
 import type { Store } from '@clubbie/store';
 import { Announce } from './announce.ts';
@@ -43,11 +43,11 @@ export namespace Expand {
     store: Store,
     schedule: Schedule,
     log: Logger,
-    timezone: string | null,
+    club: Club,
     now: Date = new Date(),
     ahead: number = Schedule.AHEAD,
   ): Promise<Reconciled> {
-    const wanted = Expand.window(schedule, now, ahead, timezone);
+    const wanted = Expand.window(schedule, now, ahead, club.timezone);
 
     const gone = await store.events.reconcile(schedule.id, now, wanted);
     if (gone.length > 0) log.warn('occurrences dropped', { schedule: schedule.id, dropped: gone.length });
@@ -59,23 +59,27 @@ export namespace Expand {
      */
     for (const eventId of gone) await Announce.withdrawn(store, eventId);
 
-    return { ...(await Expand.run(store, schedule, log, timezone, now, ahead)), dropped: gone.length };
+    return { ...(await Expand.run(store, schedule, log, club, now, ahead)), dropped: gone.length };
   }
 
   /**
-   * The club's zone is passed in rather than read here. A request that creates or edits a schedule
-   * used to read the one singleton row up to four times, and could in principle have stretched a
-   * term against one zone and reconciled it against another.
+   * The club is passed in rather than read here. A request that creates or edits a schedule used
+   * to read the one singleton row up to four times, and could in principle have stretched a term
+   * against one zone and reconciled it against another.
+   *
+   * It is the whole club rather than only its zone because a stamped night owes the club's
+   * answering deadline too. It never asked for one, so a club that closed answers a day ahead had
+   * that apply to events somebody typed and not to its weekly training.
    */
   export async function run(
     store: Store,
     schedule: Schedule,
     log: Logger,
-    timezone: string | null,
+    club: Club,
     now: Date = new Date(),
     ahead: number = Schedule.AHEAD,
   ): Promise<Result> {
-    const wanted = Expand.window(schedule, now, ahead, timezone);
+    const wanted = Expand.window(schedule, now, ahead, club.timezone);
 
     const created: EventId[] = [];
     let skipped = 0;
@@ -89,6 +93,7 @@ export namespace Expand {
           state: Event.LIVE,
           startsAt,
           endsAt: schedule.ends(startsAt),
+          closesAt: club.closes(startsAt),
           location: schedule.location,
           capacity: schedule.capacity,
           seasonId: schedule.seasonId,

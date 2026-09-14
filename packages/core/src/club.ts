@@ -2,6 +2,7 @@ import { Brand } from './brand.ts';
 import { Design, type Range } from './design.ts';
 import type { Language } from './locale.ts';
 import { Member, type Status } from './member.ts';
+import { Millis } from './millis.ts';
 
 /**
  * What happens to somebody who has just signed in for the first time.
@@ -128,6 +129,14 @@ export class Club {
   static named(entry: string): string {
     return entry.slice(entry.indexOf(Club.QUALIFIER) + 1);
   }
+  /**
+   * How many entries a door list may hold.
+   *
+   * `Design.LINKS` caps the shortcuts and these five were capped by nothing, so a committee could
+   * store an arbitrary number of addresses and every sign-in then scanned the lot. A club naming
+   * more institutions than this is describing a federation rather than a club.
+   */
+  static readonly LISTS = 200;
   /** What a club that has not thought about it does: nobody joins without being let in. */
   static readonly ADMISSION: Admission = 'review';
   /** Answers close when the event starts, unless a club says how long before. */
@@ -203,6 +212,24 @@ export class Club {
 
   constructor(fields: ClubFields) {
     Object.assign(this, fields);
+  }
+
+  /**
+   * When answers close on an event starting at `startsAt`, unless the event named its own.
+   *
+   * `deadline` and `remind` are counts of hours, and the hours were turned into milliseconds at
+   * three separate call sites. One of them did not exist: an event stamped from a schedule never
+   * asked, so a club that closed its answers a day before every evening had that apply to the
+   * events somebody typed and not to its weekly training, which is most of what it runs.
+   */
+  closes(startsAt: Date, given: Date | null = null): Date | null {
+    if (given) return given;
+    return this.deadline > 0 ? new Date(startsAt.getTime() - this.deadline * Millis.HOUR) : null;
+  }
+
+  /** When the reminder for an event starting at `startsAt` goes out. */
+  reminds(startsAt: Date): Date {
+    return new Date(startsAt.getTime() - this.remind * Millis.HOUR);
   }
 
   /** What a club is before anybody has edited it, so the first page load is never empty. */

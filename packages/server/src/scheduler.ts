@@ -271,8 +271,8 @@ export class Scheduler {
     const schedule = await this.options.store.schedules.byId(scheduleId);
     if (!schedule) return;
 
-    const { timezone } = await this.options.store.club.read();
-    await Expand.run(this.options.store, schedule, this.log, timezone);
+    const club = await this.options.store.club.read();
+    await Expand.run(this.options.store, schedule, this.log, club);
   }
 
   /**
