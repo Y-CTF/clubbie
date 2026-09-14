@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { Club, Event, type EventId, type KindId, type MemberId } from '@clubbie/core';
+import { Club, Event, type EventId, type KindId, type MemberId, Team } from '@clubbie/core';
 import { When } from '@clubbie/term';
 import { Csv } from '../src/csv.ts';
 import { Ical } from '../src/ical.ts';
@@ -21,6 +21,9 @@ function event(fields: Partial<Event> = {}): Event {
     seasonId: null,
     scheduleId: null,
     listed: true,
+    teams: false,
+    teamSize: null,
+    teamsBy: Team.MAKER,
     createdBy: 'ORGANISER' as MemberId,
     createdAt: NOW,
     ...fields,

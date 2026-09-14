@@ -3,12 +3,14 @@ import {
   type EventId,
   Id,
   type KindId,
+  type Maker,
   type MemberId,
   Rsvp,
   Schedule,
   type ScheduleId,
   type SeasonId,
   type State,
+  Team,
 } from '@clubbie/core';
 import type { Expression, ExpressionBuilder, Kysely, Selectable, SqlBool } from 'kysely';
 import { sql } from 'kysely';
@@ -29,6 +31,9 @@ export interface Draft {
   readonly seasonId?: SeasonId | null | undefined;
   readonly scheduleId?: ScheduleId | null | undefined;
   readonly listed?: boolean | undefined;
+  readonly teams?: boolean | undefined;
+  readonly teamSize?: number | null | undefined;
+  readonly teamsBy?: Maker | undefined;
 }
 
 export type Patch = { readonly [K in keyof Draft]?: Draft[K] | undefined };
@@ -145,6 +150,10 @@ export class Events {
       seasonId: row.seasonId,
       scheduleId: row.scheduleId,
       listed: Row.flag(row.listed),
+      /** Null is an event written before teams existed, which is an event without them. */
+      teams: row.teams === null ? false : Row.flag(row.teams),
+      teamSize: row.teamSize,
+      teamsBy: row.teamsBy ?? Team.MAKER,
       createdBy: row.createdBy,
       createdAt: Row.at(row.createdAt),
     });

@@ -60,4 +60,5 @@ export { Schedule, type ScheduleFields, type ScheduleId } from './schedule.ts';
 export { type Membership, Season, type SeasonFields, type SeasonId } from './season.ts';
 export { Signin, type SigninId } from './signin.ts';
 export { Site } from './site.ts';
+export { MAKERS, type Maker, Team, type TeamId } from './team.ts';
 export { Zone } from './zone.ts';

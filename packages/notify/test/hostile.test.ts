@@ -1,5 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { Club, Event, type EventId, type KindId, type Language, LOCALES, type MemberId } from '@clubbie/core';
+import {
+  Club,
+  Event,
+  type EventId,
+  type KindId,
+  type Language,
+  LOCALES,
+  type MemberId,
+  Team,
+} from '@clubbie/core';
 import { Markup } from '@clubbie/term';
 import { Notices } from '../src/message.ts';
 
@@ -28,6 +37,9 @@ function eventTitled(title: string, location: string | null = 'HG F 30'): Event 
     seasonId: null,
     scheduleId: null,
     listed: false,
+    teams: false,
+    teamSize: null,
+    teamsBy: Team.MAKER,
     createdBy: 'MEMBER' as MemberId,
     createdAt: NOW,
   });

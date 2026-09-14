@@ -114,6 +114,8 @@ export const fr: Catalogue = {
     noProviderHelp: 'définissez EDUID_CLIENT_ID ou GITHUB_CLIENT_ID puis redémarrez le serveur.',
     signedInAs: (name) => `connecté en tant que ${name}.`,
     upcoming: 'ce qui arrive',
+    chatUnavailable: "telegram n'affiche pas son bouton sur cette adresse.",
+    chatDomain: (bot) => `à définir dans botfather : /setdomain, @${bot}, cette origine.`,
     email: {
       label: 'adresse e-mail',
       hint: 'on envoie un lien et un code. jamais de mot de passe.',

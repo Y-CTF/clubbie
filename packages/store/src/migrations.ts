@@ -489,4 +489,42 @@ export const MIGRATIONS: readonly Migration[] = [
       await db.schema.createIndex('signin_email').on('signin').column('email').execute();
     },
   },
+  {
+    version: 18,
+    name: 'an event entered in teams',
+    /**
+     * Per event, because a club runs both kinds: a CTF night is teams and the AGM is not. The
+     * three settings are nullable with no default, so every event that already exists keeps
+     * behaving exactly as it did and a committee turns teams on where they want them.
+     */
+    async up(db) {
+      await db.schema.alterTable('event').addColumn('teams', 'integer').execute();
+      await db.schema.alterTable('event').addColumn('teamSize', 'integer').execute();
+      await db.schema.alterTable('event').addColumn('teamsBy', 'text').execute();
+
+      await db.schema
+        .createTable('team')
+        .addColumn('id', 'text', (c) => c.primaryKey())
+        .addColumn('eventId', 'text', (c) => c.notNull().references('event.id').onDelete('cascade'))
+        .addColumn('name', 'text', (c) => c.notNull())
+        .addColumn('captainId', 'text', (c) => c.notNull().references('member.id').onDelete('cascade'))
+        .addColumn('createdAt', 'bigint', (c) => c.notNull())
+        .execute();
+      await db.schema.createIndex('team_event').on('team').column('eventId').execute();
+
+      /**
+       * One member, one team per event. The primary key says so rather than a check in a route,
+       * because two routes would have to agree about it and the column cannot disagree with itself.
+       */
+      await db.schema
+        .createTable('teammate')
+        .addColumn('teamId', 'text', (c) => c.notNull().references('team.id').onDelete('cascade'))
+        .addColumn('eventId', 'text', (c) => c.notNull().references('event.id').onDelete('cascade'))
+        .addColumn('memberId', 'text', (c) => c.notNull().references('member.id').onDelete('cascade'))
+        .addColumn('joinedAt', 'bigint', (c) => c.notNull())
+        .addPrimaryKeyConstraint('teammate_pk', ['eventId', 'memberId'])
+        .execute();
+      await db.schema.createIndex('teammate_team').on('teammate').column('teamId').execute();
+    },
+  },
 ];

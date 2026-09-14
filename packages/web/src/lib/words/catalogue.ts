@@ -142,6 +142,9 @@ export interface Catalogue {
     readonly noProviderHelp: string;
     readonly signedInAs: (name: string) => string;
     readonly upcoming: string;
+    /** When Telegram declines to draw its button, which is an origin it has no domain for. */
+    readonly chatUnavailable: string;
+    readonly chatDomain: (bot: string) => string;
     /** Signing in with an address alone: the form, the code box, and what it says back. */
     readonly email: {
       readonly label: string;

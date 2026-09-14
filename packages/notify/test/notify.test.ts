@@ -10,6 +10,7 @@ import {
   LOCALES,
   type Member,
   type MemberId,
+  Team,
 } from '@clubbie/core';
 import { Logger } from '@clubbie/log';
 import { Store } from '@clubbie/store';
@@ -203,6 +204,9 @@ describe('what the club sends', () => {
     seasonId: null,
     scheduleId: null,
     listed: false,
+    teams: false,
+    teamSize: null,
+    teamsBy: Team.MAKER,
     createdBy: 'MEMBER' as MemberId,
     createdAt: NOW,
   });

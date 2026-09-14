@@ -10,6 +10,7 @@ import type {
   JobKind,
   JobState,
   KindId,
+  Maker,
   MemberId,
   Role,
   ScheduleId,
@@ -17,6 +18,7 @@ import type {
   SigninId,
   State,
   Status,
+  TeamId,
 } from '@clubbie/core';
 
 /**
@@ -39,6 +41,8 @@ export interface Schema {
   rsvp: RsvpTable;
   link: LinkTable;
   signin: SigninTable;
+  team: TeamTable;
+  teammate: TeammateTable;
   telegram: TelegramTable;
   asset: AssetTable;
   club: ClubTable;
@@ -115,6 +119,10 @@ export interface EventTable {
   seasonId: SeasonId | null;
   scheduleId: ScheduleId | null;
   listed: number;
+  /** All three null on an event written before teams existed, which reads as teams off. */
+  teams: number | null;
+  teamSize: number | null;
+  teamsBy: Maker | null;
   createdBy: MemberId;
   createdAt: number;
 }
@@ -139,6 +147,22 @@ export interface LinkTable {
  * One request to sign in by address. Both secrets are held as digests, and `tries` bounds how
  * often the short one may be guessed at before the row is spent.
  */
+export interface TeamTable {
+  id: TeamId;
+  eventId: EventId;
+  name: string;
+  captainId: MemberId;
+  createdAt: number;
+}
+
+/** `eventId` is carried here as well as on the team, so one member per event is a primary key. */
+export interface TeammateTable {
+  teamId: TeamId;
+  eventId: EventId;
+  memberId: MemberId;
+  joinedAt: number;
+}
+
 export interface SigninTable {
   id: SigninId;
   email: string;

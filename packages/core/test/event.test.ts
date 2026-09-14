@@ -1,5 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { Event, type EventFields, type EventId, Id, type KindId, type MemberId, Rsvp } from '../src/index.ts';
+import {
+  Event,
+  type EventFields,
+  type EventId,
+  Id,
+  type KindId,
+  type MemberId,
+  Rsvp,
+  Team,
+} from '../src/index.ts';
 
 const NOW = new Date('2026-03-01T12:00:00Z');
 const HOUR = 60 * 60 * 1000;
@@ -19,6 +28,9 @@ function event(fields: Partial<EventFields> = {}): Event {
     seasonId: null,
     scheduleId: null,
     listed: false,
+    teams: false,
+    teamSize: null,
+    teamsBy: Team.MAKER,
     createdBy: 'someone' as MemberId,
     createdAt: NOW,
     ...fields,

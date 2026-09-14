@@ -13,12 +13,21 @@ import Alert from './Alert.svelte';
  */
 let { username }: { username: string } = $props();
 
-/** The script Telegram serves, pinned to the version whose attributes these are. */
-const Chat = { SCRIPT: 'https://telegram.org/js/telegram-widget.js?22', SIZE: 'large' } as const;
+/**
+ * The script Telegram serves, pinned to the version whose attributes these are, and how long to
+ * wait before deciding it is not going to draw anything.
+ */
+const Chat = {
+  SCRIPT: 'https://telegram.org/js/telegram-widget.js?22',
+  SIZE: 'large',
+  PATIENCE: 4000,
+} as const;
 
 const t = $derived(words.t);
 const action = new Action();
 let host = $state<HTMLDivElement | null>(null);
+/** Whether Telegram drew its button. It refuses on an origin the bot has no `/setdomain` for. */
+let drawn = $state(true);
 
 $effect(() => {
   const named = `clubbieChat${Math.random().toString(36).slice(2)}`;
@@ -39,7 +48,16 @@ $effect(() => {
   script.dataset.onauth = `${named}(user)`;
   host?.append(script);
 
+  /**
+   * Telegram answers an unregistered origin with a page saying so and draws nothing, which on a
+   * sign-in page is a blank gap nobody can diagnose. The iframe either appears or this says why.
+   */
+  const waiting = setTimeout(() => {
+    drawn = Boolean(host?.querySelector('iframe'));
+  }, Chat.PATIENCE);
+
   return () => {
+    clearTimeout(waiting);
     script.remove();
     delete (globalThis as Record<string, unknown>)[named];
   };
@@ -49,6 +67,14 @@ $effect(() => {
 
 <div class="flex flex-col items-center gap-2">
   <div bind:this={host} aria-label={t.signIn.continueWith(Login.NAME)}></div>
+
+  {#if !drawn}
+    <p class="text-xs text-muted">
+      {t.signIn.chatUnavailable}
+      <span class="mt-1 block font-mono text-[0.7rem]">{t.signIn.chatDomain(username)}</span>
+    </p>
+  {/if}
+
   {#if action.error}
     <Alert error={action.error} />
   {/if}

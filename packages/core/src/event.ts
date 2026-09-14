@@ -3,6 +3,7 @@ import type { KindId } from './kind.ts';
 import type { MemberId } from './member.ts';
 import type { ScheduleId } from './schedule.ts';
 import type { SeasonId } from './season.ts';
+import type { Maker } from './team.ts';
 
 export type EventId = Id<'event'>;
 
@@ -27,6 +28,12 @@ export interface EventFields {
   readonly scheduleId: ScheduleId | null;
   /** Whether a signed-out visitor may see it on the public page. Never true for a draft. */
   readonly listed: boolean;
+  /** Whether this event is entered in teams at all. Off is the ordinary event. */
+  readonly teams: boolean;
+  /** How many members one team may hold here. Null is a team with no stated size. */
+  readonly teamSize: number | null;
+  /** Who may start one, when teams are on. */
+  readonly teamsBy: Maker;
   readonly createdBy: MemberId;
   readonly createdAt: Date;
 }

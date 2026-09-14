@@ -113,6 +113,8 @@ export const en: Catalogue = {
     noProviderHelp: 'set EDUID_CLIENT_ID or GITHUB_CLIENT_ID and restart the server.',
     signedInAs: (name) => `signed in as ${name}.`,
     upcoming: 'what is coming up',
+    chatUnavailable: 'telegram will not show its button on this address.',
+    chatDomain: (bot) => `set it in botfather: /setdomain, @${bot}, this origin.`,
     email: {
       label: 'email address',
       hint: 'we send a link and a code. no password, ever.',
