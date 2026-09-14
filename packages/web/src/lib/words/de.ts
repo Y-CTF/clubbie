@@ -105,6 +105,22 @@ export const de: Catalogue = {
     adminOnly: 'die Einstellungen des Vereins ändert ein Admin.',
   },
 
+  teams: {
+    title: 'Teams',
+    none: 'noch keine Teams.',
+    empty: 'noch niemand',
+    name: 'Teamname',
+    start: 'Team gründen',
+    join: 'beitreten',
+    leave: 'verlassen',
+    disband: 'auflösen',
+    disbandAsk: (name) => `${name} auflösen?`,
+    settled: 'die Teams stehen fest, seit die Anmeldung geschlossen ist.',
+    size: (size) => `bis zu ${size} pro Team.`,
+  },
+
+  makers: { member: 'jedes Mitglied', organiser: 'nur Organisatoren' },
+
   signIn: {
     tagline: 'Termine, Mitglieder und Anwesenheit für einen kleinen Verein.',
     continueWith: (provider) => `weiter mit ${provider}`,
@@ -192,6 +208,10 @@ export const de: Catalogue = {
     capacityHint: 'optional: danach landen Mitglieder auf der Warteliste',
     location: 'Ort',
     listed: 'diesen Termin öffentlich zeigen',
+    teams: 'dieser Termin wird in Teams gespielt',
+    teamSize: 'Teamgröße',
+    teamSizeHint: 'leer lassen für kein Limit.',
+    teamsBy: 'wer eins gründen darf',
   },
 
   sheet: {

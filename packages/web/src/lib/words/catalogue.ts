@@ -6,6 +6,7 @@ import type {
   Frequency,
   JobKind,
   JobState,
+  Maker,
   Palette,
   Role,
   State,
@@ -133,6 +134,24 @@ export interface Catalogue {
     readonly adminOnly: string;
   };
 
+  /** Teams on an event, which only a club that turns them on ever sees. */
+  readonly teams: {
+    readonly title: string;
+    readonly none: string;
+    readonly empty: string;
+    readonly name: string;
+    readonly start: string;
+    readonly join: string;
+    readonly leave: string;
+    readonly disband: string;
+    readonly disbandAsk: (name: string) => string;
+    readonly settled: string;
+    readonly size: (size: number) => string;
+  };
+
+  /** Who may start a team, as the settings page words it. */
+  readonly makers: Record<Maker, string>;
+
   readonly signIn: {
     readonly tagline: string;
     readonly continueWith: (provider: string) => string;
@@ -230,6 +249,10 @@ export interface Catalogue {
     readonly capacityHint: string;
     readonly location: string;
     readonly listed: string;
+    readonly teams: string;
+    readonly teamSize: string;
+    readonly teamSizeHint: string;
+    readonly teamsBy: string;
   };
 
   readonly sheet: {

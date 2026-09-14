@@ -15,6 +15,7 @@ import Answers from '../ui/Answers.svelte';
 import Badge from '../ui/Badge.svelte';
 import Button from '../ui/Button.svelte';
 import Panel from '../ui/Panel.svelte';
+import Teams from '../ui/Teams.svelte';
 import Add from '../ui/calendar/Add.svelte';
 import { look } from '../ui/look.ts';
 import Person from '../ui/Person.svelte';
@@ -119,6 +120,16 @@ async function announce(): Promise<void> {
         onwithdraw={withdraw}
       />
     </div>
+
+    {#if detail.teams}
+      <Teams
+        {id}
+        teamsBy={detail.teamsBy}
+        size={detail.teamSize}
+        open={detail.open}
+        manage={detail.manage}
+      />
+    {/if}
 
     {#if session.can('event:manage') && detail.state === Event.LIVE}
       <div class="mt-4">

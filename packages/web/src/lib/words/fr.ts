@@ -106,6 +106,22 @@ export const fr: Catalogue = {
     adminOnly: 'les réglages du club se changent depuis un compte admin.',
   },
 
+  teams: {
+    title: 'équipes',
+    none: "pas encore d'équipes.",
+    empty: 'personne pour le moment',
+    name: "nom de l'équipe",
+    start: 'créer une équipe',
+    join: 'rejoindre',
+    leave: 'quitter',
+    disband: 'dissoudre',
+    disbandAsk: (name) => `dissoudre ${name} ?`,
+    settled: 'les équipes sont fixées depuis la clôture des réponses.',
+    size: (size) => `jusqu'à ${size} par équipe.`,
+  },
+
+  makers: { member: "n'importe quel membre", organiser: 'organisateurs seulement' },
+
   signIn: {
     tagline: 'événements, membres et présences pour un petit club.',
     continueWith: (provider) => `continuer avec ${provider}`,
@@ -194,6 +210,10 @@ export const fr: Catalogue = {
     capacityHint: 'facultatif : au-delà, les membres passent en liste d’attente',
     location: 'lieu',
     listed: 'montrer cet événement sur la page publique',
+    teams: 'cet événement se joue en équipes',
+    teamSize: "taille d'équipe",
+    teamSizeHint: 'laisser vide pour aucune limite.',
+    teamsBy: 'qui peut en créer une',
   },
 
   sheet: {

@@ -105,6 +105,22 @@ export const en: Catalogue = {
     adminOnly: "the club's settings are an admin's to change.",
   },
 
+  teams: {
+    title: 'teams',
+    none: 'no teams yet.',
+    empty: 'nobody yet',
+    name: 'team name',
+    start: 'start a team',
+    join: 'join',
+    leave: 'leave',
+    disband: 'disband',
+    disbandAsk: (name) => `disband ${name}?`,
+    settled: 'teams are fixed now that answers have closed.',
+    size: (size) => `up to ${size} per team.`,
+  },
+
+  makers: { member: 'any member', organiser: 'organisers only' },
+
   signIn: {
     tagline: 'events, members and attendance for a small club.',
     continueWith: (provider) => `continue with ${provider}`,
@@ -192,6 +208,10 @@ export const en: Catalogue = {
     capacityHint: 'optional: past it, members join a waitlist',
     location: 'location',
     listed: 'show this event on the public page',
+    teams: 'this event is entered in teams',
+    teamSize: 'team size',
+    teamSizeHint: 'leave empty for no limit.',
+    teamsBy: 'who may start one',
   },
 
   sheet: {

@@ -1,5 +1,15 @@
 <script lang="ts">
-import { Event, type Frequency, type KindId, Millis, Recur, type State } from '@clubbie/core';
+import {
+  Event,
+  type Frequency,
+  type KindId,
+  type Maker,
+  MAKERS,
+  Millis,
+  Recur,
+  type State,
+  Team,
+} from '@clubbie/core';
 import { Action } from '../lib/action.svelte.ts';
 import { api, unwrap } from '../lib/api.ts';
 import { Format } from '../lib/format.ts';
@@ -70,6 +80,9 @@ let closesAt = $state('');
 let location = $state('');
 let capacity = $state('');
 let listed = $state(false);
+let teams = $state(false);
+let teamSize = $state('');
+let teamsBy = $state<Maker>(Team.MAKER);
 let repeats = $state<Repeats>(ONCE);
 let interval = $state('1');
 let count = $state('12');
@@ -123,6 +136,9 @@ function fill(): void {
   location = event.location ?? '';
   capacity = event.capacity === null ? '' : String(event.capacity);
   listed = event.listed;
+  teams = event.teams;
+  teamSize = event.teamSize === null ? '' : String(event.teamSize);
+  teamsBy = event.teamsBy;
 }
 
 /**
@@ -159,6 +175,9 @@ function shared() {
     location: location || null,
     capacity: capacity ? Number(capacity) : null,
     listed,
+    teams,
+    teamSize: teams && teamSize ? Number(teamSize) : null,
+    teamsBy,
   };
 }
 
@@ -313,6 +332,22 @@ async function remove(): Promise<void> {
     <input type="checkbox" bind:checked={listed} />
     {t.compose.listed}
   </label>
+
+  <label class="flex items-center gap-2 text-sm">
+    <input type="checkbox" bind:checked={teams} />
+    {t.compose.teams}
+  </label>
+
+  {#if teams}
+    <div class="grid gap-3 sm:grid-cols-2">
+      <Field label={t.compose.teamSize} hint={t.compose.teamSizeHint}>
+        <Input type="number" min="1" bind:value={teamSize} />
+      </Field>
+      <Field label={t.compose.teamsBy}>
+        <Select bind:value={teamsBy} options={MAKERS} name={(option) => t.makers[option]} />
+      </Field>
+    </div>
+  {/if}
 
   {#if series}<p class="text-xs text-muted">{t.schedules.retimes}</p>{/if}
   {#if cost}
