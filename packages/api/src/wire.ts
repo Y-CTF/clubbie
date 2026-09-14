@@ -29,6 +29,7 @@ export namespace Wire {
       email: member.email,
       avatar: member.avatar,
       organisation: member.organisation,
+      welcomed: member.welcomed,
       role: member.role,
       status: member.status,
       hidden: member.hidden,
@@ -230,6 +231,8 @@ export namespace Wire {
       tagline: club.tagline,
       logo: club.logo,
       listed: club.listed,
+      /** Public, because a deployment nobody has set up is exactly what a stranger is looking at. */
+      setup: club.setup,
       /**
        * The whole look crosses to everybody, signed in or not. It has to: the sign-in page is the
        * club's page too, and a visitor who saw the default palette for a second before the club's

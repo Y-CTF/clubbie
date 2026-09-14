@@ -29,6 +29,8 @@ export interface MemberFields {
    * faculty somebody is from, and the answer was thrown away the moment the door said yes.
    */
   readonly organisation: string | null;
+  /** Whether they have been through the first run. */
+  readonly welcomed: boolean;
 }
 
 /** The fields are declared once, in `MemberFields`, and the class carries them by declaration

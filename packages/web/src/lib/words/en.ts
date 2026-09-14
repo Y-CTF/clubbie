@@ -52,6 +52,8 @@ export const en: Catalogue = {
 
   pages: {
     Home: 'home',
+    Join: 'join the club',
+    Welcome: 'welcome',
     Events: 'events',
     Compose: 'new event',
     Event: 'event',
@@ -120,6 +122,35 @@ export const en: Catalogue = {
   },
 
   makers: { member: 'any member', organiser: 'organisers only' },
+
+  join: {
+    lead: 'sign up with your email address. no password, and you can leave whenever you like.',
+    steps: [
+      'give us an address and we send you a link',
+      'an organiser lets you in',
+      'answer the events you want to come to',
+    ],
+    already: 'already a member? signing in is the same button.',
+  },
+
+  welcome: {
+    member: 'welcome',
+    memberLead: 'three things and you are set up.',
+    admin: 'set up the club',
+    adminLead: 'you are the first one here, so this deployment is yours to name.',
+    name: 'what should we call you?',
+    nameHint: 'this is the name on sheets and rosters.',
+    notifications: 'how the club reaches you',
+    chat: 'get announcements on telegram',
+    season: 'join the current season',
+    seasonNone: 'no season is open yet.',
+    identity: 'name the club and choose how it looks',
+    kinds: 'say what kinds of events you run',
+    first: 'put the first event on the calendar',
+    done: 'done',
+    skip: 'skip for now',
+    waiting: 'an organiser still has to let you in. you will get a message when they do.',
+  },
 
   signIn: {
     tagline: 'events, members and attendance for a small club.',

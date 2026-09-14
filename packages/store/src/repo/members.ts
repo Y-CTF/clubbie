@@ -78,6 +78,7 @@ export class Members {
       email: row.email,
       avatar: row.avatar,
       organisation: row.organisation,
+      welcomed: row.welcomedAt !== null,
       role: row.role,
       status: row.status,
       hidden: Row.flag(row.hidden),
@@ -273,6 +274,16 @@ export class Members {
    * reached the driver as a foreign key violation and came back to the member as "something went
    * wrong on our side", which is neither true nor actionable.
    */
+  /** Stamps the first run as done. Idempotent: pressing the last button twice is not an error. */
+  async welcomed(id: MemberId, now: Date = new Date()): Promise<void> {
+    await this.db
+      .updateTable('member')
+      .set({ welcomedAt: Row.ms(now) })
+      .where('id', '=', id)
+      .where('welcomedAt', 'is', null)
+      .execute();
+  }
+
   async remove(id: MemberId): Promise<void> {
     const [events, schedules, guests] = await Promise.all([
       this.db

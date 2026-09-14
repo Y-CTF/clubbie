@@ -8,6 +8,7 @@ function member(role: Role, status: Status): Member {
     email: 'ada@example.org',
     avatar: null,
     organisation: null,
+    welcomed: true,
     role,
     status,
     hidden: false,

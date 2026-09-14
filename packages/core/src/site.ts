@@ -58,6 +58,18 @@ export namespace Site {
 
   export const PATHS = {
     home: '/',
+    /**
+     * Where the club's own website sends somebody who wants in. It is apart from `home` because
+     * that page is a sign-in for members who already know what this is, and this one is written
+     * for a stranger: what the club does, what happens after they sign up, and one button.
+     */
+    join: '/join',
+    /**
+     * What a member sees once, after their first sign-in. Which steps it holds depends on who
+     * they are, because the first member to arrive is setting up a club and the rest are joining
+     * one.
+     */
+    welcome: '/welcome',
     events: '/events',
     event: '/events/:id',
     sheet: '/events/:id/sheet',

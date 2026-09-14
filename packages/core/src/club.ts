@@ -74,6 +74,8 @@ export interface ClubFields {
   /** Whether a full event keeps a queue, or simply refuses. */
   readonly waitlist: boolean;
   readonly updatedAt: Date;
+  /** Whether anybody has set this club up, which is what the first admin is walked through. */
+  readonly setup: boolean;
 }
 
 /** The fields are declared once, in `ClubFields`; the class carries them by declaration merging. */
@@ -253,6 +255,7 @@ export class Club {
       guests: Club.GUESTS,
       waitlist: Club.WAITLIST,
       updatedAt: now,
+      setup: false,
     });
   }
 }

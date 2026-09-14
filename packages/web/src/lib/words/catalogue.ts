@@ -152,6 +152,33 @@ export interface Catalogue {
   /** Who may start a team, as the settings page words it. */
   readonly makers: Record<Maker, string>;
 
+  /** The page the club's own website links to, written for somebody who is not a member yet. */
+  readonly join: {
+    readonly lead: string;
+    readonly steps: readonly string[];
+    readonly already: string;
+  };
+
+  /** The first run, which is a different list depending on who just arrived. */
+  readonly welcome: {
+    readonly member: string;
+    readonly memberLead: string;
+    readonly admin: string;
+    readonly adminLead: string;
+    readonly name: string;
+    readonly nameHint: string;
+    readonly notifications: string;
+    readonly chat: string;
+    readonly season: string;
+    readonly seasonNone: string;
+    readonly identity: string;
+    readonly kinds: string;
+    readonly first: string;
+    readonly done: string;
+    readonly skip: string;
+    readonly waiting: string;
+  };
+
   readonly signIn: {
     readonly tagline: string;
     readonly continueWith: (provider: string) => string;

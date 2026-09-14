@@ -105,6 +105,7 @@ export class Clubs {
         footer: row.footer,
       }),
       updatedAt: Row.at(row.updatedAt),
+      setup: row.setupAt !== null,
     });
   }
 
@@ -120,6 +121,16 @@ export class Clubs {
   /** A list as the column holds it, or the column's own value when the patch did not mention it. */
   private static line(given: readonly string[] | undefined, stored: string | null): string | null {
     return given === undefined ? stored : given.join(Clubs.SEP);
+  }
+
+  /** Stamps the club as set up, once, by whoever finished the wizard. */
+  async establish(now: Date = new Date()): Promise<void> {
+    await this.db
+      .updateTable('club')
+      .set({ setupAt: Row.ms(now) })
+      .where('id', '=', Club.ROW)
+      .where('setupAt', 'is', null)
+      .execute();
   }
 
   async read(): Promise<Club> {

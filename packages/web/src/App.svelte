@@ -7,10 +7,12 @@ import Compose from './routes/Compose.svelte';
 import Event from './routes/Event.svelte';
 import Events from './routes/Events.svelte';
 import Home from './routes/Home.svelte';
+import Join from './routes/Join.svelte';
 import Jobs from './routes/Jobs.svelte';
 import Member from './routes/Member.svelte';
 import Members from './routes/Members.svelte';
 import Profile from './routes/Profile.svelte';
+import Welcome from './routes/Welcome.svelte';
 import Seasons from './routes/Seasons.svelte';
 import Settings from './routes/Settings.svelte';
 import Sheet from './routes/Sheet.svelte';
@@ -41,7 +43,22 @@ const locked = $derived(page.route.private && !session.loading && !session.signe
  * one exception: their own profile, which `Ability` does grant them, and which is where they link
  * a chat and choose what the club may send them.
  */
-const waiting = $derived(session.waiting && page.route.private && page.name !== 'Profile');
+const waiting = $derived(
+  session.waiting && page.route.private && page.name !== 'Profile' && page.name !== 'Welcome',
+);
+
+/**
+ * A member who has never been through the first run is taken to it, once. It is a redirect rather
+ * than a banner because the two things it asks for (a name, and a way to be reached) are what the
+ * rest of the app assumes somebody already did.
+ */
+$effect(() => {
+  if (session.loading || !session.signedIn) return;
+  if (session.member?.welcomed !== false) return;
+  if (page.name === 'Welcome' || page.name === 'Profile') return;
+
+  router.go('Welcome');
+});
 
 /** The tab says where in the club you are, which is what a member with six tabs open needs. */
 $effect(() => {
@@ -149,6 +166,8 @@ $effect(() => {
   <main class="rise mx-auto px-6 py-10">
     {#if session.loading}
       <p class="text-sm text-muted">{t.common.loading}</p>
+    {:else if page.name === 'Join'}
+      <Join />
     {:else if locked}
       <Home />
     {:else if waiting}
@@ -188,6 +207,8 @@ $effect(() => {
       {/if}
     {:else if page.name === 'Profile'}
       <Profile />
+    {:else if page.name === 'Welcome'}
+      <Welcome />
     {:else}
       <Home />
     {/if}

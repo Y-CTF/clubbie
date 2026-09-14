@@ -52,6 +52,8 @@ export const de: Catalogue = {
 
   pages: {
     Home: 'Start',
+    Join: 'Mitglied werden',
+    Welcome: 'willkommen',
     Events: 'Termine',
     Compose: 'neuer Termin',
     Event: 'Termin',
@@ -120,6 +122,35 @@ export const de: Catalogue = {
   },
 
   makers: { member: 'jedes Mitglied', organiser: 'nur Organisatoren' },
+
+  join: {
+    lead: 'melde dich mit deiner E-Mail-Adresse an. kein Passwort, und du kannst jederzeit wieder gehen.',
+    steps: [
+      'gib uns eine Adresse, wir schicken dir einen Link',
+      'ein Organisator lässt dich rein',
+      'sag zu, wozu du kommen willst',
+    ],
+    already: 'schon Mitglied? es ist derselbe Knopf.',
+  },
+
+  welcome: {
+    member: 'willkommen',
+    memberLead: 'drei Dinge, dann bist du eingerichtet.',
+    admin: 'den Verein einrichten',
+    adminLead: 'du bist die erste Person hier, also gehört dieser Verein dir zum Benennen.',
+    name: 'wie sollen wir dich nennen?',
+    nameHint: 'dieser Name steht auf Listen und Anwesenheiten.',
+    notifications: 'wie der Verein dich erreicht',
+    chat: 'Ankündigungen über Telegram bekommen',
+    season: 'der laufenden Saison beitreten',
+    seasonNone: 'es ist noch keine Saison offen.',
+    identity: 'den Verein benennen und sein Aussehen wählen',
+    kinds: 'sagen, was für Termine ihr macht',
+    first: 'den ersten Termin eintragen',
+    done: 'fertig',
+    skip: 'später',
+    waiting: 'ein Organisator muss dich noch freischalten. du bekommst eine Nachricht, sobald das passiert.',
+  },
 
   signIn: {
     tagline: 'Termine, Mitglieder und Anwesenheit für einen kleinen Verein.',

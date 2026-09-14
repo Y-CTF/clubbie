@@ -16,6 +16,8 @@ export interface Route {
 
 export const Route = {
   Home: { pattern: Site.PATHS.home, private: false },
+  Join: { pattern: Site.PATHS.join, private: false },
+  Welcome: { pattern: Site.PATHS.welcome, private: true },
   Events: { pattern: Site.PATHS.events, private: true },
   Compose: { pattern: Site.PATHS.compose, private: true },
   Event: { pattern: Site.PATHS.event, private: true },

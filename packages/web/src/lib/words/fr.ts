@@ -52,6 +52,8 @@ export const fr: Catalogue = {
 
   pages: {
     Home: 'accueil',
+    Join: 'nous rejoindre',
+    Welcome: 'bienvenue',
     Events: 'événements',
     Compose: 'nouvel événement',
     Event: 'événement',
@@ -121,6 +123,35 @@ export const fr: Catalogue = {
   },
 
   makers: { member: "n'importe quel membre", organiser: 'organisateurs seulement' },
+
+  join: {
+    lead: 'inscris-toi avec ton adresse e-mail. pas de mot de passe, et tu peux partir quand tu veux.',
+    steps: [
+      'donne-nous une adresse, on t’envoie un lien',
+      'un organisateur te laisse entrer',
+      'réponds aux événements où tu veux venir',
+    ],
+    already: 'déjà membre ? c’est le même bouton.',
+  },
+
+  welcome: {
+    member: 'bienvenue',
+    memberLead: 'trois choses et tu es prêt.',
+    admin: 'configurer le club',
+    adminLead: 'tu es la première personne ici, donc ce club est à toi de nommer.',
+    name: 'comment doit-on t’appeler ?',
+    nameHint: 'ce nom apparaît sur les listes et les présences.',
+    notifications: 'comment le club te joint',
+    chat: 'recevoir les annonces sur telegram',
+    season: 'rejoindre la saison en cours',
+    seasonNone: 'aucune saison n’est ouverte.',
+    identity: 'nommer le club et choisir son apparence',
+    kinds: 'dire quels types d’événements vous organisez',
+    first: 'mettre le premier événement au calendrier',
+    done: 'terminé',
+    skip: 'plus tard',
+    waiting: 'un organisateur doit encore te laisser entrer. tu recevras un message quand ce sera fait.',
+  },
 
   signIn: {
     tagline: 'événements, membres et présences pour un petit club.',

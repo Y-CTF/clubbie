@@ -34,6 +34,12 @@ export const me = new Hono<Env>()
     return c.json(Wire.member(updated ?? member));
   })
 
+  /** The first run is done. Idempotent, so the last button may be pressed twice. */
+  .post('/welcome', Guard.needs('profile:write'), async (c) => {
+    await c.get('store').members.welcomed(Guard.member(c).id);
+    return c.json({ ok: true });
+  })
+
   .get('/rsvps', Guard.needs('profile:read'), async (c) => {
     const history = await c.get('store').rsvps.timeline(Guard.member(c).id);
     return c.json(history.map(Wire.moment));

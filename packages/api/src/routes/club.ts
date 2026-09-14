@@ -25,8 +25,11 @@ export const club = new Hono<Env>()
     /** Turning the queue off is an answering rule, so `Booking` says whether it can be done. */
     if (patch.waitlist === false) await new Booking(c.get('store'), c.get('log')).closable();
 
-    const updated = await c.get('store').club.update(patch);
+    const store = c.get('store');
+    const updated = await store.club.update(patch);
     c.get('log').info('club changed', { fields: Object.keys(patch) });
+    /** Saving the settings is what setting a club up means, so the first save is the wizard done. */
+    await store.club.establish();
     await Trail.record(c, 'club.update', null, patch);
-    return c.json(Wire.club(updated, true));
+    return c.json(Wire.club({ ...updated, setup: true } as typeof updated, true));
   });

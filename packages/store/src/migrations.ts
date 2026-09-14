@@ -527,4 +527,28 @@ export const MIGRATIONS: readonly Migration[] = [
       await db.schema.createIndex('teammate_team').on('teammate').column('teamId').execute();
     },
   },
+  {
+    version: 19,
+    name: 'a first run, for a member and for the club',
+    /**
+     * Both nullable, and both meaning "has not happened yet". An existing deployment is a club
+     * somebody already set up and members who already know their way round, so stamping either
+     * column on upgrade would show everybody a welcome for a thing they have been using for a
+     * year. The absent value is the truthful one for a new arrival only.
+     */
+    async up(db) {
+      await db.schema.alterTable('member').addColumn('welcomedAt', 'bigint').execute();
+      await db.schema.alterTable('club').addColumn('setupAt', 'bigint').execute();
+
+      /** Every club that already has members has been set up, whatever it has saved. */
+      const members = await db
+        .selectFrom('member')
+        .select(({ fn }) => fn.countAll<number>().as('total'))
+        .executeTakeFirst();
+      if (Number(members?.total ?? 0) === 0) return;
+
+      await db.updateTable('club').set({ setupAt: Date.now() }).where('id', '=', Club.ROW).execute();
+      await db.updateTable('member').set({ welcomedAt: Date.now() }).execute();
+    },
+  },
 ];

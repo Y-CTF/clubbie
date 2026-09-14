@@ -71,6 +71,8 @@ export interface MemberTable {
   createdAt: number;
   /** The institution the identity came from, when the provider says which. */
   organisation: string | null;
+  /** When they finished the first run. Null is somebody who has not seen it yet. */
+  welcomedAt: number | null;
 }
 
 /** An identity at an OAuth provider. A member may hold one per provider. */
@@ -249,6 +251,8 @@ export interface ClubTable {
   guests: number | null;
   waitlist: number | null;
   updatedAt: number;
+  /** When somebody first set this club up. Null is a deployment nobody has configured. */
+  setupAt: number | null;
 }
 
 /**

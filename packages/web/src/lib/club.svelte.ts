@@ -84,6 +84,11 @@ export class Identified {
     return this.query.data?.listed ?? false;
   }
 
+  /** Whether anybody has set this club up. False is what sends the first admin to the wizard. */
+  get setup(): boolean {
+    return this.query.data?.setup ?? true;
+  }
+
   /** Names as attributes, measures as properties: the whole theme is derived from them in `app.css`. */
   private paint(): void {
     const design = this.query.data?.design;
