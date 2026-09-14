@@ -87,6 +87,8 @@ let domains = $state<string[]>([]);
 let allowed = $state<string[]>([]);
 let blocked = $state<string[]>([]);
 let providers = $state<string[]>([]);
+let embeds = $state<string[]>([]);
+let group = $state('');
 let deadline = $state(Club.DEADLINE);
 let remind = $state(Club.REMIND);
 let guests = $state(Club.GUESTS);
@@ -188,6 +190,8 @@ function fill(): void {
   allowed = [...(current.allowed ?? [])];
   blocked = [...(current.blocked ?? [])];
   providers = [...(current.providers ?? [])];
+  embeds = [...(current.embeds ?? [])];
+  group = current.group ?? '';
   deadline = current.deadline;
   remind = current.remind;
   guests = current.guests;
@@ -232,6 +236,8 @@ async function save(): Promise<void> {
           allowed,
           blocked,
           providers,
+          embeds,
+          group: group || null,
           admission,
           deadline,
           remind,
@@ -456,6 +462,19 @@ async function save(): Promise<void> {
         label={t.access.organisations}
         check={(value) => Club.ORGANISATION.test(value)}
       />
+    </Field>
+
+    <Field label={t.access.embeds} hint={t.access.embedsHint} group>
+      <Tags
+        bind:values={embeds}
+        placeholder={t.access.exampleOrigin}
+        label={t.access.embeds}
+        check={(value) => Club.ORIGIN.test(value)}
+      />
+    </Field>
+
+    <Field label={t.access.group} hint={t.access.groupHint}>
+      <Input bind:value={group} placeholder={t.access.exampleGroup} />
     </Field>
 
     <Field label={t.access.domains} hint={t.access.domainsHint} group>

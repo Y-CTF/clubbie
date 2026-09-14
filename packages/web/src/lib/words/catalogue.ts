@@ -437,6 +437,13 @@ export interface Catalogue {
     readonly providersHint: string;
     readonly anyProvider: string;
     readonly address: string;
+    /** Sites the club lets embed its events, and the chat group it invites members into. */
+    readonly embeds: string;
+    readonly embedsHint: string;
+    readonly exampleOrigin: string;
+    readonly group: string;
+    readonly groupHint: string;
+    readonly exampleGroup: string;
   };
 
   /** How an evening runs, before any one event says otherwise. */
@@ -536,6 +543,10 @@ export interface Catalogue {
     readonly linkStep: (expires: string) => string;
     readonly linkSend: string;
     readonly getCode: string;
+    /** The club's chat group, which a linked member may ask to be let into. */
+    readonly group: string;
+    readonly groupOpen: string;
+    readonly groupOnce: string;
   };
 
   /**

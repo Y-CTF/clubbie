@@ -89,6 +89,11 @@ export class Identified {
     return this.query.data?.setup ?? true;
   }
 
+  /** Whether the club runs a chat group. Which one it is only an admin is told. */
+  get group(): boolean {
+    return this.query.data?.group !== null && this.query.data?.group !== undefined;
+  }
+
   /** Names as attributes, measures as properties: the whole theme is derived from them in `app.css`. */
   private paint(): void {
     const design = this.query.data?.design;

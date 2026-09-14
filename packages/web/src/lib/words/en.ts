@@ -389,6 +389,12 @@ export const en: Catalogue = {
     providersHint: 'which of the configured providers this club accepts.',
     anyProvider: 'any configured provider may be used.',
     address: 'ada@ethz.ch',
+    embeds: 'sites that may embed your events',
+    embedsHint: 'each one a scheme and a host. nobody by default.',
+    exampleOrigin: 'https://yctf.ch',
+    group: 'chat group',
+    groupHint: 'members can ask for a one-off invitation. the bot has to be in it.',
+    exampleGroup: '@yctf or -1001234567890',
   },
 
   rules: {
@@ -470,6 +476,9 @@ export const en: Catalogue = {
     linkStep: (expires) => `send this to the bot. it expires ${expires}.`,
     linkSend: 'send this message to the bot:',
     getCode: 'get a linking code',
+    group: 'join the chat group',
+    groupOpen: 'open the invitation',
+    groupOnce: 'it is good for you alone, and for an hour.',
   },
 
   states: {

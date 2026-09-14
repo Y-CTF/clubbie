@@ -395,6 +395,12 @@ export const fr: Catalogue = {
     providersHint: 'lesquels des fournisseurs configurés ce club accepte.',
     anyProvider: 'tout fournisseur configuré peut être utilisé.',
     address: 'ada@ethz.ch',
+    embeds: 'sites autorisés à intégrer vos événements',
+    embedsHint: 'un schéma et un hôte chacun. personne par défaut.',
+    exampleOrigin: 'https://yctf.ch',
+    group: 'groupe de discussion',
+    groupHint: 'les membres peuvent demander une invitation unique. le bot doit en faire partie.',
+    exampleGroup: '@yctf ou -1001234567890',
   },
 
   rules: {
@@ -476,6 +482,9 @@ export const fr: Catalogue = {
     linkStep: (expires) => `envoyez ceci au bot. il expire ${expires}.`,
     linkSend: 'envoyez ce message au bot :',
     getCode: 'obtenir un code de liaison',
+    group: 'rejoindre le groupe',
+    groupOpen: "ouvrir l'invitation",
+    groupOnce: 'elle ne vaut que pour toi, et pendant une heure.',
   },
 
   states: {

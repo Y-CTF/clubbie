@@ -391,6 +391,12 @@ export const de: Catalogue = {
     providersHint: 'welche der eingerichteten Dienste dieser Verein akzeptiert.',
     anyProvider: 'jeder eingerichtete Dienst ist erlaubt.',
     address: 'ada@ethz.ch',
+    embeds: 'Seiten, die eure Termine einbetten dürfen',
+    embedsHint: 'je ein Schema und ein Host. standardmäßig niemand.',
+    exampleOrigin: 'https://yctf.ch',
+    group: 'Chatgruppe',
+    groupHint: 'Mitglieder können eine einmalige Einladung anfordern. der Bot muss drin sein.',
+    exampleGroup: '@yctf oder -1001234567890',
   },
 
   rules: {
@@ -472,6 +478,9 @@ export const de: Catalogue = {
     linkStep: (expires) => `schick das an den Bot. Es läuft ${expires} ab.`,
     linkSend: 'schick diese Nachricht an den Bot:',
     getCode: 'Code zum Verbinden holen',
+    group: 'der Chatgruppe beitreten',
+    groupOpen: 'Einladung öffnen',
+    groupOnce: 'sie gilt nur für dich, und eine Stunde lang.',
   },
 
   states: {

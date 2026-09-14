@@ -3,6 +3,7 @@ import { Action } from '../lib/action.svelte.ts';
 import { api, unwrap } from '../lib/api.ts';
 import { ask } from '../lib/ask.svelte.ts';
 import { Copy } from '../lib/copy.svelte.ts';
+import { club } from '../lib/club.svelte.ts';
 import { Format } from '../lib/format.ts';
 import { Query } from '../lib/query.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
@@ -21,6 +22,8 @@ const prefs = new Query(async () => unwrap(await api.me.notifications.$get()));
 const action = new Action();
 
 let code = $state<{ token: string; expiresAt: string } | null>(null);
+/** A one-off link into the club's group. Not kept: it is worth one seat, and only for an hour. */
+let invite = $state<string | null>(null);
 
 /**
  * Copying is the whole interaction: the member is holding a phone in the other hand, and retyping
@@ -49,6 +52,11 @@ async function issue(): Promise<void> {
   await action.run(async () => {
     code = await unwrap(await api.me.link.$post());
   });
+}
+
+async function join(): Promise<void> {
+  const made = await action.run(async () => unwrap(await api.me.group.$post()));
+  if (made) invite = made.url;
 }
 
 async function unlink(): Promise<void> {
@@ -134,7 +142,19 @@ async function toggle(key: (typeof SWITCHES)[number], on: boolean): Promise<void
       <p class="mt-2 text-sm text-muted">
         {t.profile.linked(link.data.username, Format.day(link.data.linkedAt))}
       </p>
-      <div class="mt-3"><Button disabled={action.busy} onclick={unlink}>{t.profile.unlink}</Button></div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <Button disabled={action.busy} onclick={unlink}>{t.profile.unlink}</Button>
+        {#if club.group}
+          <Button disabled={action.busy} onclick={join}>{t.profile.group}</Button>
+        {/if}
+      </div>
+
+      {#if invite}
+        <p class="mt-3 text-sm">
+          <a href={invite} target="_blank" rel="noopener" class="text-accent">{t.profile.groupOpen}</a>
+          <span class="mt-1 block text-xs text-muted">{t.profile.groupOnce}</span>
+        </p>
+      {/if}
     {:else if code}
       {@const message = `/link ${code.token}`}
       <p class="mt-2 text-sm text-muted">{t.profile.linkSend}</p>
