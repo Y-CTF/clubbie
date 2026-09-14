@@ -61,15 +61,21 @@ export const seasons = new Hono<Env>()
       const { id } = c.req.valid('param');
       const season = await Guard.find('season', store.seasons.byId(id));
 
-      const previous = await store.seasons.roster(c.req.valid('json').from);
+      /**
+       * The season being rolled *from* is looked up rather than trusted. An id that names nothing
+       * has an empty roster, so a mistyped one answered `moved: 0` and wrote a trail entry
+       * recording a rollover from a season that does not exist: an admin was told last term was
+       * empty rather than that they typed the wrong term.
+       */
+      const { from } = c.req.valid('json');
+      await Guard.find('season', store.seasons.byId(from));
+
+      const previous = await store.seasons.roster(from);
       const moving = previous.filter((member) => member.active);
       for (const member of moving) await store.seasons.join(member.id, season.id);
 
       c.get('log').info('season rolled over', { season: season.id, members: moving.length });
-      await Trail.record(c, 'season.roster', season.id, {
-        from: c.req.valid('json').from,
-        moved: moving.length,
-      });
+      await Trail.record(c, 'season.roster', season.id, { from, moved: moving.length });
       return c.json({ ok: true, moved: moving.length });
     },
   )
@@ -138,7 +144,13 @@ export const seasons = new Hono<Env>()
         );
       }
 
-      await store.seasons.join(Guard.member(c).id, season.id);
+      const member = Guard.member(c);
+      await store.seasons.join(member.id, season.id);
+      /**
+       * Recorded like every other roster write. It is the one that was not, so the count a
+       * committee reports on moved with nothing in the trail saying who joined or when.
+       */
+      await Trail.record(c, 'season.roster', season.id, { member: member.id, joined: true, self: true });
       return c.json({ ok: true });
     },
   )

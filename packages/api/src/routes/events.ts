@@ -78,9 +78,7 @@ export const events = new Hono<Env>()
      * A club that closes its answers a day before every evening says so once, here, rather than
      * in every event anybody writes. An event that names its own deadline keeps it.
      */
-    const { deadline } = await store.club.read();
-    const closesAt =
-      draft.closesAt ?? (deadline > 0 ? new Date(draft.startsAt.getTime() - deadline * Announce.HOUR) : null);
+    const closesAt = (await store.club.read()).closes(draft.startsAt, draft.closesAt ?? null);
 
     /**
      * An event lands in the season the club is running, unless the writer said otherwise.
@@ -105,9 +103,13 @@ export const events = new Hono<Env>()
   .get('/:id', Guard.needs('event:read'), vValidator('param', Input.params.event, Check.param), async (c) => {
     const store = c.get('store');
     const member = Guard.member(c);
-    const organiser = c.get('ability').can('event:manage');
-
     const event = await Events.seen(c, c.req.valid('param').id);
+    /**
+     * The same verdict this route already reports as `manage`, and it has to be: the creator of an
+     * event was told they manage it and then handed the list with hidden members taken out, while
+     * `/sheet` (gated on exactly this) handed them the full one. Two answers to one question.
+     */
+    const organiser = c.get('ability').canOwn('event:manage', event.createdBy);
 
     const [sheet, guests, mine] = await Promise.all([
       store.rsvps.sheet(event.id),
@@ -128,7 +130,7 @@ export const events = new Hono<Env>()
        * page used to work it out for itself, which is a second permission table and the one thing
        * `Ability` exists to prevent.
        */
-      manage: c.get('ability').canOwn('event:manage', event.createdBy),
+      manage: organiser,
     });
   })
 

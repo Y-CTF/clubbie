@@ -193,6 +193,12 @@ export namespace Input {
   export const term = v.pipe(v.string(), v.trim(), v.maxLength(TITLE));
 
   /**
+   * How far into a listing a caller may page. Deep enough that nobody meets it by scrolling, and
+   * shallow enough that it is not a full table scan a stranger can ask for repeatedly.
+   */
+  export const DEEPEST = 10_000;
+
+  /**
    * What a paged report asks for: a window, and where it starts.
    *
    * The ceiling is the caller's, because a page of the queue and a page of the trail are different
@@ -202,7 +208,14 @@ export namespace Input {
   export const page = (max: number) =>
     v.object({
       limit: v.optional(v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(1), v.maxValue(max))),
-      offset: v.optional(v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(0))),
+      /**
+       * Bounded at both ends, like the window itself. Both dialects answer a large `offset` by
+       * walking and discarding every row before it, so `?offset=999999999999` was a full scan per
+       * request on every listing a member can reach.
+       */
+      offset: v.optional(
+        v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(0), v.maxValue(DEEPEST)),
+      ),
     });
 
   /**
@@ -299,7 +312,7 @@ export namespace Input {
       v.maxLength(Guest.NAME),
       v.regex(LINE, 'a name is one line'),
     ),
-    email: v.nullish(v.pipe(v.string(), v.email('expected an email address'))),
+    email: v.nullish(v.pipe(v.string(), v.maxLength(TITLE), v.email('expected an email address'))),
   });
 
   export const schedule = v.object({
@@ -418,13 +431,18 @@ export namespace Input {
     footer: v.nullish(v.pipe(v.string(), v.trim(), v.maxLength(Design.FOOTER))),
     banner: v.nullish(image),
     blurb: v.nullish(v.pipe(v.string(), v.trim(), v.maxLength(Design.BLURB))),
-    organisations: v.optional(v.array(organisation)),
-    domains: v.optional(v.array(domain)),
+    organisations: v.optional(v.pipe(v.array(organisation), v.maxLength(Club.LISTS))),
+    domains: v.optional(v.pipe(v.array(domain), v.maxLength(Club.LISTS))),
     /** An address is a whole address here, not a pattern: a list of people, not of shapes. */
-    allowed: v.optional(v.array(address)),
-    blocked: v.optional(v.array(address)),
+    allowed: v.optional(v.pipe(v.array(address), v.maxLength(Club.LISTS))),
+    blocked: v.optional(v.pipe(v.array(address), v.maxLength(Club.LISTS))),
     /** A provider this deployment configured. An unknown name would close the door on everybody. */
-    providers: v.optional(v.array(v.pipe(v.string(), v.trim(), v.toLowerCase(), v.maxLength(TITLE)))),
+    providers: v.optional(
+      v.pipe(
+        v.array(v.pipe(v.string(), v.trim(), v.toLowerCase(), v.maxLength(TITLE))),
+        v.maxLength(Club.LISTS),
+      ),
+    ),
     /** Whether a first sign-in waits for an organiser. A closed list, like every other choice. */
     admission: v.optional(literals(Club.ADMISSIONS)),
     deadline: v.optional(measure(Club.DEADLINES)),
@@ -451,12 +469,9 @@ export namespace Input {
 
   export const auditQuery = v.object({
     act: v.optional(v.picklist(ACTS)),
-    subject: v.optional(v.string()),
-    /** Bounded at both ends: `?limit=99999999` used to mean "read the whole audit table". */
-    limit: v.optional(
-      v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(1), v.maxValue(Audit.PAGE)),
-    ),
-    offset: v.optional(v.pipe(v.string(), v.transform(Number), v.integer(), v.minValue(0))),
+    /** A subject is an id, and was the one field in this file with no bound at all. */
+    subject: v.optional(v.pipe(v.string(), v.maxLength(TITLE))),
+    ...page(Audit.PAGE).entries,
   });
 
   /** What the roll-over of a season takes: which season the members come from. */
