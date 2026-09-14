@@ -1,3 +1,4 @@
+import { Net } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { Codes } from '../codes.ts';
@@ -52,7 +53,19 @@ export class Smtp implements Wire {
    */
   private connect(): Promise<Mailer> {
     this.mailer ??= Smtp.load()
-      .then((nodemailer) => nodemailer.createTransport(this.credentials.url ?? '', { pool: true }))
+      .then((nodemailer) =>
+        /**
+         * The three timeouts are named because nodemailer's own defaults run to minutes, and a
+         * send that outlives the job lease is a job reclaimed while it is still running. A mail
+         * server that stops answering has to become a refusal the queue can retry.
+         */
+        nodemailer.createTransport(this.credentials.url ?? '', {
+          pool: true,
+          connectionTimeout: Net.TIMEOUT,
+          greetingTimeout: Net.TIMEOUT,
+          socketTimeout: Net.TIMEOUT,
+        }),
+      )
       .catch((error: unknown) => {
         this.mailer = null;
         throw error;

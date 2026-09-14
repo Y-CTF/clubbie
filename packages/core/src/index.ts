@@ -43,6 +43,7 @@ export {
   type Status,
 } from './member.ts';
 export { Millis } from './millis.ts';
+export { Net } from './net.ts';
 export {
   CHANNELS,
   type Channel,

@@ -1,4 +1,4 @@
-import { Brand } from '@clubbie/core';
+import { Brand, Net } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { Codes } from '../codes.ts';
@@ -13,8 +13,6 @@ import { Codes } from '../codes.ts';
  * provider let them down.
  */
 export namespace Rest {
-  export const TYPE = 'application/json';
-
   export async function get<T>(
     provider: string,
     base: string,
@@ -23,9 +21,10 @@ export namespace Rest {
     headers: Record<string, string> = {},
   ): Promise<T> {
     const response = await fetch(base + path, {
+      signal: Net.patience(),
       headers: {
         authorization: `Bearer ${token}`,
-        accept: TYPE,
+        accept: Net.TYPE,
         'user-agent': Brand.agent,
         ...headers,
       },

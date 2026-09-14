@@ -1,3 +1,4 @@
+import { Net } from '@clubbie/core';
 import { type Mail, Post } from './transport.ts';
 
 /**
@@ -99,7 +100,7 @@ export namespace Http {
     }
 
     protected override get type(): string {
-      return Post.FORM;
+      return Net.FORM;
     }
 
     protected headers(): Record<string, string> {

@@ -1,3 +1,4 @@
+import { Net } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { CodeChallengeMethod, OAuth2Client, OAuth2Tokens } from 'arctic';
@@ -21,10 +22,6 @@ export interface Exchange {
 export namespace Exchange {
   /** The assertion type RFC 7523 gives `private_key_jwt`, spelled exactly once. */
   export const ASSERTION = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer';
-  export const FORM = 'application/x-www-form-urlencoded';
-  export const TYPE = 'application/json';
-  /** How much of a token endpoint's refusal is worth putting in a diagnostic. */
-  export const EXCERPT = 200;
 
   /** The one a deployment configured, which is the key if it set one and the secret otherwise. */
   export function of(name: string, credentials: Credentials, redirect: string): Exchange {
@@ -99,14 +96,15 @@ export namespace Exchange {
 
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'content-type': FORM, accept: TYPE },
+        signal: Net.patience(),
+        headers: { 'content-type': Net.FORM, accept: Net.TYPE },
         body,
       });
       const data: unknown = await response.json().catch(() => null);
       if (!response.ok || typeof data !== 'object' || data === null) {
         const detail = typeof data === 'object' && data !== null ? JSON.stringify(data) : '';
         throw Diag.error(Codes.exchange, markup`*${this.name}* refused the signed assertion`)
-          .note(markup`the token endpoint answered ${response.status}: ${detail.slice(0, EXCERPT)}`)
+          .note(markup`the token endpoint answered ${response.status}: ${detail.slice(0, Net.EXCERPT)}`)
           .help('check the key registered with the provider, its `kid` and its algorithm');
       }
 

@@ -1,3 +1,4 @@
+import { Net } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { markup } from '@clubbie/term';
 import { Codes } from '../codes.ts';
@@ -42,11 +43,6 @@ export interface Wire {
 
 /** A transport that POSTs one mail to a provider's HTTP API. */
 export abstract class Post implements Wire {
-  static readonly TYPE = 'application/json';
-  static readonly FORM = 'application/x-www-form-urlencoded';
-  /** How much of a provider's refusal is worth putting in a diagnostic. */
-  static readonly EXCERPT = 200;
-
   abstract readonly name: string;
   /** Where this provider takes mail, unless the deployment named somewhere else. */
   protected abstract get url(): string;
@@ -57,20 +53,32 @@ export abstract class Post implements Wire {
 
   /** JSON unless a provider says otherwise, which is Mailgun and only Mailgun. */
   protected get type(): string {
-    return Post.TYPE;
+    return Net.TYPE;
   }
 
+  /**
+   * The deadline is the load-bearing part. A provider that accepts the connection and then never
+   * answers left this promise pending forever, and the scheduler's drain awaits it: every later
+   * tick saw one already in flight and did nothing, so the club's reminders, announcements and
+   * promotions simply stopped, with `1 running` on the jobs page and nothing in the log. A refusal
+   * is a retry; silence used to be the end of the queue.
+   */
   async deliver(mail: Mail): Promise<void> {
     const response = await fetch(this.credentials.endpoint ?? this.url, {
       method: 'POST',
-      headers: { 'content-type': this.type, accept: Post.TYPE, ...this.headers() },
+      signal: Net.patience(),
+      headers: { 'content-type': this.type, accept: Net.TYPE, ...this.headers() },
       body: this.body(mail),
+    }).catch((error: unknown) => {
+      throw Diag.error(Codes.email, markup`*${this.name}* did not answer`)
+        .note(markup`it said: ${error instanceof Error ? error.message : String(error)}`)
+        .help('check that the provider is reachable from this host, then retry the job');
     });
     if (response.ok) return;
 
     const detail = await response.text().catch(() => '');
     throw Diag.error(Codes.email, markup`*${this.name}* refused a message`)
-      .note(markup`it answered ${response.status}: ${detail.slice(0, Post.EXCERPT)}`)
+      .note(markup`it answered ${response.status}: ${detail.slice(0, Net.EXCERPT)}`)
       .help('check the api key and that the from address is on a verified domain');
   }
 
