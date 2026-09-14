@@ -298,6 +298,52 @@ needed.
 Who a club lets in is a setting rather than a variable: eduID names one academic institution,
 GitHub an organisation, Discord a server, each written `provider:name` on the settings page.
 
+## Deploying
+
+One host, one container, one file to back up.
+
+```sh
+git clone <this repo> && cd clubbie
+cp docker/.env.example docker/.env
+```
+
+Fill in `docker/.env`:
+
+| Variable | What it is |
+| --- | --- |
+| `SITE_HOST` | the hostname members type, already pointing at this machine |
+| `BASE_URL` | `https://<SITE_HOST>` — every link the club sends is built from it |
+| `SESSION_SECRET` | `openssl rand -base64 32` |
+| `TRUST_PROXY` | `1`, because Caddy terminates TLS in front |
+| a provider, or `EMAIL_API_KEY` + `EMAIL_FROM` | at least one way in |
+
+Then:
+
+```sh
+docker compose -f docker/compose.yml --profile tls up -d
+```
+
+Caddy gets a certificate for `SITE_HOST` on its own and forwards to the app, which is bound to
+loopback and not reachable any other way. `SITE_HOST` has to resolve to this machine before the
+first start or the certificate cannot be issued.
+
+**The first person to sign in runs the club**, so sign in yourself before sharing the address.
+The first run then walks you through naming it.
+
+Two things are registered elsewhere, and neither can be done from here:
+
+- **Telegram sign-in** needs the domain on the bot: BotFather, `/setdomain`, the bot, `SITE_HOST`.
+  Without it Telegram draws no button and the sign-in page says so.
+- **Each OAuth provider** needs `https://<SITE_HOST>/api/auth/<provider>/callback` in its console.
+
+To put the club's events on its own website, name the site under **settings → ways in**, then:
+
+```html
+<iframe src="https://<SITE_HOST>/api/embed/events" style="width:100%;border:0" height="320"></iframe>
+```
+
+A site that is not on that list is refused the frame, which is the default.
+
 ## Backups
 
 SQLite: `clubbie backup clubbie-$(date +%F).db` writes a consistent copy while the server runs

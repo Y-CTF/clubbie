@@ -11,6 +11,14 @@
 #
 #   DATABASE_URL=postgres://clubbie:clubbie@postgres:5432/clubbie
 #   docker compose -f docker/compose.yml --profile postgres up -d
+#
+# On a public host, start the `tls` profile instead of publishing the port yourself. Caddy gets a
+# certificate for `SITE_HOST` on its own and forwards to the app, which then needs TRUST_PROXY=1
+# so it believes the forwarded scheme and keeps `Secure` on the session cookie:
+#
+#   SITE_HOST=club.example.org
+#   TRUST_PROXY=1
+#   docker compose -f docker/compose.yml --profile tls up -d
 
 name: clubbie
 
@@ -21,10 +29,15 @@ services:
       dockerfile: docker/Containerfile
     image: clubbie
     env_file: .env
+    # Bound to loopback by default, because a public host reaches this through the `tls` profile
+    # over compose's own network. Set HTTP_BIND=0.0.0.0 only if something else is proxying to it.
     ports:
-      - "${HTTP_PORT:-3000}:3000"
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-3000}:3000"
     volumes:
       - clubbie-data:/data
+    # No `depends_on` for Postgres: it lives in a profile, and naming a service from an inactive
+    # profile is an error for the SQLite deployment, which is the default one. The restart policy
+    # is what covers the race instead, since a database that is not up yet exits and is retried.
     # Declared here as well as in the image, because podman drops HEALTHCHECK from an OCI image.
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
@@ -32,6 +45,24 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+    restart: unless-stopped
+
+  # TLS and a real hostname, for a deployment anybody outside the machine reaches.
+  caddy:
+    profiles: [tls]
+    image: docker.io/caddy:2-alpine
+    # Compose fills the hostname in, rather than Caddy reading it from the environment: `{$VAR}`
+    # is Caddy's own syntax and compose would have consumed the `$` before Caddy ever saw it.
+    command: caddy reverse-proxy --from ${SITE_HOST:?set SITE_HOST to the hostname members use} --to clubbie:3000
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      clubbie:
+        condition: service_healthy
     restart: unless-stopped
 
   postgres:
@@ -53,3 +84,5 @@ services:
 volumes:
   clubbie-data:
   postgres-data:
+  caddy-data:
+  caddy-config:
