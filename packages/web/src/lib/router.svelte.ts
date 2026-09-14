@@ -78,7 +78,7 @@ export class Router {
   static to(name: Name, params: Record<string, string> = {}, query: Record<string, string> = {}): string {
     const path = Route[name].pattern
       .split('/')
-      .map((part) => (part.startsWith(':') ? (params[part.slice(1)] ?? '') : part))
+      .map((part) => (part.startsWith(':') ? encodeURIComponent(params[part.slice(1)] ?? '') : part))
       .join('/');
 
     const search = new URLSearchParams(query).toString();
@@ -103,10 +103,28 @@ export class Router {
     const params: Record<string, string> = {};
     for (const [index, part] of wanted.entries()) {
       const segment = got[index] as string;
-      if (part.startsWith(':')) params[part.slice(1)] = decodeURIComponent(segment);
-      else if (part !== segment) return null;
+      if (part.startsWith(':')) {
+        /**
+         * A segment that is not valid percent-encoding is not a parameter, it is a bad link.
+         * `decodeURIComponent('100%')` throws, and this runs inside the router's own field
+         * initialiser during `mount`, so a mangled url used to throw before anything rendered:
+         * a white page with no way back except editing the address bar. It simply does not match.
+         */
+        const value = Router.decode(segment);
+        if (value === null) return null;
+        params[part.slice(1)] = value;
+      } else if (part !== segment) return null;
     }
     return params;
+  }
+
+  /** One segment, decoded, or null when it is not something a browser could have encoded. */
+  private static decode(segment: string): string | null {
+    try {
+      return decodeURIComponent(segment);
+    } catch {
+      return null;
+    }
   }
 
   go(name: Name, params: Record<string, string> = {}, query: Record<string, string> = {}): void {
