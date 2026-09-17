@@ -17,6 +17,13 @@ interface Issuer {
   readonly published: string;
   /** What the id token writes in `iss`, when that is not the published identifier itself. */
   readonly stated?: string;
+  /**
+   * An id token carrying nothing but the subject, which is what eduID signs: everything else is
+   * behind userinfo, and a sign-in that gets nothing from there has no identity to enrol.
+   */
+  readonly bare?: boolean;
+  /** What userinfo answers, when that is not a plain JSON body with the address in it. */
+  readonly userinfo?: () => Response | Promise<Response>;
 }
 
 const asked: string[] = [];
@@ -52,16 +59,18 @@ function serve(issuer: Issuer): void {
       return Response.json({
         access_token: 'access',
         token_type: 'Bearer',
-        id_token: await token(issuer.stated ?? issuer.published),
+        id_token: await token(issuer.stated ?? issuer.published, issuer.bare === true),
       });
     }
-    if (url === `${origin}/userinfo`) return Response.json({ sub: SUBJECT, email: EMAIL });
+    if (url === `${origin}/userinfo`) {
+      return issuer.userinfo ? await issuer.userinfo() : Response.json({ sub: SUBJECT, email: EMAIL });
+    }
     throw new Error(`nothing stubbed for ${url}`);
   }) as typeof fetch;
 }
 
-function token(iss: string): Promise<string> {
-  return new SignJWT({ email: EMAIL, email_verified: true })
+function token(iss: string, bare = false): Promise<string> {
+  return new SignJWT(bare ? {} : { email: EMAIL, email_verified: true })
     .setProtectedHeader({ alg: 'RS256' })
     .setIssuer(iss)
     .setSubject(SUBJECT)
@@ -135,5 +144,84 @@ describe('the identifier an issuer publishes for itself', () => {
 
     const diag = await refusal(provider('https://login.eduid.ch').finish('code', 'verifier'));
     expect(diag.code).toBe(Codes.discovery);
+  });
+});
+
+describe('what the userinfo endpoint answers with', () => {
+  const Eduid = { configured: 'https://login.eduid.ch', published: 'https://login.eduid.ch/' };
+
+  /** A claims set signed like an id token, which is the other shape a userinfo response takes. */
+  function signed(claims: Record<string, unknown>): Promise<string> {
+    return new SignJWT(claims)
+      .setProtectedHeader({ alg: 'RS256' })
+      .setIssuer(Eduid.published)
+      .setSubject(SUBJECT)
+      .setAudience('client')
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(privateKey);
+  }
+
+  test('a signed body is read once its signature checks out', async () => {
+    serve({
+      ...Eduid,
+      bare: true,
+      userinfo: async () =>
+        new Response(
+          await signed({ email: EMAIL, email_verified: true, schac_home_organization: 'heig-vd.ch' }),
+          {
+            headers: { 'content-type': 'application/jwt' },
+          },
+        ),
+    });
+
+    const profile = await provider(Eduid.configured).finish('code', 'verifier');
+    expect(profile.email).toBe(EMAIL);
+    expect(profile.organisation).toBe('heig-vd.ch');
+  });
+
+  test('a signed body from another key is not read', async () => {
+    const { privateKey: other } = await generateKeyPair('RS256', { extractable: true });
+    serve({
+      ...Eduid,
+      bare: true,
+      userinfo: async () =>
+        new Response(
+          await new SignJWT({ email: EMAIL })
+            .setProtectedHeader({ alg: 'RS256' })
+            .setIssuer(Eduid.published)
+            .setSubject(SUBJECT)
+            .setAudience('client')
+            .setIssuedAt()
+            .setExpirationTime('5m')
+            .sign(other),
+          { headers: { 'content-type': 'application/jwt' } },
+        ),
+    });
+
+    const diag = await refusal(provider(Eduid.configured).finish('code', 'verifier'));
+    expect(diag.code).toBe(Codes.claims);
+    expect(diag.notes.join(' ')).toContain('signed body this app cannot check');
+  });
+
+  test('a body that answers with everything but the address says what it did carry', async () => {
+    serve({
+      ...Eduid,
+      bare: true,
+      userinfo: () =>
+        Response.json({ sub: SUBJECT, given_name: 'Member', schac_home_organization: 'heig-vd.ch' }),
+    });
+
+    const diag = await refusal(provider(Eduid.configured).finish('code', 'verifier'));
+    expect(diag.code).toBe(Codes.claims);
+    expect(diag.notes.join(' ')).toContain('userinfo released given_name, schac_home_organization, sub');
+  });
+
+  test('a refused call is named in the refusal, rather than becoming a missing address', async () => {
+    serve({ ...Eduid, bare: true, userinfo: () => new Response('no', { status: 403 }) });
+
+    const diag = await refusal(provider(Eduid.configured).finish('code', 'verifier'));
+    expect(diag.code).toBe(Codes.claims);
+    expect(diag.notes.join(' ')).toContain('userinfo answered 403');
   });
 });

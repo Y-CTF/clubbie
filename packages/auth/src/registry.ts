@@ -42,6 +42,16 @@ export const EDUID = 'https://login.eduid.ch';
  * A provider that does not know the scope ignores it, so asking costs a deployment nothing.
  */
 export const SCHAC = 'https://login.eduid.ch/authz/User.Read';
+/**
+ * eduID's newer spelling of the same thing, which their registry tells every client to request.
+ *
+ * It is deliberately not asked for. A client may only request the scopes its own registration was
+ * granted, and a registration whose attributes are still mapped to `User.Read` above is not one of
+ * them: eduID then refuses the *token exchange* with `unauthorized_client`, so the sign-in dies a
+ * step earlier than it would have with a missing claim. A deployment registered the new way sets
+ * its scope here instead.
+ */
+export const USERINFO = 'https://eduid.ch/scope/userinfo.read';
 
 /** Google is one issuer for everybody, Workspace domain or not. */
 export const GOOGLE = 'https://accounts.google.com';

@@ -32,6 +32,20 @@ interface Discovery {
  */
 type Claims = Record<string, unknown>;
 
+/**
+ * What the userinfo endpoint had to say: the claims it released, and what went wrong if it
+ * released none.
+ *
+ * The trouble is carried back rather than logged, because this package throws diagnostics and
+ * holds no logger. It is the difference between a deployment being told "userinfo answered 403",
+ * which names the attribute release to go and fix, and being told only that an address was
+ * missing, which sends somebody to re-read a client id that was never wrong.
+ */
+interface Asked {
+  readonly claims: Claims;
+  readonly trouble?: string;
+}
+
 /** The claims this flow reads, named once rather than spelled at each lookup. */
 const CLAIM = {
   subject: 'sub',
@@ -84,6 +98,9 @@ export class Oidc implements Provider {
    * eduID's business, not this class's.
    */
   static readonly SCOPES = ['openid', 'profile', 'email'];
+  /** What a userinfo response can be: the JSON it usually is, or a token when one was registered. */
+  static readonly JWT = 'application/jwt';
+  static readonly ACCEPT = `${Net.TYPE}, ${Oidc.JWT}`;
 
   private exchange: Exchange;
   private endpoints: Promise<Discovery> | null = null;
@@ -153,7 +170,9 @@ export class Oidc implements Provider {
      * what a member's row is matched on: a userinfo body that could overwrite it could point a
      * sign-in at somebody else's account.
      */
-    const extra = Oidc.enough(token) ? {} : await this.userinfo(tokens.accessToken());
+    const wanted = !Oidc.enough(token);
+    const asked: Asked = wanted ? await this.userinfo(tokens.accessToken()) : { claims: {} };
+    const extra = asked.claims;
     const stated = Oidc.text(extra[CLAIM.subject]);
     if (stated !== null && stated !== Oidc.text(token[CLAIM.subject])) {
       throw Diag.error(Codes.claims, markup`*${this.name}* described a different account than it signed in`)
@@ -165,9 +184,18 @@ export class Oidc implements Provider {
     const subject = Oidc.text(claims[CLAIM.subject]);
     const email = Oidc.text(claims[CLAIM.email]);
     if (!subject || !email) {
-      throw Diag.error(Codes.claims, markup`*${this.name}* returned a token without an identity`)
-        .note(markup`it carried ${subject ? 'no email' : 'no subject'}`)
-        .help('the provider has to release the `openid` and `email` scopes');
+      const refusal = Diag.error(
+        Codes.claims,
+        markup`*${this.name}* returned a token without an identity`,
+      ).note(markup`it carried ${subject ? 'no email' : 'no subject'}`);
+      if (asked.trouble) refusal.note(asked.trouble);
+      /**
+       * What did arrive, by name. A provider that answers with `sub` and nothing else has an
+       * attribute release to fix; one that answers with an address under a name this app does not
+       * read is a different problem with the same symptom, and the two are indistinguishable
+       * without saying which claims were on the table. Names only: the values are the member's.
+       */ else if (wanted) refusal.note(markup`userinfo released ${Oidc.released(extra)}`);
+      throw refusal.help('the provider has to release the `openid` and `email` scopes');
     }
 
     if (Oidc.yes(claims[CLAIM.verified]) === false) {
@@ -328,22 +356,68 @@ export class Oidc implements Provider {
   /**
    * The claims the provider keeps behind the userinfo endpoint.
    *
-   * A failure here is not fatal on its own: the caller then refuses with `claims`, naming what was
-   * missing, which is a better sentence than "userinfo answered 500". The endpoint is optional in
-   * the discovery document, so a provider without one simply has nothing more to say.
+   * A failure here is not fatal on its own: the caller refuses with `claims` and quotes whatever
+   * went wrong here, which is the sentence that names the fix. "userinfo answered 403" sends a
+   * deployment to its attribute release; "no email" on its own sends it to re-read a client id.
+   * The endpoint is optional in the discovery document, so a provider without one has nothing
+   * more to say and that is worth saying too.
    */
-  private async userinfo(access: string): Promise<Claims> {
+  private async userinfo(access: string): Promise<Asked> {
     const { userinfo_endpoint } = await this.discover();
-    if (!userinfo_endpoint) return {};
+    if (!userinfo_endpoint) return { claims: {}, trouble: 'the issuer publishes no userinfo endpoint' };
 
     const response = await fetch(userinfo_endpoint, {
       signal: Net.patience(),
-      headers: { authorization: `Bearer ${access}`, accept: Net.TYPE },
-    }).catch(() => null);
-    if (!response?.ok) return {};
+      headers: { authorization: `Bearer ${access}`, accept: Oidc.ACCEPT },
+    }).catch((error: unknown) => (error instanceof Error ? error.message : String(error)));
+    if (typeof response === 'string')
+      return { claims: {}, trouble: `userinfo could not be reached: ${response}` };
+    if (!response.ok) return { claims: {}, trouble: `userinfo answered ${response.status}` };
 
-    const body: unknown = await response.json().catch(() => null);
-    return typeof body === 'object' && body !== null ? (body as Claims) : {};
+    const body = await response.text().catch(() => null);
+    if (body === null) return { claims: {}, trouble: 'userinfo answered with a body that could not be read' };
+    return (response.headers.get('content-type') ?? '').includes(Oidc.JWT)
+      ? await this.signed(body)
+      : Oidc.parsed(body);
+  }
+
+  /**
+   * A userinfo response that arrived as a signed token rather than as JSON, which is what a
+   * provider sends when the client is registered for one. eduID offers it per client.
+   *
+   * It is checked against the issuer's keys like an id token, and for the same reason: reading the
+   * payload of an unverified token would take a member's address, and their home organisation,
+   * from whoever answered the call.
+   */
+  private async signed(jwt: string): Promise<Asked> {
+    const keys = await this.jwks();
+    if (!keys)
+      return { claims: {}, trouble: 'userinfo answered with a signed body and the issuer publishes no keys' };
+
+    const verified = await jwtVerify(jwt, keys, { audience: this.credentials.clientId }).catch(() => null);
+    if (!verified)
+      return { claims: {}, trouble: 'userinfo answered with a signed body this app cannot check' };
+    return { claims: verified.payload as Claims };
+  }
+
+  /** The claim names a body carried, for a refusal to quote. Sorted, so two runs read the same. */
+  private static released(claims: Claims): string {
+    const names = Object.keys(claims).sort();
+    return names.length > 0 ? names.join(', ') : 'nothing';
+  }
+
+  /** A userinfo response as the JSON it usually is. */
+  private static parsed(body: string): Asked {
+    let json: unknown;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      return { claims: {}, trouble: 'userinfo answered with a body that is not json' };
+    }
+    if (typeof json !== 'object' || json === null) {
+      return { claims: {}, trouble: 'userinfo answered with a body that is not an object' };
+    }
+    return { claims: json as Claims };
   }
 
   /**
