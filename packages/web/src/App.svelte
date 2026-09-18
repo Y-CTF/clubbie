@@ -51,12 +51,20 @@ const waiting = $derived(
  * A member who has never been through the first run is taken to it, once. It is a redirect rather
  * than a banner because the two things it asks for (a name, and a way to be reached) are what the
  * rest of the app assumes somebody already did.
+ *
+ * Once per visit, and that is the whole point of the flag. The effect used to run on every
+ * navigation, which made the first run a trap rather than a start: the checklist's own links go to
+ * the settings and to a new event, and each of them bounced straight back here. Somebody still on
+ * `welcomed: false` gets sent here again on their next visit, which is what "once" should mean.
  */
+let sent = $state(false);
 $effect(() => {
   if (session.loading || !session.signedIn) return;
   if (session.member?.welcomed !== false) return;
   if (page.name === 'Welcome' || page.name === 'Profile') return;
+  if (sent) return;
 
+  sent = true;
   router.go('Welcome');
 });
 

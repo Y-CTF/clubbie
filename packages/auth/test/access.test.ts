@@ -132,7 +132,16 @@ describe('a club that filters who may join', () => {
  * click each of them in by hand.
  */
 describe('a club that admits automatically', () => {
+  /**
+   * The setting is about everybody after the founder, who is admitted by founding. So each of
+   * these signs somebody in first, and looks at what the *second* member is written with.
+   */
+  async function founded(): Promise<void> {
+    await auth(identity('grace@ethz.ch', 'ethz.ch')).complete('eduid', 'code', 'verifier');
+  }
+
   test('writes a first sign-in as active rather than pending', async () => {
+    await founded();
     await store.club.update({ admission: 'open' });
 
     const { member } = await auth(identity('ada@ethz.ch', 'ethz.ch')).complete('eduid', 'code', 'verifier');
@@ -140,8 +149,16 @@ describe('a club that admits automatically', () => {
   });
 
   test('leaves them waiting by default, which is what an untouched club does', async () => {
+    await founded();
+
     const { member } = await auth(identity('ada@ethz.ch', 'ethz.ch')).complete('eduid', 'code', 'verifier');
     expect(member.status).toBe('pending');
+  });
+
+  test('admits the founder whatever the club says, since nobody can admit them', async () => {
+    const { member } = await auth(identity('ada@ethz.ch', 'ethz.ch')).complete('eduid', 'code', 'verifier');
+    expect(member.status).toBe('active');
+    expect(member.role).toBe('admin');
   });
 });
 

@@ -93,6 +93,15 @@ describe('Members', () => {
     expect(second.status).toBe('pending');
   });
 
+  test('the founder is admitted, however the club admits everybody else', async () => {
+    /** A club that admits nobody by hand still cannot leave its only organiser waiting. */
+    const founder = await store.members.enroll(profile('ada'), NOW, 'pending');
+    const next = await store.members.enroll(profile('alan'), NOW, 'pending');
+
+    expect(founder.status).toBe('active');
+    expect(next.status).toBe('pending');
+  });
+
   test('signing in again is the same member, not a second one', async () => {
     const first = await store.members.enroll(profile('ada'), NOW);
     const again = await store.members.enroll(profile('ada'), NOW);

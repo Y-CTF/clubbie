@@ -204,6 +204,25 @@ describe('what the userinfo endpoint answers with', () => {
     expect(diag.notes.join(' ')).toContain('signed body this app cannot check');
   });
 
+  test('the home organisation is read under whichever name the provider wrote it', async () => {
+    /** What eduID sends when a registration asked for the Swiss attribute, not the SCHAC one. */
+    serve({
+      ...Eduid,
+      bare: true,
+      userinfo: () =>
+        Response.json({
+          sub: SUBJECT,
+          email: EMAIL,
+          email_verified: true,
+          swissEduPersonHomeOrganization: 'HEIG-VD.CH',
+        }),
+    });
+
+    const profile = await provider(Eduid.configured).finish('code', 'verifier');
+    expect(profile.organisation).toBe('heig-vd.ch');
+    expect(profile.organisations).toEqual(['eduid:heig-vd.ch']);
+  });
+
   test('a body that answers with everything but the address says what it did carry', async () => {
     serve({
       ...Eduid,

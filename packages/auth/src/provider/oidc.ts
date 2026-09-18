@@ -56,11 +56,15 @@ const CLAIM = {
   family: 'family_name',
   picture: 'picture',
   /**
-   * SCHAC, the schema academic federations agree on: the institution the identity belongs to, as a
-   * domain. eduID releases it against the scope in `Providers`; a plain OIDC provider does not,
-   * and a club that filters on it has simply configured a provider that cannot answer.
+   * The institution the identity belongs to, as a domain, under every name a federation gives it.
+   *
+   * One fact, three spellings, and which one arrives is decided by the attribute a registration
+   * asked for rather than by the provider: eduID publishes `schacHomeOrganization` for the SCHAC
+   * attribute and `swissEduPersonHomeOrganization` for the Swiss one, and a Keycloak mapper writes
+   * the snake_case form. Reading only the first of them is how a club that had restricted itself
+   * to an institution turned every member away, including the admin who typed the restriction.
    */
-  organisation: 'schac_home_organization',
+  organisation: ['schac_home_organization', 'schacHomeOrganization', 'swissEduPersonHomeOrganization'],
 } as const;
 
 /**
@@ -204,7 +208,7 @@ export class Oidc implements Provider {
         .help('verify the address with the provider, then sign in again');
     }
 
-    const home = Oidc.text(claims[CLAIM.organisation])?.toLowerCase() ?? null;
+    const home = Oidc.any(claims, CLAIM.organisation)?.toLowerCase() ?? null;
 
     return {
       provider: this.name,
@@ -349,7 +353,7 @@ export class Oidc implements Provider {
     return (
       Oidc.text(claims[CLAIM.subject]) !== null &&
       Oidc.text(claims[CLAIM.email]) !== null &&
-      Oidc.text(claims[CLAIM.organisation]) !== null
+      Oidc.any(claims, CLAIM.organisation) !== null
     );
   }
 
@@ -427,6 +431,19 @@ export class Oidc implements Provider {
   private static text(value: unknown): string | null {
     if (typeof value === 'string') return value.trim() === '' ? null : value;
     if (Array.isArray(value)) return value.length > 0 ? Oidc.text(value[0]) : null;
+    return null;
+  }
+
+  /**
+   * The first of several names a claim goes by that the provider actually wrote, as text. A
+   * provider sends one of them and a deployment does not get to choose which, so they are asked
+   * for in order and the first answer wins.
+   */
+  private static any(claims: Claims, names: readonly string[]): string | null {
+    for (const name of names) {
+      const value = Oidc.text(claims[name]);
+      if (value !== null) return value;
+    }
     return null;
   }
 

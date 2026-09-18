@@ -212,6 +212,14 @@ export class Members {
           .help('sign in the way that account was created, or ask an organiser to sort it out');
       }
 
+      /**
+       * The founder is admitted by the same act that makes them an admin. A club decides what a
+       * first sign-in is worth, but that decision is about the people who come after: applying it
+       * to the first one leaves the club's only organiser in the waiting room, with nobody able to
+       * let them in and a front page telling them to wait for themselves.
+       */
+      const founding = !(await Members.first(tx));
+
       const member = await tx
         .insertInto('member')
         .values({
@@ -220,8 +228,8 @@ export class Members {
           email,
           avatar: profile.avatar,
           organisation,
-          role: (await Members.first(tx)) ? Member.ORDINARY : Members.FOUNDER,
-          status,
+          role: founding ? Members.FOUNDER : Member.ORDINARY,
+          status: founding ? Member.ACTIVE : status,
           hidden: Row.bit(false),
           createdAt: Row.ms(now),
         })
