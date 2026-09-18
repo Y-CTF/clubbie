@@ -571,4 +571,17 @@ export const MIGRATIONS: readonly Migration[] = [
       await db.schema.alterTable('club').addColumn('group', 'text').execute();
     },
   },
+  {
+    version: 22,
+    name: 'a member may keep the name they chose',
+    /**
+     * Null everywhere on upgrade, which is the truthful value: nobody has chosen a name yet, and
+     * every existing row still carries whatever their provider last said. From here on, a member
+     * who edits their own name stamps this column and the provider stops overwriting it, because
+     * a name that reverts at the next sign-in is not a name a member can change.
+     */
+    async up(db) {
+      await db.schema.alterTable('member').addColumn('renamedAt', 'bigint').execute();
+    },
+  },
 ];

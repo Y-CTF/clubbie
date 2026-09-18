@@ -185,10 +185,19 @@ export class Members {
         .executeTakeFirst();
 
       if (linked) {
-        /** Their name, picture and institution are the provider's to change between sign-ins. */
+        /**
+         * Their picture and institution are the provider's to change between sign-ins, and so is
+         * their name until they change it themselves. A member who has renamed themselves keeps
+         * it: refreshing it from the provider every time is what made the club's own display name
+         * un-editable, since it reverted at the next sign-in without saying so.
+         */
         const refreshed = await tx
           .updateTable('member')
-          .set({ name: profile.name, avatar: profile.avatar, organisation })
+          .set({
+            ...(linked.renamedAt === null && { name: profile.name }),
+            avatar: profile.avatar,
+            organisation,
+          })
           .where('id', '=', linked.id)
           .returningAll()
           .executeTakeFirstOrThrow();
@@ -255,9 +264,13 @@ export class Members {
     return row !== undefined;
   }
 
-  async update(id: MemberId, patch: Patch): Promise<Member | null> {
+  async update(id: MemberId, patch: Patch, now: Date = new Date()): Promise<Member | null> {
     const values = {
-      ...(patch.name !== undefined && { name: patch.name }),
+      /**
+       * A name written here is a name somebody chose, whether the member or an organiser, and it
+       * is stamped so that the next sign-in leaves it alone.
+       */
+      ...(patch.name !== undefined && { name: patch.name, renamedAt: Row.ms(now) }),
       ...(patch.avatar !== undefined && { avatar: patch.avatar }),
       ...(patch.role !== undefined && { role: patch.role }),
       ...(patch.status !== undefined && { status: patch.status }),

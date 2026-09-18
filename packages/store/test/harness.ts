@@ -52,7 +52,16 @@ export namespace Fixture {
     return store;
   }
 
+  /**
+   * Emptied, and then put back the way a migrated database arrives: with its club row.
+   *
+   * The row is a singleton that migration 16 guarantees exists, because `Lock.club` takes the
+   * enrolment lock on it and `SELECT … FOR UPDATE` over an empty table locks nothing. Deleting it
+   * between tests left the Postgres run testing a database no deployment ever has, and the test
+   * that says so failed there while passing on the in-memory dialect, which is never re-emptied.
+   */
   export async function empty(store: Store): Promise<void> {
     for (const table of TABLES) await store.db.deleteFrom(table).execute();
+    await store.club.update({});
   }
 }

@@ -73,6 +73,11 @@ export interface MemberTable {
   organisation: string | null;
   /** When they finished the first run. Null is somebody who has not seen it yet. */
   welcomedAt: number | null;
+  /**
+   * When they last chose their own name. Null is a member whose name is still the provider's to
+   * change, which is everybody who has never edited it.
+   */
+  renamedAt: number | null;
 }
 
 /** An identity at an OAuth provider. A member may hold one per provider. */

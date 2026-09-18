@@ -543,6 +543,15 @@ export interface Catalogue {
     readonly linkStep: (expires: string) => string;
     readonly linkSend: string;
     readonly getCode: string;
+    /** Which bot to send the code to, since a code with no bot to send it to links nothing. */
+    readonly linkBot: (bot: string) => string;
+    /** Opens the chat with the code already in it, which is the whole step on a phone. */
+    readonly linkOpen: string;
+    /** What the section says on a deployment that runs no bot at all. */
+    readonly noBot: string;
+    /** The member's own display name, which the club shows instead of the provider's. */
+    readonly rename: string;
+    readonly renameHint: string;
     /** The club's chat group, which a linked member may ask to be let into. */
     readonly group: string;
     readonly groupOpen: string;

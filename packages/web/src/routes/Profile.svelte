@@ -10,6 +10,8 @@ import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
 import Alert from '../ui/Alert.svelte';
 import Button from '../ui/Button.svelte';
+import Field from '../ui/Field.svelte';
+import Input from '../ui/Input.svelte';
 import Panel from '../ui/Panel.svelte';
 import Subscribe from '../ui/calendar/Subscribe.svelte';
 
@@ -19,7 +21,12 @@ import Subscribe from '../ui/calendar/Subscribe.svelte';
  */
 const link = new Query(async () => unwrap(await api.me.link.$get()));
 const prefs = new Query(async () => unwrap(await api.me.notifications.$get()));
+/** Which bot to send a code to. A linking code is useless without the name of who takes it. */
+const ways = new Query(async () => unwrap(await api.auth.providers.$get()));
 const action = new Action();
+
+/** The bot this deployment runs, or null when it runs none and there is nothing to link. */
+const bot = $derived(ways.data?.telegram ?? null);
 
 let code = $state<{ token: string; expiresAt: string } | null>(null);
 /** A one-off link into the club's group. Not kept: it is worth one seat, and only for an hour. */
@@ -46,7 +53,28 @@ const SAYS: Record<(typeof SWITCHES)[number], () => string> = {
 $effect(() => {
   link.load();
   prefs.load();
+  ways.load();
 });
+
+/**
+ * Their own name, as the box holds it. Seeded from what the club calls them today rather than
+ * left blank, and seeded in an effect because the session is still loading when this page mounts.
+ */
+let named = $state('');
+
+$effect(() => {
+  if (named === '' && session.member) named = session.member.name;
+});
+
+async function rename(): Promise<void> {
+  const name = named.trim();
+  if (name === '' || name === session.member?.name) return;
+
+  if (await action.run(async () => unwrap(await api.me.$patch({ json: { name } })))) {
+    await session.load();
+    named = session.member?.name ?? name;
+  }
+}
 
 async function issue(): Promise<void> {
   await action.run(async () => {
@@ -86,8 +114,6 @@ async function toggle(key: (typeof SWITCHES)[number], on: boolean): Promise<void
 {#if session.member}
   {@const member = session.member}
   <dl class="mt-6 grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
-    <dt class="text-muted">{t.profile.name}</dt>
-    <dd>{member.name}</dd>
     <dt class="text-muted">{t.profile.email}</dt>
     <dd class="font-mono text-xs">{member.email}</dd>
     <dt class="text-muted">{t.profile.role}</dt>
@@ -95,6 +121,17 @@ async function toggle(key: (typeof SWITCHES)[number], on: boolean): Promise<void
     <dt class="text-muted">{t.profile.since}</dt>
     <dd>{Format.day(member.createdAt)}</dd>
   </dl>
+
+  <div class="mt-6">
+    <Field label={t.profile.rename} hint={t.profile.renameHint}>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="min-w-0 flex-1"><Input bind:value={named} disabled={action.busy} /></div>
+        <Button field disabled={action.busy || named.trim() === '' || named.trim() === member.name} onclick={rename}>
+          {t.common.save}
+        </Button>
+      </div>
+    </Field>
+  </div>
 
   <div class="mt-6">
     <Button disabled={action.busy} onclick={() => hide(!member.hidden)}>
@@ -157,7 +194,7 @@ async function toggle(key: (typeof SWITCHES)[number], on: boolean): Promise<void
       {/if}
     {:else if code}
       {@const message = `/link ${code.token}`}
-      <p class="mt-2 text-sm text-muted">{t.profile.linkSend}</p>
+      <p class="mt-2 text-sm text-muted">{bot ? t.profile.linkBot(bot) : t.profile.linkSend}</p>
 
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <code
@@ -171,11 +208,29 @@ async function toggle(key: (typeof SWITCHES)[number], on: boolean): Promise<void
         </Button>
       </div>
 
+      <!--
+        The chat, opened with the code already in it. `?start=<code>` is what Telegram turns into
+        `/start <code>`, which the bot answers with the same handler as `/link`, so the member
+        taps once instead of copying a token into a search box and finding the wrong bot.
+      -->
+      {#if bot}
+        <p class="mt-3">
+          <a
+            href={`https://t.me/${bot}?start=${encodeURIComponent(code.token)}`}
+            target="_blank"
+            rel="noopener"
+            class="text-accent">{t.profile.linkOpen}</a
+          >
+        </p>
+      {/if}
+
       <p class="mt-2 text-xs text-muted">{t.profile.linkStep(Format.since(code.expiresAt))}</p>
-    {:else}
+    {:else if bot}
       <div class="mt-3">
         <Button disabled={action.busy} onclick={issue}>{t.profile.getCode}</Button>
       </div>
+    {:else}
+      <p class="mt-2 text-sm text-muted">{t.profile.noBot}</p>
     {/if}
   </Panel>
 </section>

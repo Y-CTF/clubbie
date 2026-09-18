@@ -482,6 +482,12 @@ export const fr: Catalogue = {
     linkStep: (expires) => `envoyez ceci au bot. il expire ${expires}.`,
     linkSend: 'envoyez ce message au bot :',
     getCode: 'obtenir un code de liaison',
+    linkBot: (bot) => `envoyez-le à @${bot} sur telegram :`,
+    linkOpen: 'ouvrir telegram',
+    noBot: "ce club n'a pas de bot telegram, il n'y a donc rien à lier.",
+    rename: 'changer votre nom',
+    renameHint:
+      "le nom que le club vous donne. tant que vous n'en choisissez pas, il suit le compte utilisé pour vous connecter.",
     group: 'rejoindre le groupe',
     groupOpen: "ouvrir l'invitation",
     groupOnce: 'elle ne vaut que pour toi, et pendant une heure.',

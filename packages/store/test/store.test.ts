@@ -102,6 +102,23 @@ describe('Members', () => {
     expect(next.status).toBe('pending');
   });
 
+  test('a name the member chose survives the next sign-in', async () => {
+    const member = await store.members.enroll(profile('ada'), NOW);
+    await store.members.update(member.id, { name: 'Ada L.' });
+
+    /** The provider still says `ada`, and it no longer gets to say it. */
+    const again = await store.members.enroll(profile('ada'), NOW);
+    expect(again.name).toBe('Ada L.');
+  });
+
+  test('a name nobody chose still follows the provider', async () => {
+    const member = await store.members.enroll(profile('ada'), NOW);
+    expect(member.name).toBe('ada');
+
+    const renamed = await store.members.enroll({ ...profile('ada'), name: 'Ada Lovelace' }, NOW);
+    expect(renamed.name).toBe('Ada Lovelace');
+  });
+
   test('signing in again is the same member, not a second one', async () => {
     const first = await store.members.enroll(profile('ada'), NOW);
     const again = await store.members.enroll(profile('ada'), NOW);

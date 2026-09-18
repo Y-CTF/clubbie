@@ -478,6 +478,12 @@ export const de: Catalogue = {
     linkStep: (expires) => `schick das an den Bot. Es läuft ${expires} ab.`,
     linkSend: 'schick diese Nachricht an den Bot:',
     getCode: 'Code zum Verbinden holen',
+    linkBot: (bot) => `Schick ihn an @${bot} auf Telegram:`,
+    linkOpen: 'Telegram öffnen',
+    noBot: 'Dieser Club betreibt keinen Telegram-Bot, es gibt also nichts zu verbinden.',
+    rename: 'Namen ändern',
+    renameHint:
+      'Wie der Club dich nennt. Solange du keinen wählst, folgt er dem Konto, mit dem du dich anmeldest.',
     group: 'der Chatgruppe beitreten',
     groupOpen: 'Einladung öffnen',
     groupOnce: 'sie gilt nur für dich, und eine Stunde lang.',
