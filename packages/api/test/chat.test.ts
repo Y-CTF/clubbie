@@ -55,6 +55,22 @@ describe('signing in with Telegram', () => {
     expect(answer.providers).not.toContain('telegram');
   });
 
+  test('is not drawn by a club that has switched it off in its ways in', async () => {
+    await h.store.club.update({ providers: ['eduid'] });
+
+    const answer = (await (await h.call('/auth/providers')).json()) as {
+      providers: string[];
+      telegram: string | null;
+    };
+    expect(answer.providers).not.toContain('telegram');
+    expect(answer.telegram).toBeNull();
+
+    await h.store.club.update({ providers: ['telegram'] });
+    const back = (await (await h.call('/auth/providers')).json()) as { providers: string[] };
+    expect(back.providers).toContain('telegram');
+    expect(back.providers).not.toContain('eduid');
+  });
+
   test('a payload this club did not sign is refused', async () => {
     const forged = { ...(await widget()), hash: 'f'.repeat(64) };
     expect((await post(forged)).status).toBe(403);

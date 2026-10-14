@@ -27,7 +27,7 @@ import { Fail, Refusal } from './fail.ts';
 export class Limit {
   /** What the client is told to wait, and how long a window lasts. */
   static readonly WINDOW = Millis.MINUTE;
-  static readonly TRIES = 10;
+  static readonly TRIES = 30;
   static readonly HEADER = 'retry-after';
   static readonly SECOND = Millis.SECOND;
   /**

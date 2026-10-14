@@ -194,6 +194,8 @@ export interface Catalogue {
     /** When Telegram declines to draw its button, which is an origin it has no domain for. */
     readonly chatUnavailable: string;
     readonly chatDomain: (bot: string) => string;
+    /** A chat Telegram vouched for that belongs to no member yet, and so still owes an address. */
+    readonly chatProved: (name: string) => string;
     /** Signing in with an address alone: the form, the code box, and what it says back. */
     readonly email: {
       readonly label: string;

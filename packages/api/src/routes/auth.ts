@@ -1,4 +1,4 @@
-import { Codes as AuthCodes } from '@clubbie/auth';
+import { Codes as AuthCodes, Login } from '@clubbie/auth';
 import { type MemberId, Site } from '@clubbie/core';
 import { type Code, Diag } from '@clubbie/diag';
 import { Codes as StoreCodes } from '@clubbie/store';
@@ -62,12 +62,18 @@ function refuse(error: unknown): never {
  * whether or not it matches, so a replayed callback finds nothing to compare against.
  */
 export const auth = new Hono<Env>()
-  /** The ways in this deployment offers, and the one fact the Telegram widget needs to render. */
+  /**
+   * The ways in this club accepts out of what the deployment offers, and the one fact the
+   * Telegram widget needs to render. A door the club has switched off is not drawn, since it
+   * would only lead to a refusal.
+   */
   .get('/providers', async (c) => {
     const auth = c.get('auth');
+    const { providers } = await c.get('store').club.read();
+    const accepted = (name: string) => providers.length === 0 || providers.includes(name);
     return c.json({
-      providers: auth.names,
-      telegram: auth.login ? await auth.login.username() : null,
+      providers: auth.names.filter(accepted),
+      telegram: auth.login && accepted(Login.NAME) ? await auth.login.username() : null,
     });
   })
 

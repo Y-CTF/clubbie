@@ -163,6 +163,8 @@ export const de: Catalogue = {
     upcoming: 'was ansteht',
     chatUnavailable: 'Telegram zeigt seinen Knopf auf dieser Adresse nicht an.',
     chatDomain: (bot) => `in BotFather setzen: /setdomain, @${bot}, diese Herkunft.`,
+    chatProved: (name) =>
+      `Telegram sagt, du bist ${name}. gib oben deine E-Mail-Adresse ein, um fertig zu werden: dein Chat wird dann verknüpft.`,
     email: {
       label: 'E-Mail-Adresse',
       hint: 'wir schicken einen Link und einen Code. nie ein Passwort.',

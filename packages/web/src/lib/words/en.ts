@@ -163,6 +163,8 @@ export const en: Catalogue = {
     upcoming: 'what is coming up',
     chatUnavailable: 'telegram will not show its button on this address.',
     chatDomain: (bot) => `set it in botfather: /setdomain, @${bot}, this origin.`,
+    chatProved: (name) =>
+      `telegram says you are ${name}. enter your email address above to finish: your chat is linked once you do.`,
     email: {
       label: 'email address',
       hint: 'we send a link and a code. no password, ever.',
