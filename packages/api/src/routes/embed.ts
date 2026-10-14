@@ -1,4 +1,4 @@
-import { Cache, Club, Event, Stamp } from '@clubbie/core';
+import { Cache, Club, Event, type Language, Locale, Stamp } from '@clubbie/core';
 import { Markup } from '@clubbie/term';
 import { Hono } from 'hono';
 import type { Env } from '../context.ts';
@@ -46,6 +46,13 @@ export const embed = new Hono<Env>().get('/events', async (c) => {
 });
 
 export namespace Embed {
+  /** What the widget says when there is nothing to list. Keyed by `Language`, so a new one must write it. */
+  export const NONE: Readonly<Record<Language, string>> = {
+    en: 'no upcoming events',
+    de: 'keine anstehenden Veranstaltungen',
+    fr: 'aucun événement à venir',
+  };
+
   /**
    * Who may frame this. `frame-ancestors 'none'` for a club that has named nobody, which is the
    * safe default and the one a deployment starts in.
@@ -63,7 +70,7 @@ export namespace Embed {
   export function page(club: Club, rows: string, base: string): string {
     const accent = Markup.attr(club.design.accent);
     return `<!doctype html>
-<html lang="${Markup.attr(club.locale ?? 'en')}">
+<html lang="${Markup.attr(Locale.pick(club.locale))}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -82,7 +89,7 @@ export namespace Embed {
 </style>
 </head>
 <body>
-${rows ? `<ul>${rows}</ul>` : `<p class="none">${Markup.html(club.name)}</p>`}
+${rows ? `<ul>${rows}</ul>` : `<p class="none">${Markup.html(Embed.NONE[Locale.pick(club.locale)])}</p>`}
 <p><a href="${Markup.attr(base)}" target="_blank" rel="noopener">${Markup.html(club.name)}</a></p>
 </body>
 </html>`;

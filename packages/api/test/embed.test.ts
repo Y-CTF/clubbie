@@ -25,6 +25,13 @@ describe('the events widget another site embeds', () => {
     );
   });
 
+  test('says there is nothing to list rather than repeating the club name', async () => {
+    expect(await (await widget()).text()).toContain('<p class="none">no upcoming events</p>');
+
+    await h.store.club.update({ locale: 'fr' });
+    expect(await (await widget()).text()).toContain('aucun événement à venir');
+  });
+
   test('shows the events a signed-out visitor may see, and no others', async () => {
     const ada = await h.member('ada', 'active', 'admin');
     await h.store.club.update({ listed: true });
