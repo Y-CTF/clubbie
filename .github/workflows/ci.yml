@@ -37,7 +37,7 @@ jobs:
       # What the CLI and the server read.
       DATABASE_URL: postgres://postgres:clubbie@localhost:5432/clubbie
       # What the store suite reads. Separate on purpose: a fixture empties every table it opens.
-      TEST_DATABASE_URL: postgres://postgres:clubbie@localhost:5432/clubbie
+      TEST_DATABASE_URL: postgres://postgres:clubbie@localhost:5432/clubbie_test
       SESSION_SECRET: a-secret-that-is-long-enough-for-ci
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +45,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - run: PGPASSWORD=clubbie psql -h localhost -U postgres -c 'create database clubbie_test'
       # The store suite reads TEST_DATABASE_URL and runs against whatever it names.
       - run: bun test packages/store
       - run: bun packages/server/src/main.ts migrate
