@@ -55,6 +55,25 @@ function refuse(error: unknown): never {
 }
 
 /**
+ * Runs one of the browser-facing legs of sign-in, and turns a refusal into a page.
+ *
+ * These three routes are reached by following a link, not by a fetch: a provider's redirect, a
+ * mailed link. A refusal answered as JSON is what the member saw, a bare error body in a tab with
+ * nothing to click. So the refusal is parked and the browser is sent to the page that shows it,
+ * which has a way back. Anything that is not a refusal is still a fault and still escapes.
+ */
+async function bounce(c: Context<Env>, leg: () => Promise<Response>): Promise<Response> {
+  try {
+    return await leg();
+  } catch (error) {
+    if (!(error instanceof Fail)) throw error;
+
+    await Cookie.fail(c, c.get('options').secret, error.body.error);
+    return c.redirect(`${c.get('options').home ?? ''}${Site.path('denied')}`);
+  }
+}
+
+/**
  * The sign-in flow, which is the only part of the API that redirects rather than answering JSON:
  * a browser has to be handed to the provider and handed back.
  *
@@ -146,18 +165,20 @@ export const auth = new Hono<Env>()
   })
 
   /** The link half. A browser follows it, so it redirects rather than answering JSON. */
-  .get('/email/:token', vValidator('param', Input.params.signin, Check.param), async (c) => {
-    const session = await c
-      .get('auth')
-      .mail.claim(c.req.valid('param').token)
-      .then((profile) => c.get('auth').admit(profile))
-      .catch((error: unknown) => refuse(error));
+  .get('/email/:token', vValidator('param', Input.params.signin, Check.param), (c) =>
+    bounce(c, async () => {
+      const session = await c
+        .get('auth')
+        .mail.claim(c.req.valid('param').token)
+        .then((profile) => c.get('auth').admit(profile))
+        .catch((error: unknown) => refuse(error));
 
-    await adopt(c, session.member.id);
-    Cookie.session(c, session.token, session.expiresAt);
-    c.get('log').info('signed in', { member: session.member.id, provider: 'email' });
-    return c.redirect(c.get('options').home ?? '/');
-  })
+      await adopt(c, session.member.id);
+      Cookie.session(c, session.token, session.expiresAt);
+      c.get('log').info('signed in', { member: session.member.id, provider: 'email' });
+      return c.redirect(c.get('options').home ?? '/');
+    }),
+  )
 
   /** The code half, answered in the tab that asked. */
   .post('/email/code', vValidator('json', Input.code, Check.body), async (c) => {
@@ -174,81 +195,94 @@ export const auth = new Hono<Env>()
     return c.json({ ok: true });
   })
 
-  .get('/:provider', vValidator('param', Input.params.provider, Check.param), async (c) => {
-    const { provider } = c.req.valid('param');
-    const log = c.get('log').child('auth', { provider });
-
-    const pending = await c
-      .get('auth')
-      .begin(provider)
-      .catch((error: unknown) => {
-        log.warn('could not start sign-in', { reason: String(error) });
-        return refuse(error);
-      });
-
-    await Cookie.park(c, c.get('options').secret, {
-      provider,
-      state: pending.state,
-      verifier: pending.verifier,
-    });
-    log.debug('sign-in started');
-    return c.redirect(pending.url.toString());
+  /**
+   * What the last refused sign-in was, for the page the browser lands on. It is read once: the
+   * cookie is consumed, so a reload shows nothing rather than the same refusal again. Declared
+   * before `/:provider`, which would otherwise take `failure` for the name of a provider.
+   */
+  .get('/failure', async (c) => {
+    const failure = await Cookie.failed(c, c.get('options').secret);
+    return c.json({ failure });
   })
+
+  .get('/:provider', vValidator('param', Input.params.provider, Check.param), (c) =>
+    bounce(c, async () => {
+      const { provider } = c.req.valid('param');
+      const log = c.get('log').child('auth', { provider });
+
+      const pending = await c
+        .get('auth')
+        .begin(provider)
+        .catch((error: unknown) => {
+          log.warn('could not start sign-in', { reason: String(error) });
+          return refuse(error);
+        });
+
+      await Cookie.park(c, c.get('options').secret, {
+        provider,
+        state: pending.state,
+        verifier: pending.verifier,
+      });
+      log.debug('sign-in started');
+      return c.redirect(pending.url.toString());
+    }),
+  )
 
   .get(
     '/:provider/callback',
     vValidator('param', Input.params.provider, Check.param),
     vValidator('query', Input.callback, Check.query),
-    async (c) => {
-      const { provider } = c.req.valid('param');
-      const log = c.get('log').child('auth', { provider });
-      const { code, state, error } = c.req.valid('query');
-      const flow = await Cookie.take(c, c.get('options').secret);
+    (c) =>
+      bounce(c, async () => {
+        const { provider } = c.req.valid('param');
+        const log = c.get('log').child('auth', { provider });
+        const { code, state, error } = c.req.valid('query');
+        const flow = await Cookie.take(c, c.get('options').secret);
 
-      if (error) {
-        log.warn('provider refused', { reason: error });
-        throw Fail.because(
-          Refusal.Forbidden,
-          Diag.error(Codes.auth.refused, markup`*${provider}* refused the sign-in`).note(
-            markup`it said: ${error}`,
-          ),
-        );
-      }
+        if (error) {
+          log.warn('provider refused', { reason: error });
+          throw Fail.because(
+            Refusal.Forbidden,
+            Diag.error(Codes.auth.refused, markup`*${provider}* refused the sign-in`).note(
+              markup`it said: ${error}`,
+            ),
+          );
+        }
 
-      if (!code || !state) {
-        throw Fail.invalid(
-          Diag.error(Codes.auth.callback, 'the callback carried no authorisation code')
-            .over('callback', new URL(c.req.url).search)
-            .help('start again from the sign-in page rather than reloading this url'),
-        );
-      }
+        if (!code || !state) {
+          throw Fail.invalid(
+            Diag.error(Codes.auth.callback, 'the callback carried no authorisation code')
+              .over('callback', new URL(c.req.url).search)
+              .help('start again from the sign-in page rather than reloading this url'),
+          );
+        }
 
-      if (!flow || flow.provider !== provider || flow.state !== state) {
-        log.warn('state did not match', { parked: flow?.provider ?? null });
-        throw Fail.because(
-          Refusal.Forbidden,
-          Diag.error(Codes.auth.state, 'this sign-in did not start here')
-            .note('the state cookie is missing, expired, or was minted for another provider')
-            .help('start again from the sign-in page; the flow lasts ten minutes'),
-        );
-      }
+        if (!flow || flow.provider !== provider || flow.state !== state) {
+          log.warn('state did not match', { parked: flow?.provider ?? null });
+          throw Fail.because(
+            Refusal.Forbidden,
+            Diag.error(Codes.auth.state, 'this sign-in did not start here')
+              .note('the state cookie is missing, expired, or was minted for another provider')
+              .help('start again from the sign-in page; the flow lasts ten minutes'),
+          );
+        }
 
-      const session = await c
-        .get('auth')
-        .complete(provider, code, flow.verifier)
-        .catch((error: unknown) => {
-          log.warn('could not finish sign-in', { reason: String(error) });
-          return refuse(error);
+        const session = await c
+          .get('auth')
+          .complete(provider, code, flow.verifier)
+          .catch((error: unknown) => {
+            log.warn('could not finish sign-in', { reason: String(error) });
+            return refuse(error);
+          });
+        Cookie.session(c, session.token, session.expiresAt);
+        log.info('signed in', {
+          member: session.member.id,
+          status: session.member.status,
+          role: session.member.role,
         });
-      Cookie.session(c, session.token, session.expiresAt);
-      log.info('signed in', {
-        member: session.member.id,
-        status: session.member.status,
-        role: session.member.role,
-      });
 
-      return c.redirect(c.get('options').home ?? '/');
-    },
+        return c.redirect(c.get('options').home ?? '/');
+      }),
   )
 
   .post('/logout', async (c) => {

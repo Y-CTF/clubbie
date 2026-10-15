@@ -15,6 +15,7 @@ import Toolbar from '../ui/calendar/Toolbar.svelte';
 import Week from '../ui/calendar/Week.svelte';
 import Dialog from '../ui/Dialog.svelte';
 import Panel from '../ui/Panel.svelte';
+import Starter from '../ui/Starter.svelte';
 
 /**
  * The club's calendar.
@@ -86,6 +87,8 @@ $effect(() => {
       () => router.go('Compose'),
     )}
 />
+
+<Starter />
 
 <Toolbar
   {calendar}

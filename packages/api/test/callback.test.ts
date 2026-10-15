@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { Site } from '@clubbie/core';
 import * as v from 'valibot';
+import { Codes } from '../src/codes.ts';
+import { Cookie } from '../src/cookie.ts';
 import { Input } from '../src/input.ts';
 import { type Harness, harness } from './harness.ts';
 
@@ -41,5 +44,28 @@ describe('the sign-in callback', () => {
     const response = await h.app.request(`/auth/eduid/callback?code=${code}&state=state`);
 
     expect(response.status).not.toBe(400);
+  });
+
+  /**
+   * The member followed a link, so a JSON body in the tab is no answer. The refusal is parked and
+   * the browser is sent to the page that shows it.
+   */
+  test('a refused callback sends the browser to the page that explains it', async () => {
+    const response = await h.app.request('/auth/eduid/callback?code=code&state=state');
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe(Site.path('denied'));
+
+    const parked = response.headers.getSetCookie().find((one) => one.startsWith(`${Cookie.FAIL}=`)) ?? '';
+    const read = await h.app.request('/auth/failure', { headers: { cookie: parked.split(';')[0] ?? '' } });
+    const { failure } = (await read.json()) as { failure: { diag: { code: string } } | null };
+
+    expect(failure?.diag.code).toBe(String(Codes.auth.state));
+  });
+
+  test('a page reached with nothing parked has nothing to explain', async () => {
+    const read = await h.app.request('/auth/failure');
+
+    expect(await read.json()).toEqual({ failure: null });
   });
 });

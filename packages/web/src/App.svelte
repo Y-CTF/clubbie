@@ -7,6 +7,7 @@ import Compose from './routes/Compose.svelte';
 import Event from './routes/Event.svelte';
 import Events from './routes/Events.svelte';
 import Home from './routes/Home.svelte';
+import Denied from './routes/Denied.svelte';
 import Join from './routes/Join.svelte';
 import Jobs from './routes/Jobs.svelte';
 import Member from './routes/Member.svelte';
@@ -46,27 +47,6 @@ const locked = $derived(page.route.private && !session.loading && !session.signe
 const waiting = $derived(
   session.waiting && page.route.private && page.name !== 'Profile' && page.name !== 'Welcome',
 );
-
-/**
- * A member who has never been through the first run is taken to it, once. It is a redirect rather
- * than a banner because the two things it asks for (a name, and a way to be reached) are what the
- * rest of the app assumes somebody already did.
- *
- * Once per visit, and that is the whole point of the flag. The effect used to run on every
- * navigation, which made the first run a trap rather than a start: the checklist's own links go to
- * the settings and to a new event, and each of them bounced straight back here. Somebody still on
- * `welcomed: false` gets sent here again on their next visit, which is what "once" should mean.
- */
-let sent = $state(false);
-$effect(() => {
-  if (session.loading || !session.signedIn) return;
-  if (session.member?.welcomed !== false) return;
-  if (page.name === 'Welcome' || page.name === 'Profile') return;
-  if (sent) return;
-
-  sent = true;
-  router.go('Welcome');
-});
 
 /** The tab says where in the club you are, which is what a member with six tabs open needs. */
 $effect(() => {
@@ -176,6 +156,8 @@ $effect(() => {
       <p class="text-sm text-muted">{t.common.loading}</p>
     {:else if page.name === 'Join'}
       <Join />
+    {:else if page.name === 'Denied'}
+      <Denied />
     {:else if locked}
       <Home />
     {:else if waiting}

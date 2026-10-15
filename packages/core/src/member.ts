@@ -29,7 +29,7 @@ export interface MemberFields {
    * faculty somebody is from, and the answer was thrown away the moment the door said yes.
    */
   readonly organisation: string | null;
-  /** Whether they have been through the first run. */
+  /** Whether they have been through the first run or said not to be shown it again. */
   readonly welcomed: boolean;
 }
 
@@ -58,6 +58,14 @@ export class Member {
 
   get admin(): boolean {
     return this.role === Member.ADMIN;
+  }
+
+  /**
+   * Whether they have said what to call them. Enrolling by address leaves the address as the name,
+   * because that is all it was told, so the two being equal is exactly "they have not".
+   */
+  get named(): boolean {
+    return this.name !== this.email;
   }
 
   get active(): boolean {

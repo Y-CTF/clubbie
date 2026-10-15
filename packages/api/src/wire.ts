@@ -4,6 +4,7 @@ import type {
   Club,
   Event,
   Guest,
+  Item,
   Job,
   Kind,
   Member,
@@ -262,15 +263,19 @@ export namespace Wire {
        * in need of reading it in a language they have.
        */
       locale: club.locale,
-      /** Who may sign in is an admin's business, and says nothing useful to anybody else. */
-      organisations: settings ? club.organisations : null,
-      domains: settings ? club.domains : null,
+      /**
+       * The terms of entry cross to everybody: the join page tells a stranger what it takes before
+       * they try, and a door found out by being refused is the worse way to learn it. The lists of
+       * single addresses do not, because those are people.
+       */
+      organisations: club.organisations,
+      domains: club.domains,
+      admission: club.admission,
       allowed: settings ? club.allowed : null,
       blocked: settings ? club.blocked : null,
       providers: settings ? club.providers : null,
       embeds: settings ? club.embeds : null,
       group: settings ? club.group : null,
-      admission: settings ? club.admission : null,
       /**
        * How an evening runs is sent to every member, not only to an admin: the compose form fills
        * its deadline from it, and a member reading an event wants to know when answers close.
@@ -346,7 +351,7 @@ export namespace Wire {
    * "you have not renewed" is a sentence that has to reach somebody who never opens the seasons
    * page. Null is a club that does not run in years, and every one of those affordances disappears.
    */
-  export function viewer(member: Member, ability: Ability, standing: Standing) {
+  export function viewer(member: Member, ability: Ability, standing: Standing, setup: readonly Item[]) {
     return {
       member: Wire.member(member),
       can: ability.actions,
@@ -354,6 +359,11 @@ export namespace Wire {
       /** Whether they are on the open season's roster, and whether they may put themselves on it. */
       renewed: standing.renewed,
       renewable: standing.season?.renewable() ?? false,
+      /**
+       * What they are asked to do, each step with whether it is done. Empty for somebody who said
+       * not to be shown it again, which is also what spares the reads that work it out.
+       */
+      setup,
     };
   }
 

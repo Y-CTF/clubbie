@@ -1,3 +1,4 @@
+import { Setup } from '@clubbie/core';
 import { Diag } from '@clubbie/diag';
 import { vValidator } from '@hono/valibot-validator';
 import { Hono } from 'hono';
@@ -28,7 +29,21 @@ export const me = new Hono<Env>()
     const season = await c.get('store').seasons.current();
     const renewed = season !== null && (await c.get('store').seasons.holds(member.id, season.id));
 
-    return c.json(Wire.viewer(member, c.get('ability'), { season, renewed }));
+    const ability = c.get('ability');
+    const store = c.get('store');
+
+    /** Not worked out for somebody who dismissed it: the answer is empty and the reads are saved. */
+    const setup = member.welcomed
+      ? []
+      : Setup.list((action) => ability.can(action), {
+          club: (await store.club.read()).setup,
+          events: ability.can('club:manage') ? (await store.events.list({ limit: 1 })).length : 0,
+          named: member.named,
+          chat: (await store.links.chat(member.id)) !== null,
+          season: season && (renewed || season.renewable()) ? renewed : null,
+        });
+
+    return c.json(Wire.viewer(member, ability, { season, renewed }, setup));
   })
 
   .patch('/', Guard.needs('profile:write'), vValidator('json', Input.profile, Check.body), async (c) => {
@@ -71,7 +86,7 @@ export const me = new Hono<Env>()
     return c.json({ url: link });
   })
 
-  /** The first run is done. Idempotent, so the last button may be pressed twice. */
+  /** Stop showing the checklist. Idempotent, so the button may be pressed twice. */
   .post('/welcome', Guard.needs('profile:write'), async (c) => {
     await c.get('store').members.welcomed(Guard.member(c).id);
     return c.json({ ok: true });

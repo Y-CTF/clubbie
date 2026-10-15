@@ -53,6 +53,7 @@ export const fr: Catalogue = {
   pages: {
     Home: 'accueil',
     Join: 'nous rejoindre',
+    Denied: 'pas connecté',
     Welcome: 'bienvenue',
     Events: 'événements',
     Compose: 'nouvel événement',
@@ -126,31 +127,34 @@ export const fr: Catalogue = {
 
   join: {
     next: 'la suite',
-    nextLead:
-      'on t’envoie un lien. suis-le et te voilà connecté. un organisateur te laisse ensuite ' +
-      'entrer, et tu peux répondre à tous les événements du calendrier.',
+    nextLead: {
+      review:
+        'on t’envoie un lien. suis-le et te voilà connecté. un organisateur te laisse ensuite ' +
+        'entrer, et tu peux répondre à tous les événements du calendrier.',
+      open: 'on t’envoie un lien. suis-le et tu es dedans: tu peux répondre tout de suite à tous les événements du calendrier.',
+    },
+    doorsLead: (names) => `il te faut une identité chez ${names}.`,
+  },
+
+  denied: {
+    heading: 'tu n’as pas été connecté',
+    back: 'retour à la connexion',
+    none: 'il n’y a rien à expliquer ici. réessaie de te connecter.',
   },
 
   welcome: {
-    member: 'bienvenue',
-    memberLead: 'trois choses et tu es prêt.',
-    admin: 'configurer le club',
-    adminLead: 'tu es la première personne ici, donc ce club est à toi de nommer.',
-    name: 'comment doit-on t’appeler ?',
-    nameHint: 'ce nom apparaît sur les listes et les présences.',
-    notifications: 'comment le club te joint',
-    chat: 'recevoir les annonces sur telegram',
-    season: 'rejoindre la saison en cours',
-    seasonNone: 'aucune saison n’est ouverte.',
-    identity: 'nommer le club et choisir son apparence',
-    kinds: 'dire quels types d’événements vous organisez',
-    first: 'mettre le premier événement au calendrier',
-    chatHow: 'lier ton compte',
-    identityHow: 'ouvrir les réglages',
-    firstHow: 'écrire le premier',
+    heading: 'bienvenue',
+    lead: 'quelques choses font du club le tien. aucune n’est obligatoire.',
+    steps: {
+      club: { label: 'nommer le club et choisir son apparence', how: 'ouvrir les réglages' },
+      event: { label: 'mettre le premier événement au calendrier', how: 'écrire le premier' },
+      name: { label: 'comment doit-on t’appeler ?', how: 'choisir ton nom' },
+      chat: { label: 'recevoir les annonces sur telegram', how: 'lier ton compte' },
+      season: { label: 'rejoindre la saison en cours', how: 'rejoindre' },
+    },
     left: (count) => (count === 1 ? 'encore 1 chose' : `encore ${count} choses`),
-    done: 'voir les événements',
-    skip: 'plus tard',
+    done: 'aller aux événements',
+    later: 'pas maintenant',
     waiting: 'un organisateur doit encore te laisser entrer. tu recevras un message quand ce sera fait.',
   },
 

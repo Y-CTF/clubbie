@@ -21,6 +21,32 @@ describe('the api', () => {
     expect(await response.json()).toBeNull();
   });
 
+  /**
+   * The checklist is worked out per request from facts, so what a member is asked for follows what
+   * is true, and saying "not now" is the one thing that is stored.
+   */
+  test('`me` carries the checklist, ticked from the facts, until it is dismissed', async () => {
+    const cookie = await h.signIn(await h.member('ada'));
+    const read = async () =>
+      ((await (await h.call('/me', { cookie })).json()) as { setup: { step: string; done: boolean }[] })
+        .setup;
+
+    expect(await read()).toEqual([
+      { step: 'name', done: true },
+      { step: 'chat', done: false },
+    ]);
+
+    expect((await h.call('/me/welcome', { method: 'POST', cookie })).status).toBe(200);
+    expect(await read()).toEqual([]);
+  });
+
+  test('an admin is asked for the club as well, and a member is not', async () => {
+    const admin = await h.signIn(await h.member('boss', 'active', 'admin'));
+    const seen = (await (await h.call('/me', { cookie: admin })).json()) as { setup: { step: string }[] };
+
+    expect(seen.setup.map((item) => item.step)).toEqual(['club', 'event', 'name', 'chat']);
+  });
+
   test('a private route refuses a signed-out caller with a diagnostic that says what to do', async () => {
     const response = await h.call('/events');
     const error = await refusal(response);

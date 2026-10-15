@@ -53,6 +53,7 @@ export const en: Catalogue = {
   pages: {
     Home: 'home',
     Join: 'join the club',
+    Denied: 'not signed in',
     Welcome: 'welcome',
     Events: 'events',
     Compose: 'new event',
@@ -125,31 +126,34 @@ export const en: Catalogue = {
 
   join: {
     next: 'what happens next',
-    nextLead:
-      'we mail you a link. follow it and you are signed in. an organiser then lets you in, ' +
-      'and once they have you can answer any event on the calendar.',
+    nextLead: {
+      review:
+        'we mail you a link. follow it and you are signed in. an organiser then lets you in, ' +
+        'and once they have you can answer any event on the calendar.',
+      open: 'we mail you a link. follow it and you are in: you can answer any event on the calendar straight away.',
+    },
+    doorsLead: (names) => `you need an identity from ${names}.`,
+  },
+
+  denied: {
+    heading: 'that did not sign you in',
+    back: 'back to sign in',
+    none: 'there is nothing to explain here. try signing in again.',
   },
 
   welcome: {
-    member: 'welcome',
-    memberLead: 'three things and you are set up.',
-    admin: 'set up the club',
-    adminLead: 'you are the first one here, so this deployment is yours to name.',
-    name: 'what should we call you?',
-    nameHint: 'this is the name on sheets and rosters.',
-    notifications: 'how the club reaches you',
-    chat: 'get announcements on telegram',
-    season: 'join the current season',
-    seasonNone: 'no season is open yet.',
-    identity: 'name the club and choose how it looks',
-    kinds: 'say what kinds of events you run',
-    first: 'put the first event on the calendar',
-    chatHow: 'link your account',
-    identityHow: 'open the settings',
-    firstHow: 'write the first one',
+    heading: 'welcome',
+    lead: 'a few things make the club yours. none of them are required.',
+    steps: {
+      club: { label: 'name the club and choose how it looks', how: 'open the settings' },
+      event: { label: 'put the first event on the calendar', how: 'write the first one' },
+      name: { label: 'what should we call you?', how: 'set your name' },
+      chat: { label: 'get announcements on telegram', how: 'link your account' },
+      season: { label: 'join the current season', how: 'join' },
+    },
     left: (count) => (count === 1 ? '1 thing left' : `${count} things left`),
     done: 'go to the events',
-    skip: 'skip for now',
+    later: 'not now',
     waiting: 'an organiser still has to let you in. you will get a message when they do.',
   },
 

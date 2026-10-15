@@ -1,4 +1,4 @@
-import { Design } from '@clubbie/core';
+import { type Admission, Club, Design } from '@clubbie/core';
 import { api, unwrap } from './api.ts';
 import { Query } from './query.svelte.ts';
 import { words } from './words/index.svelte.ts';
@@ -87,6 +87,16 @@ export class Identified {
   /** Whether anybody has set this club up. False is what sends the first admin to the wizard. */
   get setup(): boolean {
     return this.query.data?.setup ?? true;
+  }
+
+  /** Whether a new arrival waits for an organiser. Until the club has loaded, the careful answer. */
+  get admission(): Admission {
+    return this.query.data?.admission ?? Club.ADMISSION;
+  }
+
+  /** What an identity has to belong to, as the committee wrote it. Empty is everybody. */
+  get doors(): readonly string[] {
+    return [...(this.query.data?.organisations ?? []), ...(this.query.data?.domains ?? [])];
   }
 
   /** Whether the club runs a chat group. Which one it is only an admin is told. */

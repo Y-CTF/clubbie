@@ -1,8 +1,10 @@
 import { Brand } from '@clubbie/core';
+import { Code } from '@clubbie/diag';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } from 'hono/cookie';
 import * as v from 'valibot';
 import type { Env } from './context.ts';
+import { type Body, Refusal } from './fail.ts';
 import { Input } from './input.ts';
 
 /** An OAuth flow in progress, parked in a signed cookie between the redirect and the callback. */
@@ -10,8 +12,29 @@ export type Flow = v.InferOutput<typeof Input.flow>;
 /** A Telegram identity waiting for the address that will make it a member. */
 export type Chatter = v.InferOutput<typeof Input.chatter>;
 
+/** A refused sign-in, parked for the page the browser is about to be sent to. */
+export type Failure = Body['error'];
+
 /**
- * The two cookies the app sets. Both are host-only, http-only and `lax`: the session must survive
+ * What of a refusal survives the trip. The labels are dropped: they quote the callback's own
+ * query string, which is the provider's text and as long as the provider cares to make it, and a
+ * cookie has four kilobytes.
+ */
+const FAILURE = v.object({
+  refusal: v.picklist(Object.values(Refusal)),
+  message: v.pipe(v.string(), v.maxLength(500)),
+  diag: v.object({
+    code: v.pipe(v.string(), v.maxLength(100), v.transform(Code.parse)),
+    severity: v.literal('error'),
+    message: v.pipe(v.string(), v.maxLength(500)),
+    labels: v.tuple([]),
+    help: v.exactOptional(v.pipe(v.string(), v.maxLength(500))),
+    notes: v.optional(v.pipe(v.array(v.pipe(v.string(), v.maxLength(500))), v.maxLength(5)), []),
+  }),
+});
+
+/**
+ * The cookies the app sets. All are host-only, http-only and `lax`: the session must survive
  * a top-level redirect back from a provider, which `strict` would drop, and neither is ever read
  * by client script.
  */
@@ -19,6 +42,7 @@ export namespace Cookie {
   export const SESSION = Brand.cookie('session');
   export const FLOW = Brand.cookie('flow');
   export const CHAT = Brand.cookie('chat');
+  export const FAIL = Brand.cookie('fail');
   /** What a TLS-terminating proxy calls the scheme the member actually used. */
   export const FORWARDED = 'x-forwarded-proto';
   /** A flow that has not completed in ten minutes is abandoned, not resumed. */
@@ -83,6 +107,35 @@ export namespace Cookie {
     if (!raw) return null;
     try {
       const parsed = v.safeParse(Input.chatter, JSON.parse(raw));
+      return parsed.success ? parsed.output : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * A sign-in that was refused, kept for the one page that explains it. The browser was handed to a
+   * provider and back, so there is no fetch to carry a refusal in: it arrives as a redirect, and
+   * what went wrong has to wait somewhere until the page asks. A cookie is the only place that
+   * follows the browser without putting the message in the url, where anybody could write one.
+   */
+  export async function fail(c: Context<Env>, secret: string, failure: Failure): Promise<void> {
+    await setSignedCookie(
+      c,
+      FAIL,
+      JSON.stringify({ ...failure, diag: { ...failure.diag, labels: [] } }),
+      secret,
+      { path: '/', httpOnly: true, sameSite: 'Lax', secure: secure(c), maxAge: FLOW_TTL },
+    );
+  }
+
+  /** Reads the parked refusal and consumes it, so reloading the page does not replay it. */
+  export async function failed(c: Context<Env>, secret: string): Promise<Failure | null> {
+    const raw = await getSignedCookie(c, secret, FAIL);
+    deleteCookie(c, FAIL, { path: '/' });
+    if (!raw) return null;
+    try {
+      const parsed = v.safeParse(FAILURE, JSON.parse(raw));
       return parsed.success ? parsed.output : null;
     } catch {
       return null;

@@ -185,8 +185,8 @@ function fill(): void {
   banner = current.design.banner ?? '';
   blurb = current.design.blurb ?? '';
   footer = current.design.footer ?? '';
-  organisations = [...(current.organisations ?? [])];
-  domains = [...(current.domains ?? [])];
+  organisations = [...current.organisations];
+  domains = [...current.domains];
   allowed = [...(current.allowed ?? [])];
   blocked = [...(current.blocked ?? [])];
   providers = [...(current.providers ?? [])];
@@ -196,7 +196,7 @@ function fill(): void {
   remind = current.remind;
   guests = current.guests;
   waitlist = current.waitlist;
-  admission = current.admission ?? Club.ADMISSION;
+  admission = current.admission;
 }
 
 /** One save for the whole page: every section writes the same row. */

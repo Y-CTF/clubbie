@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { Codes as AuthCodes } from '@clubbie/auth';
 import { Signin, Site } from '@clubbie/core';
+import { Codes as StoreCodes } from '@clubbie/store';
+import { Cookie } from '../src/cookie.ts';
 import { type Harness, harness, refusal } from './harness.ts';
 
 const ADDRESS = 'ada@example.org';
@@ -21,6 +23,20 @@ async function ask(email = ADDRESS): Promise<Response> {
  */
 function path(url: string): string {
   return new URL(url).pathname.slice(Site.API.length);
+}
+
+/**
+ * Where a refused link sent the browser, and what it left there to explain. A mailed link is
+ * followed by a browser, so a refusal is a redirect to the page that shows it, not a status.
+ */
+async function bounced(response: Response): Promise<string | undefined> {
+  expect(response.status).toBe(302);
+  expect(response.headers.get('location')).toBe(Site.path('denied'));
+
+  const parked = response.headers.getSetCookie().find((one) => one.startsWith(`${Cookie.FAIL}=`));
+  const read = await h.call('/auth/failure', { headers: { cookie: parked?.split(';')[0] ?? '' } });
+  const { failure } = (await read.json()) as { failure: { diag: { code: string } } | null };
+  return failure?.diag.code;
 }
 
 describe('signing in with an address', () => {
@@ -91,8 +107,11 @@ describe('signing in with an address', () => {
     await ask();
     const link = path(h.posted[0]?.url ?? '');
 
-    expect((await h.call(link, { redirect: 'manual' })).status).toBe(302);
-    expect((await h.call(link, { redirect: 'manual' })).status).toBe(422);
+    const first = await h.call(link, { redirect: 'manual' });
+    expect(first.status).toBe(302);
+    expect(first.headers.get('location')).not.toBe(Site.path('denied'));
+
+    expect(await bounced(await h.call(link, { redirect: 'manual' }))).toBe(String(AuthCodes.expired));
   });
 
   test('a wrong code is refused and says what to do', async () => {
@@ -144,6 +163,6 @@ describe('signing in with an address', () => {
 
     await ask();
     const response = await h.call(path(h.posted[0]?.url ?? ''), { redirect: 'manual' });
-    expect(response.status).toBe(409);
+    expect(await bounced(response)).toBe(String(StoreCodes.identity));
   });
 });

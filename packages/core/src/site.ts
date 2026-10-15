@@ -70,6 +70,12 @@ export namespace Site {
      * one.
      */
     welcome: '/welcome',
+    /**
+     * Where a refused sign-in lands. The provider's redirect and the mailed link are followed by a
+     * browser, so a refusal cannot be answered in a fetch: it is parked server side and this page
+     * asks for it.
+     */
+    denied: '/denied',
     events: '/events',
     event: '/events/:id',
     sheet: '/events/:id/sheet',

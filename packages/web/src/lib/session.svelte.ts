@@ -1,6 +1,7 @@
-import { type Action, Member } from '@clubbie/core';
+import { type Action, Member, Setup } from '@clubbie/core';
 import { api, Expiry, unwrap } from './api.ts';
 import { Query } from './query.svelte.ts';
+import type { Name } from './router.svelte.ts';
 
 type Viewer = Awaited<ReturnType<typeof read>>;
 
@@ -75,6 +76,33 @@ export class Session {
     if (!season) return;
 
     await unwrap(await api.seasons[':id'].join.$post({ param: { id: season.id } }));
+    await this.load();
+  }
+
+  /** What they are asked to do, each step with whether it is done. Empty once they dismissed it. */
+  get setup() {
+    return this.viewer?.setup ?? [];
+  }
+
+  /** How many of those are still to do. */
+  get left(): number {
+    return Setup.left(this.setup);
+  }
+
+  /**
+   * Where signing in leads. The checklist while there is something on it, the calendar otherwise.
+   *
+   * It is the only place that decides it, and nothing redirects: the page used to be forced on
+   * a member by an effect in the shell, which needed a latch to stop it bouncing them back from
+   * every link on the list, and the latch only held once it had fired.
+   */
+  get entry(): Name {
+    return this.left > 0 ? 'Welcome' : 'Events';
+  }
+
+  /** Says not to be shown the checklist again, and re-reads the session, which empties it. */
+  async dismiss(): Promise<void> {
+    await unwrap(await api.me.welcome.$post());
     await this.load();
   }
 

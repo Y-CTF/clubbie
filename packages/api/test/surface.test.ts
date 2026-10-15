@@ -273,6 +273,25 @@ describe('the club a signed-out caller is told about', () => {
   });
 });
 
+describe('the terms of entry a signed-out caller is told about', () => {
+  test('who may join crosses to a stranger, the addresses that are let in or kept out do not', async () => {
+    await h.store.club.update({
+      admission: 'open',
+      domains: ['ethz.ch'],
+      organisations: ['eduid:ethz.ch'],
+      allowed: ['friend@example.org'],
+      blocked: ['troll@example.org'],
+    });
+
+    const seen = (await (await h.call('/club')).json()) as Record<string, unknown>;
+    expect(seen.admission).toBe('open');
+    expect(seen.domains).toEqual(['ethz.ch']);
+    expect(seen.organisations).toEqual(['eduid:ethz.ch']);
+    expect(seen.allowed).toBeNull();
+    expect(seen.blocked).toBeNull();
+  });
+});
+
 describe('searching the roster', () => {
   /**
    * The bug this guards: the roster search read the email column for everybody. `Wire.peer` keeps

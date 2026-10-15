@@ -53,6 +53,7 @@ export const de: Catalogue = {
   pages: {
     Home: 'Start',
     Join: 'Mitglied werden',
+    Denied: 'nicht angemeldet',
     Welcome: 'willkommen',
     Events: 'Termine',
     Compose: 'neuer Termin',
@@ -125,32 +126,36 @@ export const de: Catalogue = {
 
   join: {
     next: 'wie es weitergeht',
-    nextLead:
-      'wir schicken dir einen Link. folge ihm, und du bist angemeldet. dann schaltet dich ein ' +
-      'Organisator frei, und danach kannst du zu jedem Termin im Kalender zusagen.',
+    nextLead: {
+      review:
+        'wir schicken dir einen Link. folge ihm, und du bist angemeldet. dann schaltet dich ein ' +
+        'Organisator frei, und danach kannst du zu jedem Termin im Kalender zusagen.',
+      open: 'wir schicken dir einen Link. folge ihm, und du bist dabei: du kannst sofort zu jedem Termin im Kalender zusagen.',
+    },
+    doorsLead: (names) => `du brauchst eine Identität von ${names}.`,
+  },
+
+  denied: {
+    heading: 'das hat dich nicht angemeldet',
+    back: 'zurück zur Anmeldung',
+    none: 'hier gibt es nichts zu erklären. versuche es noch einmal.',
   },
 
   welcome: {
-    member: 'willkommen',
-    memberLead: 'drei Dinge, dann bist du eingerichtet.',
-    admin: 'den Verein einrichten',
-    adminLead: 'du bist die erste Person hier, also gehört dieser Verein dir zum Benennen.',
-    name: 'wie sollen wir dich nennen?',
-    nameHint: 'dieser Name steht auf Listen und Anwesenheiten.',
-    notifications: 'wie der Verein dich erreicht',
-    chat: 'Ankündigungen über Telegram bekommen',
-    season: 'der laufenden Saison beitreten',
-    seasonNone: 'es ist noch keine Saison offen.',
-    identity: 'den Verein benennen und sein Aussehen wählen',
-    kinds: 'sagen, was für Termine ihr macht',
-    first: 'den ersten Termin eintragen',
-    chatHow: 'Konto verknüpfen',
-    identityHow: 'Einstellungen öffnen',
-    firstHow: 'den ersten schreiben',
+    heading: 'willkommen',
+    lead: 'ein paar Dinge machen den Verein zu deinem. keines davon ist Pflicht.',
+    steps: {
+      club: { label: 'dem Verein einen Namen geben und sein Aussehen wählen', how: 'Einstellungen öffnen' },
+      event: { label: 'den ersten Termin in den Kalender eintragen', how: 'den ersten schreiben' },
+      name: { label: 'wie sollen wir dich nennen?', how: 'Namen festlegen' },
+      chat: { label: 'Ankündigungen auf Telegram erhalten', how: 'Konto verknüpfen' },
+      season: { label: 'der aktuellen Saison beitreten', how: 'beitreten' },
+    },
     left: (count) => (count === 1 ? 'noch 1 Sache' : `noch ${count} Sachen`),
     done: 'zu den Terminen',
-    skip: 'später',
-    waiting: 'ein Organisator muss dich noch freischalten. du bekommst eine Nachricht, sobald das passiert.',
+    later: 'jetzt nicht',
+    waiting:
+      'ein Organisator muss dich noch freischalten. du bekommst eine Nachricht, sobald es so weit ist.',
   },
 
   signIn: {

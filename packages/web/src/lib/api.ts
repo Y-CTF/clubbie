@@ -41,6 +41,7 @@ export class Refused extends Error {
 
 export const Status = {
   Unauthorised: 401,
+  Forbidden: 403,
 } as const;
 
 /**

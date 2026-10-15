@@ -11,6 +11,7 @@ import type {
   Role,
   State,
   Status,
+  Step,
   Width,
 } from '@clubbie/core';
 import type { View } from '../calendar/grid.ts';
@@ -155,30 +156,30 @@ export interface Catalogue {
   /** The page the club's own website links to, written for somebody who is not a member yet. */
   readonly join: {
     readonly next: string;
-    readonly nextLead: string;
+    /** What happens after the link, which is the one thing that depends on the club's admission. */
+    readonly nextLead: Record<Admission, string>;
+    /** The list of what an identity must belong to, joined by the page. */
+    readonly doorsLead: (names: string) => string;
+  };
+
+  /** Where a refused sign-in lands. The reason itself is the server's diagnostic, not a line here. */
+  readonly denied: {
+    readonly heading: string;
+    readonly back: string;
+    /** For a reload, which finds nothing left to explain. */
+    readonly none: string;
   };
 
   /** The first run, which is a different list depending on who just arrived. */
   readonly welcome: {
-    readonly member: string;
-    readonly memberLead: string;
-    readonly admin: string;
-    readonly adminLead: string;
-    readonly name: string;
-    readonly nameHint: string;
-    readonly notifications: string;
-    readonly chat: string;
-    readonly season: string;
-    readonly seasonNone: string;
-    readonly identity: string;
-    readonly kinds: string;
-    readonly first: string;
-    readonly chatHow: string;
-    readonly identityHow: string;
-    readonly firstHow: string;
+    readonly heading: string;
+    readonly lead: string;
+    /** What each step says, and what its link or button says. A new step is an error until it does. */
+    readonly steps: Record<Step, { readonly label: string; readonly how: string }>;
     readonly left: (count: number) => string;
     readonly done: string;
-    readonly skip: string;
+    /** For somebody who would rather not be shown the list again. */
+    readonly later: string;
     readonly waiting: string;
   };
 
