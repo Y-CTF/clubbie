@@ -6,6 +6,11 @@ import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
 import { Router } from '../lib/router.svelte.ts';
 import Badge from '../ui/Badge.svelte';
+import Icon from '../ui/Icon.svelte';
+import Card from '../ui/Card.svelte';
+import EmptyState from '../ui/EmptyState.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
+import Section from '../ui/Section.svelte';
 import Panel from '../ui/Panel.svelte';
 
 /**
@@ -33,43 +38,39 @@ const t = $derived(words.t);
 
 <Panel query={member}>
   {#if member.data}
-    <h1 class="font-semibold">{member.data.name}</h1>
-    <p class="mt-1 text-sm text-muted">
-      {t.roles[member.data.role]} · {t.statuses[member.data.status]} · {t.member.since(
-        Format.day(member.data.createdAt),
-      )}
-    </p>
+    <PageHeader
+      title={member.data.name}
+      back={{ href: Router.to('Members'), label: t.pages.Members }}
+      sub="{t.roles[member.data.role]} · {t.statuses[member.data.status]} · {t.member.since(Format.day(member.data.createdAt))}"
+    />
   {/if}
 </Panel>
 
 {#if allowed}
-  <section class="mt-8">
-    <h2 class="font-medium">
-      {t.member.history}
-      <span class="ml-2 font-normal text-muted">
-        {t.member.ratio(attended, history.data?.length ?? 0)}
-      </span>
-    </h2>
-
+  <Section title={t.member.history} hint={t.member.ratio(attended, history.data?.length ?? 0)}>
     <Panel query={history}>
-      <ul class="mt-3 divide-y divide-line">
-        {#each history.data ?? [] as entry (entry.eventId)}
-          <li class="flex items-center justify-between gap-3 py-2 text-sm">
-            <a href={Router.to('Event', { id: entry.eventId })} class="hover:opacity-80">
-              {entry.event.title}
-              <span class="ml-2 font-mono text-xs text-muted">{Format.day(entry.event.startsAt)}</span>
-            </a>
-            <span class="flex items-center gap-2">
-              <Badge kind={entry.answer}>{t.answers[entry.answer]}</Badge>
-              {#if entry.attendedAt}<Badge kind="attended">{t.event.attended}</Badge>{/if}
-            </span>
-          </li>
-        {/each}
-      </ul>
-
       {#if history.data?.length === 0}
-        <p class="mt-3 text-sm text-muted">{t.member.empty}</p>
+        <EmptyState title={t.member.empty} icon="calendar" />
+      {:else}
+        <Card flush>
+          {#each history.data ?? [] as entry (entry.eventId)}
+            <a
+              href={Router.to('Event', { id: entry.eventId })}
+              class="group flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-sunk"
+            >
+              <span class="min-w-0">
+                <span class="block truncate font-medium">{entry.event.title}</span>
+                <span class="text-xs text-muted tabular-nums">{Format.day(entry.event.startsAt)}</span>
+              </span>
+              <span class="flex shrink-0 items-center gap-3">
+                <Badge kind={entry.answer}>{t.answers[entry.answer]}</Badge>
+                {#if entry.attendedAt}<Badge kind="attended">{t.event.attended}</Badge>{/if}
+                <span class="text-muted transition-transform group-hover:translate-x-0.5"><Icon name="forward" size={16} /></span>
+              </span>
+            </a>
+          {/each}
+        </Card>
       {/if}
     </Panel>
-  </section>
+  </Section>
 {/if}

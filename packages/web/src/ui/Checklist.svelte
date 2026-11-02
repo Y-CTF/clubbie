@@ -21,6 +21,7 @@ import { Router } from '../lib/router.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
 import Alert from './Alert.svelte';
+import Icon from './Icon.svelte';
 import Button from './Button.svelte';
 
 /**
@@ -63,7 +64,7 @@ async function renew(): Promise<void> {
 
         {#if !item.done}
           {#if target}
-            <a class="mt-2 inline-block text-sm text-accent" href={Router.to(target)}>{words.how}</a>
+            <a class="mt-2 btn inline-flex w-fit items-center gap-1.5 rounded-full bg-accent-soft px-3.5 py-1.5 text-sm font-medium text-accent-text transition hover:opacity-80 active:scale-[0.98]" href={Router.to(target)}>{words.how}<Icon name="forward" size={14} /></a>
           {:else}
             <div class="mt-2">
               <Button disabled={action.busy || !session.renewable} onclick={renew}>
@@ -78,5 +79,5 @@ async function renew(): Promise<void> {
 </ul>
 
 {#if action.error}
-  <div class="mt-4"><Alert error={action.error} /></div>
+  <Alert error={action.error} />
 {/if}

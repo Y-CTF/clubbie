@@ -1,5 +1,7 @@
 <script lang="ts">
 import { type Act, ACTS, Audit, type Admission, Club, Design, type Font, type Language, LOCALES, type Palette, type Width } from '@clubbie/core';
+import { untrack } from 'svelte';
+import type { Router } from '../lib/router.svelte.ts';
 import { Action } from '../lib/action.svelte.ts';
 import { api, unwrap } from '../lib/api.ts';
 import { club } from '../lib/club.svelte.ts';
@@ -13,6 +15,9 @@ import Danger from '../ui/Danger.svelte';
 import Field from '../ui/Field.svelte';
 import Input from '../ui/Input.svelte';
 import Pager from '../ui/Pager.svelte';
+import Card from '../ui/Card.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
+import Section from '../ui/Section.svelte';
 import Panel from '../ui/Panel.svelte';
 import Picture from '../ui/Picture.svelte';
 import Scale from '../ui/Scale.svelte';
@@ -246,6 +251,7 @@ async function save(): Promise<void> {
         },
       }),
     ),
+    t.common.saved,
   );
   if (!saved) return;
 
@@ -253,12 +259,54 @@ async function save(): Promise<void> {
   /** The look is applied from the club's own answer, so saving is also the preview. */
   await club.load();
 }
+
+type Tab = 'general' | 'design' | 'links' | 'vocabulary' | 'access' | 'rules' | 'trail';
+
+/** The sections of one record, each a tab. State lives above them, so switching loses nothing. */
+const TABS: [Tab, () => string][] = [
+  ['general', () => t.settings.general],
+  ['design', () => t.design.heading],
+  ['links', () => t.design.links],
+  ['vocabulary', () => t.vocabulary.heading],
+  ['access', () => t.access.heading],
+  ['rules', () => t.rules.heading],
+  ['trail', () => t.settings.trail],
+];
+
+let { router }: { router: Router } = $props();
+
+/** The tab is in the address (`?tab=design`), so a section can be linked to and survives a reload. */
+const wanted = untrack(() => router.current.query.tab);
+let tab = $state<Tab>(TABS.some(([key]) => key === wanted) ? (wanted as Tab) : 'general');
+
+function choose(key: Tab): void {
+  tab = key;
+  router.replace('Settings', {}, key === 'general' ? {} : { tab: key });
+}
 </script>
 
-<h1 class="font-semibold">{t.pages.Settings}</h1>
+<PageHeader title={t.pages.Settings} />
 
+<div class="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" role="tablist">
+  <div class="flex w-max gap-1 border-b border-line">
+    {#each TABS as [key, label] (key)}
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === key}
+        onclick={() => choose(key)}
+        class="btn -mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors
+               {tab === key ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}"
+      >
+        {label()}
+      </button>
+    {/each}
+  </div>
+</div>
+
+{#if tab === 'general'}
 <Panel query={identity}>
-  <div class="mt-6 grid gap-4">
+  <Card>
     <Field label={t.settings.name}><Input bind:value={name} /></Field>
 
     <Field label={t.settings.tagline} hint={t.settings.taglineHint}>
@@ -271,14 +319,15 @@ async function save(): Promise<void> {
       <input type="checkbox" bind:checked={listed} />
       {t.settings.listed}
     </label>
-  </div>
+  </Card>
 </Panel>
+{/if}
 
-<section class="mt-10 border-t border-line pt-8">
-  <h2 class="font-medium">{t.design.heading}</h2>
-  <p class="mt-1 text-xs text-muted">{t.design.hint}</p>
+{#if tab === 'design'}
+<Section title={t.design.heading} hint={t.design.hint}>
+<Card>
 
-  <div class="mt-4 grid gap-4">
+  <div class="grid gap-4">
     <div class="grid gap-4 sm:grid-cols-2">
       <Field label={t.design.accent} hint={t.design.accentHint}>
         <span class="flex items-center gap-3">
@@ -362,18 +411,20 @@ async function save(): Promise<void> {
       <Input bind:value={footer} maxlength={Design.FOOTER} />
     </Field>
   </div>
-</section>
+</Card>
+</Section>
+{/if}
 
-<section class="mt-10 border-t border-line pt-8">
-  <h2 class="font-medium">{t.design.links}</h2>
-  <p class="mt-1 text-xs text-muted">{t.design.linksHint}</p>
+{#if tab === 'links'}
+<Section title={t.design.links} hint={t.design.linksHint}>
+<Card>
 
   <!--
     The same shape as the kinds below: a column of what there is, and one row at the bottom to add
     to it. The two lists were written differently, one appending a blank row to fill in and the
     other composing in place, which made adding a link and adding a kind feel like different acts.
   -->
-  <ul class="mt-4 grid gap-2">
+  <ul class="grid gap-2">
     {#each links as link, index (link.key)}
       <li class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_7rem] items-center gap-2">
         <Input bind:value={link.label} placeholder={t.design.linkLabel} aria-label={t.design.linkLabel} />
@@ -394,7 +445,7 @@ async function save(): Promise<void> {
 
   {#if links.length < Design.LINKS}
     <!-- The same three columns as a row above it, in fixed widths: `auto` sizes each grid alone. -->
-    <div class="mt-2 grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_7rem] items-center gap-2">
+    <div class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_7rem] items-center gap-2">
       <Input bind:value={pending.label} placeholder={t.design.linkLabel} aria-label={t.design.linkLabel} />
       <Input
         bind:value={pending.url}
@@ -409,17 +460,19 @@ async function save(): Promise<void> {
       </Button>
     </div>
   {/if}
-</section>
+</Card>
+</Section>
+{/if}
 
-<section class="mt-10 border-t border-line pt-8">
-  <h2 class="font-medium">{t.vocabulary.heading}</h2>
-  <p class="mt-1 text-xs text-muted">{t.vocabulary.hint}</p>
+{#if tab === 'vocabulary'}
+<Section title={t.vocabulary.heading} hint={t.vocabulary.hint}>
+<Card>
 
   <!--
     One grid rather than a row of flexed spans, so every box starts and ends in the same place: an
     id is as long as its word, and a row that sizes itself around one leaves the column ragged.
   -->
-  <ul class="mt-4 grid gap-2">
+  <ul class="grid gap-2">
     {#each vocabulary.all as kind (kind.id)}
       <li class="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_7rem]">
         <Input
@@ -443,18 +496,20 @@ async function save(): Promise<void> {
   </ul>
 
   <!-- The same three columns as a row above it, in fixed widths: `auto` sizes each grid alone. -->
-  <div class="mt-2 grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_7rem]">
+  <div class="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_7rem]">
     <Input bind:value={adding} placeholder={t.vocabulary.add} aria-label={t.vocabulary.add} />
     <span class="hidden sm:block"></span>
     <Button field disabled={action.busy || !adding.trim()} onclick={addKind}>{t.common.add}</Button>
   </div>
-</section>
+</Card>
+</Section>
+{/if}
 
-<section class="mt-10 border-t border-line pt-8">
-  <h2 class="font-medium">{t.access.heading}</h2>
-  <p class="mt-1 text-xs text-muted">{t.access.hint}</p>
+{#if tab === 'access'}
+<Section title={t.access.heading} hint={t.access.hint}>
+<Card>
 
-  <div class="mt-4 grid gap-4">
+  <div class="grid gap-4">
     <Field label={t.access.organisations} hint={t.access.organisationsHint} group>
       <Tags
         bind:values={organisations}
@@ -555,13 +610,15 @@ async function save(): Promise<void> {
       </Field>
     </div>
   </div>
-</section>
+</Card>
+</Section>
+{/if}
 
-<section class="mt-10 border-t border-line pt-8">
-  <h2 class="font-medium">{t.rules.heading}</h2>
-  <p class="mt-1 text-xs text-muted">{t.rules.hint}</p>
+{#if tab === 'rules'}
+<Section title={t.rules.heading} hint={t.rules.hint}>
+<Card>
 
-  <div class="mt-4 grid gap-4">
+  <div class="grid gap-4">
     <div class="grid gap-4 sm:grid-cols-2">
       <Field label={t.rules.deadline} hint={t.rules.deadlineHint} group>
         <Scale bind:value={deadline} range={Club.DEADLINES} unit="h" label={t.rules.deadline} />
@@ -582,18 +639,26 @@ async function save(): Promise<void> {
       {t.rules.waitlist}
     </label>
   </div>
-</section>
+</Card>
+</Section>
+{/if}
 
-<div class="sticky bottom-0 mt-8 flex items-center gap-4 border-t border-line bg-paper py-4">
-  <Button look="solid" disabled={action.busy || !name} onclick={save}>{t.common.save}</Button>
-  {#if action.error}<span class="min-w-0 flex-1"><Alert error={action.error} /></span>{/if}
-</div>
+{#if tab !== 'trail'}
+  <!-- One Save for every tab: they edit one record, and leaving a tab keeps what was typed. -->
+  <div
+    class="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex items-center gap-4 border-t
+           border-line bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:bottom-0"
+  >
+    <Button look="solid" field disabled={action.busy || !name} onclick={save}>{t.common.save}</Button>
+    {#if action.error}<span class="min-w-0 flex-1"><Alert error={action.error} /></span>{/if}
+  </div>
+{/if}
 
-<section class="mt-10 border-t border-line pt-8">
-  <h2 class="font-medium">{t.settings.trail}</h2>
-  <p class="mt-1 text-xs text-muted">{t.settings.trailHint}</p>
+{#if tab === 'trail'}
+<Section title={t.settings.trail} hint={t.settings.trailHint}>
+<Card>
 
-  <div class="mt-4 grid gap-3 sm:grid-cols-[minmax(0,16rem)_auto] sm:items-center">
+  <div class="grid gap-3 sm:grid-cols-[minmax(0,16rem)_auto] sm:items-center">
     <Select
       value={act}
       options={ACTS}
@@ -606,7 +671,7 @@ async function save(): Promise<void> {
   </div>
 
   <Panel query={trail}>
-    <ul class="mt-4 grid gap-1">
+    <ul class="grid gap-1">
       {#each trail.data?.entries ?? [] as entry (entry.id)}
         <li class="grid gap-0.5 rounded-lg px-3 py-2 text-sm odd:bg-sunk">
           <div class="flex flex-wrap items-baseline justify-between gap-x-4">
@@ -636,4 +701,6 @@ async function save(): Promise<void> {
 
     <Pager bind:offset={done} window={Audit.WINDOW} total={trail.data?.total ?? 0} />
   </Panel>
-</section>
+</Card>
+</Section>
+{/if}

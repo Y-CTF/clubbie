@@ -13,6 +13,8 @@ const many = (count: number, one: string, more: string): string => `${count} ${c
 export const de: Catalogue = {
   common: {
     save: 'speichern',
+    saved: 'gespeichert',
+    undo: 'rückgängig',
     create: 'anlegen',
     cancel: 'abbrechen',
     add: 'hinzufügen',
@@ -106,6 +108,15 @@ export const de: Catalogue = {
     waiting: 'du bist angemeldet und wartest auf die Freischaltung.',
     waitingWhy: 'ein Admin muss dich aktiv setzen, bevor du Termine siehst.',
     adminOnly: 'die Einstellungen des Vereins ändert ein Admin.',
+    more: 'mehr',
+    account: 'Konto',
+    admin: 'Admin',
+    club: 'Verein',
+    skip: 'zum Inhalt springen',
+    close: 'schliessen',
+    menu: 'Menü',
+    jump: 'springe zu…',
+    nothing: 'nichts passt.',
   },
 
   teams: {
@@ -288,6 +299,7 @@ export const de: Catalogue = {
   },
 
   seasons: {
+    none: 'noch keine Saisons.',
     renew: (season) => `du stehst noch nicht auf der Liste für ${season}.`,
     renewBy: (when) => `bis ${when} kannst du das selbst erledigen.`,
     renewNow: 'verlängern',
@@ -418,6 +430,7 @@ export const de: Catalogue = {
   },
 
   settings: {
+    general: 'allgemein',
     name: 'Name',
     tagline: 'Untertitel',
     taglineHint: 'eine Zeile, auf der Anmeldeseite',

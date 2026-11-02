@@ -18,7 +18,7 @@ import Ways from '../ui/Ways.svelte';
 const t = $derived(words.t);
 </script>
 
-<div class="-mx-6 -mt-10">
+<div class="-mx-4 -mt-6 sm:-mx-6 lg:-mt-10">
   {#if club.banner}
     <div class="relative h-48 overflow-hidden sm:h-64">
       <img src={club.banner} alt="" class="h-full w-full object-cover" />

@@ -7,12 +7,16 @@ import { ask } from '../lib/ask.svelte.ts';
 import { SvelteSet } from 'svelte/reactivity';
 import { Query } from '../lib/query.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
+import { toast } from '../lib/toast.svelte.ts';
 import { Typed } from '../lib/typed.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
 import Alert from '../ui/Alert.svelte';
 import Button from '../ui/Button.svelte';
+import Icon from '../ui/Icon.svelte';
+import Card from '../ui/Card.svelte';
 import Chips from '../ui/Chips.svelte';
-import { look } from '../ui/look.ts';
+import EmptyState from '../ui/EmptyState.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
 import Panel from '../ui/Panel.svelte';
 import Person from '../ui/Person.svelte';
 import Search from '../ui/Search.svelte';
@@ -89,41 +93,58 @@ async function bulk(patch: { status?: Status; role?: Role }): Promise<void> {
     return;
   }
 
-  const done = await action.run(async () => unwrap(await api.members.$patch({ json: { ids, ...patch } })));
+  const done = await action.run(async () => unwrap(await api.members.$patch({ json: { ids, ...patch } })), t.common.saved);
   if (done) picked = new SvelteSet();
   await members.load();
 }
 
+/**
+ * One member's status or role.
+ *
+ * A status is easy to take back, so it is applied at once and the toast offers an undo: a dialog
+ * for every tick is fifty clicks to admit a new term. A role can hand somebody the keys to the
+ * club, so that still asks first.
+ */
 async function set(id: string, patch: { status?: Status; role?: Role }): Promise<void> {
-  const who = roster.find((member) => member.id === id)?.name ?? '';
-  const question =
-    patch.role === undefined
-      ? { title: t.asks.status(who, t.statuses[patch.status ?? Member.INITIAL]) }
-      : { title: t.asks.role(who), detail: t.asks.roleWhy };
+  const before = roster.find((member) => member.id === id);
 
-  /** The row shows what the server holds, so a refused or cancelled change has to put it back. */
-  if (!(await ask.put(question))) {
-    await members.load();
-    return;
+  if (patch.role !== undefined) {
+    /** The row shows what the server holds, so a refused or cancelled change has to put it back. */
+    if (!(await ask.put({ title: t.asks.role(before?.name ?? ''), detail: t.asks.roleWhy }))) {
+      await members.load();
+      return;
+    }
   }
 
-  await action.run(async () => unwrap(await api.members[':id'].$patch({ param: { id }, json: patch })));
+  const written = await action.run(
+    async () => unwrap(await api.members[':id'].$patch({ param: { id }, json: patch })),
+    patch.status === undefined ? t.common.saved : undefined,
+  );
+
+  if (written && patch.status !== undefined && before) {
+    toast.say(t.common.saved, () => void revert(id, before.status));
+  }
+  await members.load();
+}
+
+async function revert(id: string, status: Status): Promise<void> {
+  await action.run(
+    async () => unwrap(await api.members[':id'].$patch({ param: { id }, json: { status } })),
+    t.common.saved,
+  );
   await members.load();
 }
 </script>
 
-<header class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-  <h1 class="font-semibold">
-    {t.pages.Members}
-    <span class="ml-2 text-sm font-normal text-muted">{t.members.count(roster.length)}</span>
-  </h1>
+<PageHeader title={t.pages.Members} sub={t.members.count(roster.length)}>
+  {#snippet actions()}
+    {#if manage}
+      <Button href={Site.Api.roster()} external>{t.common.csv}</Button>
+    {/if}
+  {/snippet}
+</PageHeader>
 
-  {#if manage}
-    <a href={Site.Api.roster()} data-external class={look('plain')}>{t.common.csv}</a>
-  {/if}
-</header>
-
-<div class="mt-4 grid gap-3">
+<div class="stack-tight">
   <Search typed={search} placeholder={t.members.find} />
   <Chips
     bind:value={filter}
@@ -132,18 +153,19 @@ async function set(id: string, patch: { status?: Status; role?: Role }): Promise
   />
 
   {#if manage && filter === ALL && waiting > 0}
-    <button type="button" class="text-left text-xs text-accent" onclick={() => (filter = Member.INITIAL)}>
-      {t.members.waiting(waiting)}
+    <button type="button" class="btn inline-flex w-fit items-center gap-1.5 rounded-full bg-accent-soft px-3.5 py-1.5 text-sm font-medium text-accent-text transition hover:opacity-80 active:scale-[0.98]" onclick={() => (filter = Member.INITIAL)}>
+      {t.members.waiting(waiting)}<Icon name="forward" size={14} />
     </button>
   {/if}
 </div>
 
 {#if manage && chosen.length > 0}
-  <!-- The bar only exists while something is picked, so the page is not permanently half-toolbar. -->
+  <!-- Sticky, above the phone's tab bar: the bar only exists while something is picked. -->
   <div
-    class="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-accent bg-sunk px-3 py-2 text-sm"
+    class="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 flex flex-wrap items-center gap-2
+           rounded-xl border border-accent bg-paper px-4 py-3 text-sm shadow-pop lg:bottom-4"
   >
-    <span class="me-auto">{t.members.picked(chosen.length)}</span>
+    <span class="me-auto font-medium">{t.members.picked(chosen.length)}</span>
 
     {#each Member.STATUSES as status (status)}
       <Button disabled={action.busy} onclick={() => bulk({ status })}>{t.statuses[status]}</Button>
@@ -153,74 +175,79 @@ async function set(id: string, patch: { status?: Status; role?: Role }): Promise
   </div>
 {/if}
 
-{#if action.error}<div class="mt-4"><Alert error={action.error} /></div>{/if}
+{#if action.error}<Alert error={action.error} />{/if}
 
-<div aria-live="polite">
+<div aria-live="polite" class="stack-tight">
   <Panel query={members}>
-    {#if manage && editable.length > 0}
-      <label class="mt-6 flex items-center gap-2 text-xs text-muted">
-        <input type="checkbox" checked={every} onchange={(event) => all(event.currentTarget.checked)} />
-        {t.members.pickAll}
-      </label>
-    {/if}
+    {#if roster.length === 0}
+      <EmptyState title={t.members.empty} icon="users" />
+    {:else}
+      {#if manage && editable.length > 0}
+        <label class="flex items-center gap-2 px-1 text-sm text-muted">
+          <input type="checkbox" checked={every} onchange={(event) => all(event.currentTarget.checked)} />
+          {t.members.pickAll}
+        </label>
+      {/if}
 
-    <ul class="mt-3 divide-y divide-line">
-      {#each roster as member (member.id)}
-        <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 text-sm">
-          <span class="flex min-w-0 flex-1 items-start gap-3">
-            {#if manage && member.id !== session.member?.id}
-              <input
-                type="checkbox"
-                class="mt-1"
-                checked={picked.has(member.id)}
-                aria-label={t.members.pick(member.name)}
-                onchange={(event) => pick(member.id, event.currentTarget.checked)}
-              />
-            {/if}
+      <Card flush>
+        {#each roster as member (member.id)}
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3 text-sm">
+            <span class="flex min-w-0 flex-1 basis-56 items-center gap-3">
+              {#if manage && member.id !== session.member?.id}
+                <input
+                  type="checkbox"
+                  checked={picked.has(member.id)}
+                  aria-label={t.members.pick(member.name)}
+                  onchange={(event) => pick(member.id, event.currentTarget.checked)}
+                />
+              {/if}
 
-            <span class="min-w-0">
-              <Person id={member.id} name={member.name} />
-            {#if member.id === session.member?.id}
-              <span class="ml-2 text-xs text-muted">{t.members.you}</span>
-            {/if}
-            {#if member.role === Member.ADMIN}
-              <span class="ml-2 text-xs text-accent">{t.roles.admin}</span>
-            {/if}
+              <span class="min-w-0">
+                <span class="flex flex-wrap items-baseline gap-x-2">
+                  <Person id={member.id} name={member.name} />
+                  {#if member.id === session.member?.id}
+                    <span class="text-xs text-muted">{t.members.you}</span>
+                  {/if}
+                  {#if member.role === Member.ADMIN}
+                    <span class="text-xs font-medium text-accent">{t.roles.admin}</span>
+                  {/if}
+                </span>
 
-              <span class="mt-0.5 block truncate text-xs text-muted">
-                {#if member.email}{member.email} · {/if}{t.member.since(Format.day(member.createdAt))}
+                <span class="block truncate text-xs text-muted">
+                  {#if member.email}{member.email} · {/if}{t.member.since(Format.day(member.createdAt))}
+                </span>
               </span>
             </span>
-          </span>
 
-          {#if manage && member.id !== session.member?.id}
-            <span class="flex shrink-0 gap-2">
-              <Select
-                small
-                value={member.status}
-                options={Member.STATUSES}
-                name={(one) => t.statuses[one]}
-                onchange={(status) => set(member.id, { status })}
-                label={t.members.status(member.name)}
-              />
-              <Select
-                small
-                value={member.role}
-                options={Member.ROLES}
-                name={(one) => t.roles[one]}
-                onchange={(role) => set(member.id, { role })}
-                label={t.members.role(member.name)}
-              />
-            </span>
-          {:else}
-            <span class="shrink-0 text-xs text-muted">{t.statuses[member.status]}</span>
-          {/if}
-        </li>
-      {/each}
-    </ul>
-
-    {#if roster.length === 0}
-      <p class="mt-6 text-sm text-muted">{t.members.empty}</p>
+            {#if manage && member.id !== session.member?.id}
+              <span class="flex shrink-0 gap-2">
+                <span class="w-32">
+                  <Select
+                    small
+                    value={member.status}
+                    options={Member.STATUSES}
+                    name={(one) => t.statuses[one]}
+                    onchange={(status) => set(member.id, { status })}
+                    label={t.members.status(member.name)}
+                  />
+                </span>
+                <span class="w-32">
+                  <Select
+                    small
+                    value={member.role}
+                    options={Member.ROLES}
+                    name={(one) => t.roles[one]}
+                    onchange={(role) => set(member.id, { role })}
+                    label={t.members.role(member.name)}
+                  />
+                </span>
+              </span>
+            {:else}
+              <span class="shrink-0 text-sm text-muted">{t.statuses[member.status]}</span>
+            {/if}
+          </div>
+        {/each}
+      </Card>
     {/if}
   </Panel>
 </div>

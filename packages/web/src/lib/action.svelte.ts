@@ -1,4 +1,5 @@
 import { type Refused, refused } from './api.ts';
+import { toast } from './toast.svelte.ts';
 
 /**
  * One write, as reactive state: whether anything is in flight, and the refusal if one came back.
@@ -26,13 +27,18 @@ export class Action {
    * The answer used to be a boolean, which meant a caller who needed the value had to smuggle it
    * out of the closure into a variable the compiler could then only see as `null`. Returning it
    * is the same information without the lie.
+   *
+   * `done` is what to tell the reader when it worked. Most writes should say something; the ones
+   * that already change the page in front of them (an answer, a tick) leave it out.
    */
-  async run<T>(write: () => Promise<T>): Promise<T | null> {
+  async run<T>(write: () => Promise<T>, done?: string): Promise<T | null> {
     this.running += 1;
     this.error = null;
 
     try {
-      return await write();
+      const result = await write();
+      if (done) toast.say(done);
+      return result;
     } catch (error) {
       this.error = refused(error);
       return null;

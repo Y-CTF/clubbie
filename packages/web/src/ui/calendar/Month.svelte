@@ -4,6 +4,7 @@ import { Grid } from '../../lib/calendar/grid.ts';
 import { Layout } from '../../lib/calendar/layout.ts';
 import type { Moment } from '../../lib/calendar/moment.ts';
 import { Format } from '../../lib/format.ts';
+import { Hues } from '../../lib/hues.ts';
 import { words } from '../../lib/words/index.svelte.ts';
 import Bands from './Bands.svelte';
 import Piece from './Piece.svelte';
@@ -58,7 +59,7 @@ function chips(day: Date): Moment[] {
 const shown = $derived(calendar.cursor.getMonth());
 </script>
 
-<div class="calendar overflow-hidden rounded-lg border border-line">
+<div class="calendar overflow-hidden rounded-xl border border-line">
   <div class="grid grid-cols-7 border-b border-line bg-sunk">
     {#each weeks[0] ?? [] as day (day.getTime())}
       <div class="truncate px-2 py-1.5 text-center text-xs text-muted">{Format.weekday(day)}</div>
@@ -80,7 +81,7 @@ const shown = $derived(calendar.cursor.getMonth());
         {@const listed = chips(day)}
         {@const room = listed.length > SHOWN ? SHOWN - 1 : SHOWN}
         <div
-          class="flex min-h-36 min-w-0 flex-col border-e border-line last:border-e-0"
+          class="flex min-h-20 min-w-0 flex-col sm:min-h-36 border-e border-line last:border-e-0"
           style="padding: {PAD}"
         >
           <div class="flex h-(--date-club) items-center justify-center">
@@ -99,7 +100,14 @@ const shown = $derived(calendar.cursor.getMonth());
           <!-- The bars are drawn over the row, so the cell keeps exactly their height clear. -->
           <div style="height: calc({lanes} * var(--band-club))"></div>
 
-          <div class="flex min-h-0 flex-col gap-px">
+          <!-- A phone cell is ~50px wide: a title would be two letters, so it is a dot per event, and the date opens the day. -->
+          <div class="flex flex-wrap justify-center gap-0.5 pt-0.5 sm:hidden">
+            {#each listed.slice(0, 6) as moment (moment.id)}
+              <span class="piece-dot" style={Hues.tint(moment.event.kind)}></span>
+            {/each}
+          </div>
+
+          <div class="hidden min-h-0 flex-col gap-px sm:flex">
             {#each listed.slice(0, room) as moment (moment.id)}
               <Piece
                 {moment}
@@ -127,7 +135,7 @@ const shown = $derived(calendar.cursor.getMonth());
           {#if create}
             <a
               href={create(Calendar.slot(day, Calendar.WAKING))}
-              class="slot mt-px min-h-4 flex-1 rounded"
+              class="slot mt-px hidden min-h-4 flex-1 rounded sm:block"
               aria-label={t.calendar.add(Format.date(day))}
             >&nbsp;</a>
           {/if}

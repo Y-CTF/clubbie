@@ -6,6 +6,7 @@ import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
 import Alert from '../ui/Alert.svelte';
 import Button from '../ui/Button.svelte';
+import Card from '../ui/Card.svelte';
 import Checklist from '../ui/Checklist.svelte';
 
 /**
@@ -33,26 +34,26 @@ async function leave(dismiss: boolean): Promise<void> {
 }
 </script>
 
-<main class="mx-auto w-full max-w-[34rem] px-6 py-10">
-  <p class="text-sm text-muted">{club.name}</p>
-  <h1 class="mt-1">{t.welcome.heading}</h1>
-  <p class="mt-2 text-sm text-muted">{t.welcome.lead}</p>
+<div class="stack-page mx-auto w-full max-w-[34rem] sm:py-6">
+  <header class="stack-tight">
+    <p class="text-sm text-muted">{club.name}</p>
+    <h1>{t.welcome.heading}</h1>
+    <p class="text-sm text-muted">{t.welcome.lead}</p>
+  </header>
 
-  <div class="mt-8"><Checklist /></div>
+  <Card><Checklist /></Card>
 
   {#if session.waiting}
-    <p class="mt-6 rounded-lg border border-line p-4 text-sm text-muted">{t.welcome.waiting}</p>
+    <Card><p class="text-sm text-muted">{t.welcome.waiting}</p></Card>
   {/if}
 
-  <div class="mt-8 flex items-center gap-4">
-    <Button look="solid" disabled={action.busy} onclick={() => leave(false)}>{t.welcome.done}</Button>
+  <div class="flex flex-wrap items-center gap-3">
+    <Button look="solid" field disabled={action.busy} onclick={() => leave(false)}>{t.welcome.done}</Button>
     {#if session.left > 0}
-      <Button disabled={action.busy} onclick={() => leave(true)}>{t.welcome.later}</Button>
-      <p class="text-xs text-muted">{t.welcome.left(session.left)}</p>
+      <Button field disabled={action.busy} onclick={() => leave(true)}>{t.welcome.later}</Button>
+      <p class="text-sm text-muted">{t.welcome.left(session.left)}</p>
     {/if}
   </div>
 
-  {#if action.error}
-    <div class="mt-4"><Alert error={action.error} /></div>
-  {/if}
-</main>
+  {#if action.error}<Alert error={action.error} />{/if}
+</div>

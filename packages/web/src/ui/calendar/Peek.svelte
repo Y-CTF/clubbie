@@ -13,7 +13,6 @@ import Alert from '../Alert.svelte';
 import Answers from '../Answers.svelte';
 import Badge from '../Badge.svelte';
 import Button from '../Button.svelte';
-import { look } from '../look.ts';
 import Add from './Add.svelte';
 
 /**
@@ -41,6 +40,9 @@ const t = $derived(words.t);
 
 let width = $state(0);
 let height = $state(0);
+
+/** Below this the card is a bottom sheet: a floating card has no room beside a thumb-sized grid. */
+const sheet = $derived(width > 0 && width < 640);
 
 const moment = $derived(calendar.peeked);
 const anchor = $derived(calendar.anchor);
@@ -97,8 +99,9 @@ let card = $state<HTMLElement | null>(null);
     bind:this={card}
     role="dialog"
     aria-label={detail.title}
-    class="pop fixed z-40 rounded-lg border border-line bg-paper p-4 shadow-lg"
-    style="top: {place.top}px; inset-inline-start: {place.left}px; width: {WIDTH}px"
+    class="fixed z-40 border border-line bg-paper p-4 shadow-pop
+           {sheet ? 'sheet inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl border-b-0 pb-[calc(1rem+env(safe-area-inset-bottom))]' : 'pop rounded-xl'}"
+    style={sheet ? '' : `top: ${place.top}px; inset-inline-start: ${place.left}px; width: ${WIDTH}px`}
   >
     <div class="flex items-start gap-2">
       <span
@@ -108,10 +111,10 @@ let card = $state<HTMLElement | null>(null);
 
       <div class="min-w-0 flex-1">
         <h2 class="text-base font-medium {moment.cancelled ? 'line-through' : ''}">{detail.title}</h2>
-        <p class="mt-0.5 text-xs text-muted">
+        <p class="mt-0.5 text-sm text-muted">
           {Format.date(moment.startsAt)} · {Format.slot(moment.startsAt, moment.endsAt)}
         </p>
-        <p class="mt-0.5 text-xs text-muted">
+        <p class="mt-0.5 text-sm text-muted">
           {kinds.label(detail.kind)}
           {#if detail.location}· {detail.location}{/if}
           {#if detail.state !== Event.LIVE}· {t.states[detail.state]}{/if}
@@ -120,7 +123,7 @@ let card = $state<HTMLElement | null>(null);
 
       <button
         type="button"
-        class="-mt-1 -me-1 px-1 text-muted hover:text-ink"
+        class="btn -mt-1 -me-1 grid size-8 place-content-center rounded-lg text-muted hover:bg-sunk hover:text-ink"
         aria-label={t.common.cancel}
         onclick={() => calendar.close()}
       >
@@ -128,7 +131,7 @@ let card = $state<HTMLElement | null>(null);
       </button>
     </div>
 
-    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
       <Badge kind="going">{t.events.going(detail.going)}</Badge>
       {#if detail.capacity}<span>{t.events.places(detail.taken, detail.capacity)}</span>{/if}
       {#if detail.waiting}<Badge kind="waitlist">{t.events.waiting(detail.waiting)}</Badge>{/if}
@@ -154,11 +157,11 @@ let card = $state<HTMLElement | null>(null);
       <Add {moment} />
 
       <div class="mt-3 flex flex-wrap gap-2">
-        <a href={Router.to('Event', { id: detail.id })} class={look('plain')}>{t.calendar.details}</a>
+        <Button look="plain" href={Router.to('Event', { id: detail.id })}>{t.calendar.details}</Button>
         {#if detail.scheduleId && session.can('event:manage')}
-          <a href={Router.to('Repeat', { id: detail.scheduleId })} class={look('plain')}>
+          <Button look="plain" href={Router.to('Repeat', { id: detail.scheduleId })}>
             {t.calendar.series}
-          </a>
+          </Button>
         {/if}
       </div>
     </div>

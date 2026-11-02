@@ -90,10 +90,19 @@ export class Calendar {
     this.follow(query);
   }
 
+  /**
+   * A phone with no view in its address gets the list: seven columns of a month or a week are
+   * seven slivers at 390px, while the list is the one view that is the same size at any width.
+   */
+  private static narrow(): boolean {
+    return typeof matchMedia === 'function' && matchMedia('(max-width: 40rem)').matches;
+  }
+
   /** Picks up a view and a day from the address, for a link somebody was sent. */
   follow(query: Readonly<Record<string, string>>): void {
     const view = query[Param.View];
     if (view && Calendar.is(view)) this.view = view;
+    else if (Calendar.narrow()) this.view = View.Agenda;
 
     const at = query[Param.At];
     const day = at ? Format.unstamp(at) : null;

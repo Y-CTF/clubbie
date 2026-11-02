@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
 import { ask } from '../lib/ask.svelte.ts';
-import Button from './Button.svelte';
+import { look } from './look.ts';
 
 /**
  * A button for something that cannot be undone. It asks first, in the app's one dialog, and only
@@ -34,4 +34,11 @@ async function press(): Promise<void> {
 }
 </script>
 
-<Button look="plain" {field} {disabled} onclick={press}>{@render children()}</Button>
+<button
+  type="button"
+  {disabled}
+  onclick={press}
+  class="{look('quiet', field)} text-declined hover:!border-declined hover:bg-declined/10 disabled:cursor-not-allowed disabled:opacity-40"
+>
+  {@render children()}
+</button>

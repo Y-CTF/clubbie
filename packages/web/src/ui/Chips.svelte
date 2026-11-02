@@ -21,11 +21,11 @@ let {
 } = $props();
 </script>
 
-<div class="flex flex-wrap gap-1.5">
+<div class="flex flex-wrap gap-2">
   {#each options as option (option)}
     <button
       type="button"
-      class="rounded-full border px-3 py-1 text-xs transition-colors"
+      class="btn rounded-full border px-3.5 py-1.5 text-sm transition-colors"
       class:border-accent={value === option}
       class:text-accent={value === option}
       class:border-line={value !== option}

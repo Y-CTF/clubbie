@@ -4,6 +4,7 @@ import { Grid } from '../../lib/calendar/grid.ts';
 import { Format } from '../../lib/format.ts';
 import { session } from '../../lib/session.svelte.ts';
 import { words } from '../../lib/words/index.svelte.ts';
+import EmptyState from '../EmptyState.svelte';
 import Piece from './Piece.svelte';
 import { Shape } from './piece.ts';
 
@@ -59,12 +60,13 @@ function opens(day: Date, index: number): boolean {
   {/each}
 
   {#if calendar.listed.length === 0 && calendar.query.ready}
-    <p class="text-sm text-muted">
-      {#if calendar.searching}
-        {t.events.noMatch(calendar.typed.settled)}
-      {:else}
-        {session.can('event:create') ? t.events.emptyOrganiser : t.events.empty}
-      {/if}
-    </p>
+    <EmptyState
+      title={calendar.searching
+        ? t.events.noMatch(calendar.typed.settled)
+        : session.can('event:create')
+          ? t.events.emptyOrganiser
+          : t.events.empty}
+      icon={calendar.searching ? 'search' : 'calendar'}
+    />
   {/if}
 </div>

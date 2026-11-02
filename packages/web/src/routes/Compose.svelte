@@ -17,6 +17,8 @@ import { kinds } from '../lib/kinds.svelte.ts';
 import { Query } from '../lib/query.svelte.ts';
 import { Router } from '../lib/router.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
+import Card from '../ui/Card.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
 import Alert from '../ui/Alert.svelte';
 import Button from '../ui/Button.svelte';
 import Danger from '../ui/Danger.svelte';
@@ -237,33 +239,38 @@ async function remove(): Promise<void> {
 }
 </script>
 
-<h1 class="font-semibold">{series ? t.compose.repeatHeading(editing) : t.compose.heading(editing)}</h1>
+<PageHeader
+  title={series ? t.compose.repeatHeading(editing) : t.compose.heading(editing)}
+  back={{ href: Router.to('Events'), label: t.pages.Events }}
+>
+  {#snippet meta()}
+    <!-- An occurrence says what it belongs to, because half of what somebody wants to edit is the rule. -->
+    {#if existing.data?.scheduleId}
+      <p>
+        {t.compose.partOf}
+        <a href={Router.to('Repeat', { id: existing.data.scheduleId })} class="ms-1 inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-0.5 font-medium text-accent-text hover:opacity-80">
+          {t.compose.editSeries}
+        </a>
+      </p>
+    {/if}
+  {/snippet}
+</PageHeader>
 
 {#if existing.first || rule.first}
-  <p class="mt-6 text-sm text-muted">{t.common.loading}</p>
+  <p class="breathe text-sm text-muted">{t.common.loading}</p>
 {/if}
 
-<!-- An occurrence says what it belongs to, because half of what somebody wants to edit is the rule. -->
-{#if existing.data?.scheduleId}
-  <p class="mt-4 text-sm text-muted">
-    {t.compose.partOf}
-    <a href={Router.to('Repeat', { id: existing.data.scheduleId })} class="underline underline-offset-2">
-      {t.compose.editSeries}
-    </a>
-  </p>
-{/if}
-
-<div class="mt-6 grid gap-4">
+<Card>
   <Field label={t.compose.title}>
-    <Input bind:value={title}/>
+    <Input bind:value={title} />
   </Field>
 
   <Field label={t.compose.description} hint={t.compose.descriptionHint}>
     <textarea
       bind:value={description}
       rows="3"
-      class="w-full rounded-lg border border-line bg-transparent px-3 py-2.5 text-base
-             transition-colors hover:border-muted"
+      class="w-full rounded-lg border border-line bg-paper px-3 py-2.5 text-base
+             transition-colors hover:border-muted focus-visible:border-accent"
     ></textarea>
   </Field>
 
@@ -277,29 +284,25 @@ async function remove(): Promise<void> {
         <Select bind:value={stage} options={Event.STATES} name={(option) => t.states[option]} />
       </Field>
     {/if}
+  </div>
+</Card>
 
+<Card>
+  <div class="grid gap-4 sm:grid-cols-2">
     <Field label={series ? t.compose.first : t.compose.starts}>
-      <Input type="datetime-local" bind:value={startsAt}/>
+      <Input type="datetime-local" bind:value={startsAt} />
     </Field>
 
     <Field label={t.compose.ends} hint={t.common.optional}>
-      <Input type="datetime-local" bind:value={endsAt}/>
+      <Input type="datetime-local" bind:value={endsAt} />
     </Field>
 
     {#if !series}
       <Field label={t.compose.closes} hint={t.compose.closesHint}>
-        <Input type="datetime-local" bind:value={closesAt}/>
+        <Input type="datetime-local" bind:value={closesAt} />
       </Field>
     {/if}
-
-    <Field label={t.compose.capacity} hint={t.compose.capacityHint}>
-      <Input type="number" min="1" bind:value={capacity}/>
-    </Field>
   </div>
-
-  <Field label={t.compose.location} hint={t.common.optional}>
-    <Input bind:value={location}/>
-  </Field>
 
   <!--
     The one control that decides which of the two things this form writes. An event that is already
@@ -318,28 +321,42 @@ async function remove(): Promise<void> {
 
       {#if repeats !== ONCE}
         <Field label={t.schedules.interval} hint={t.schedules.intervalHint}>
-          <Input type="number" min="1" bind:value={interval}/>
+          <Input type="number" min="1" bind:value={interval} />
         </Field>
 
         <Field label={t.schedules.count} hint={t.schedules.countHint}>
-          <Input type="number" min="1" bind:value={count}/>
+          <Input type="number" min="1" bind:value={count} />
         </Field>
       {/if}
     </div>
   {/if}
+</Card>
 
-  <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" bind:checked={listed} />
-    {t.compose.listed}
-  </label>
+<Card>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <Field label={t.compose.location} hint={t.common.optional}>
+      <Input bind:value={location} />
+    </Field>
 
-  <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" bind:checked={teams} />
-    {t.compose.teams}
-  </label>
+    <Field label={t.compose.capacity} hint={t.compose.capacityHint}>
+      <Input type="number" min="1" bind:value={capacity} />
+    </Field>
+  </div>
+
+  <div class="stack-tight">
+    <label class="flex items-center gap-3 text-sm">
+      <input type="checkbox" bind:checked={listed} />
+      {t.compose.listed}
+    </label>
+
+    <label class="flex items-center gap-3 text-sm">
+      <input type="checkbox" bind:checked={teams} />
+      {t.compose.teams}
+    </label>
+  </div>
 
   {#if teams}
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-2">
       <Field label={t.compose.teamSize} hint={t.compose.teamSizeHint}>
         <Input type="number" min="1" bind:value={teamSize} />
       </Field>
@@ -348,30 +365,35 @@ async function remove(): Promise<void> {
       </Field>
     </div>
   {/if}
+</Card>
 
-  {#if series}<p class="text-xs text-muted">{t.schedules.retimes}</p>{/if}
-  {#if cost}
-    <p class="text-sm text-muted">{t.schedules.cost(cost.updated, cost.dropped, cost.created)}</p>
+{#if series}<p class="text-sm text-muted">{t.schedules.retimes}</p>{/if}
+{#if cost}
+  <p class="text-sm text-muted">{t.schedules.cost(cost.updated, cost.dropped, cost.created)}</p>
+{/if}
+
+{#if existing.error}<Alert error={existing.error} />{/if}
+{#if rule.error}<Alert error={rule.error} />{/if}
+{#if action.error}<Alert error={action.error} />{/if}
+
+<!-- Pinned above the phone's tab bar, so the save button is never a scroll away on a long form. -->
+<div
+  class="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-10 -mx-4 flex gap-2 border-t border-line
+         bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:bottom-0"
+>
+  <Button look="solid" field disabled={action.busy || !title || !startsAt || !kind} onclick={save}>
+    {editing ? t.common.save : t.common.create}
+  </Button>
+  {#if editing}
+    <Danger
+      field
+      question={series ? t.asks.removeSchedule : t.asks.removeEvent}
+      detail={series ? t.asks.removeScheduleWhy : t.asks.removeEventWhy}
+      confirm={t.common.remove}
+      disabled={action.busy}
+      onconfirm={remove}
+    >
+      {t.common.remove}
+    </Danger>
   {/if}
-
-  {#if existing.error}<Alert error={existing.error} />{/if}
-  {#if rule.error}<Alert error={rule.error} />{/if}
-  {#if action.error}<Alert error={action.error} />{/if}
-
-  <div class="flex gap-2">
-    <Button look="solid" disabled={action.busy || !title || !startsAt || !kind} onclick={save}>
-      {editing ? t.common.save : t.common.create}
-    </Button>
-    {#if editing}
-      <Danger
-        question={series ? t.asks.removeSchedule : t.asks.removeEvent}
-        detail={series ? t.asks.removeScheduleWhy : t.asks.removeEventWhy}
-        confirm={t.common.remove}
-        disabled={action.busy}
-        onconfirm={remove}
-      >
-        {t.common.remove}
-      </Danger>
-    {/if}
-  </div>
 </div>

@@ -27,9 +27,9 @@ const named = $props.id();
 </script>
 
 {#snippet inside()}
-  <span id={named} class="text-xs text-muted">{label}</span>
-  <div class="mt-1">{@render children()}</div>
-  {#if hint}<span class="mt-1 block text-xs text-muted">{hint}</span>{/if}
+  <span id={named} class="text-sm font-medium">{label}</span>
+  <div class="mt-1.5">{@render children()}</div>
+  {#if hint}<span class="mt-1.5 block text-xs text-muted">{hint}</span>{/if}
 {/snippet}
 
 {#if group}

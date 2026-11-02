@@ -19,12 +19,14 @@ const t = $derived(words.t);
 </script>
 
 {#if query.first}
-  <p class="breathe text-sm text-muted">{t.common.loading}</p>
+  <div class="stack breathe" role="status" aria-label={t.common.loading}>
+    <div class="h-5 w-1/3 rounded-md bg-sunk"></div>
+    <div class="h-24 rounded-xl bg-sunk"></div>
+    <div class="h-24 rounded-xl bg-sunk"></div>
+  </div>
 {:else if query.error && query.data === null}
   <Alert error={query.error} />
 {:else}
-  {#if query.error}
-    <div class="mt-4"><Alert error={query.error} /></div>
-  {/if}
+  {#if query.error}<Alert error={query.error} />{/if}
   {@render children()}
 {/if}

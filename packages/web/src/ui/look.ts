@@ -1,42 +1,27 @@
 /**
- * What a pressable thing looks like, in one place, because two of them are not both `<button>`.
+ * What a pressable thing looks like, in one place, because not all of them are `<button>`.
  *
- * "Edit" and "attendance" sitting next to each other as two pieces of muted text read as one
- * phrase, "edit attendance", and a row of four of them reads as a sentence nobody wrote. So every
- * action carries a shape: padding, a rounded box, and a surface that separates it from the action
- * beside it. Which action is which is then a matter of looking, not of parsing.
+ * Four looks and two sizes, and that is the whole vocabulary. A look says how much the action
+ * matters (`solid` is the one thing the screen is for, `quiet` an ordinary action, `plain` a
+ * secondary one, `danger` the one that cannot be undone); a size says where it stands (`ROW` in
+ * a header or a list, `FIELD` beside a text box, so the two edges line up).
+ *
+ * The `btn` class is the hook the stylesheet uses to raise the height on a touch screen.
  */
 export const LOOKS = {
-  /** The one thing this screen is for. */
   solid: 'bg-accent text-paper hover:opacity-90',
-  /** The one thing on this screen that cannot be undone. */
   danger: 'bg-declined text-paper hover:opacity-90',
-  /** An ordinary action, outlined. */
-  quiet: 'border border-line hover:border-accent hover:text-accent',
-  /** A secondary action: quieter than `quiet`, still unmistakably a control. */
-  plain: 'bg-sunk text-muted hover:text-ink',
+  quiet: 'border border-line bg-paper hover:border-muted',
+  plain: 'bg-sunk text-ink hover:bg-line',
 } as const;
 
 export type Look = keyof typeof LOOKS;
 
-/**
- * Shared by every look, so a link and a button of the same look are the same size. The press is
- * here too: a control that gives nothing back under the finger is the difference between a page
- * and an app, and it costs one transform.
- */
 export const SHAPE =
-  'inline-flex items-center justify-center gap-2 rounded-lg transition active:scale-[0.98]';
+  'btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition active:scale-[0.98]';
 
-/**
- * Two heights, and only two.
- *
- * `ROW` is an action in a list or a header. `FIELD` is an action standing next to a text box, and
- * it matches what `Input` and `Select` are: a button half the height of the field beside it reads
- * as an afterthought, and the two edges not lining up is the thing that makes a form look
- * unfinished.
- */
-export const ROW = 'px-3 py-1.5 text-sm';
-export const FIELD = 'px-4 py-2.5 text-base';
+export const ROW = 'h-9 px-3.5 text-sm';
+export const FIELD = 'h-10 px-4 text-sm';
 
 /** The classes for one look, for an `<a>` that acts as a button. `Button` uses the same. */
 export function look(name: Look = 'quiet', field = false): string {

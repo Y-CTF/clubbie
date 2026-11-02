@@ -97,7 +97,7 @@ $effect(() => {
   onrepeats={() => (repeating = true)}
 />
 
-<div class="mt-4" aria-live="polite">
+<div aria-live="polite">
   <Panel query={calendar.query}>
     <!--
       Keyed on the view alone. Keying it on the window too would rebuild the week grid every time

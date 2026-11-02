@@ -23,10 +23,10 @@ const t = $derived(words.t);
 </script>
 
 {#if listing.data?.events.length}
-  <section class="mx-auto mt-14 max-w-md">
-    <h2 class="font-medium">{t.signIn.upcoming}</h2>
+  <section class="stack mx-auto w-full max-w-md">
+    <h2>{t.signIn.upcoming}</h2>
 
-    <ul class="mt-3 grid gap-2">
+    <ul class="stack-tight">
       {#each listing.data.events as event (event.id)}
         <li>
           <!--
@@ -37,15 +37,13 @@ const t = $derived(words.t);
           <svelte:element
             this={session.signedIn ? 'a' : 'div'}
             href={session.signedIn ? Router.to('Event', { id: event.id }) : undefined}
-            class="block rounded-lg border border-line p-4 {session.signedIn
-              ? 'transition-colors hover:border-accent'
-              : ''}"
+            class="card block !p-4 {session.signedIn ? 'transition-colors hover:border-muted' : ''}"
           >
             <div class="flex items-baseline justify-between gap-3">
               <span class="font-medium">{event.title}</span>
-              <span class="shrink-0 font-mono text-xs text-muted">{Format.day(event.startsAt)}</span>
+              <span class="shrink-0 text-sm text-muted tabular-nums">{Format.day(event.startsAt)}</span>
             </div>
-            <p class="mt-1 text-xs text-muted">
+            <p class="mt-1 text-sm text-muted">
               {event.kind}{event.location ? ` · ${event.location}` : ''}
             </p>
           </svelte:element>

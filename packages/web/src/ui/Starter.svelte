@@ -25,20 +25,18 @@ async function dismiss(): Promise<void> {
 </script>
 
 {#if session.left > 0}
-  <section class="mb-6 rounded-lg border border-line p-4">
+  <section class="card stack">
     <div class="flex items-baseline justify-between gap-4">
-      <h2 class="text-sm font-medium">{t.welcome.heading}</h2>
+      <h2 class="text-base font-semibold">{t.welcome.heading}</h2>
       <span class="text-xs text-muted">{t.welcome.left(session.left)}</span>
     </div>
 
-    <div class="mt-4"><Checklist /></div>
+    <Checklist />
 
-    <div class="mt-4">
+    <div>
       <Button disabled={action.busy} onclick={dismiss}>{t.welcome.later}</Button>
     </div>
 
-    {#if action.error}
-      <div class="mt-4"><Alert error={action.error} /></div>
-    {/if}
+    {#if action.error}<Alert error={action.error} />{/if}
   </section>
 {/if}

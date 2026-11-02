@@ -36,6 +36,8 @@ import type { Name } from '../router.svelte.ts';
 export interface Catalogue {
   readonly common: {
     readonly save: string;
+    readonly saved: string;
+    readonly undo: string;
     readonly create: string;
     readonly cancel: string;
     readonly add: string;
@@ -133,6 +135,15 @@ export interface Catalogue {
     readonly waiting: string;
     readonly waitingWhy: string;
     readonly adminOnly: string;
+    readonly more: string;
+    readonly account: string;
+    readonly admin: string;
+    readonly club: string;
+    readonly skip: string;
+    readonly close: string;
+    readonly menu: string;
+    readonly jump: string;
+    readonly nothing: string;
   };
 
   /** Teams on an event, which only a club that turns them on ever sees. */
@@ -325,6 +336,7 @@ export interface Catalogue {
   };
 
   readonly seasons: {
+    readonly none: string;
     /** The strip that asks a member to renew, which is the only place most of them meet a season. */
     readonly renew: (season: string) => string;
     readonly renewBy: (when: string) => string;
@@ -465,6 +477,7 @@ export interface Catalogue {
   readonly admissions: Record<Admission, string>;
 
   readonly settings: {
+    readonly general: string;
     readonly name: string;
     readonly tagline: string;
     readonly taglineHint: string;

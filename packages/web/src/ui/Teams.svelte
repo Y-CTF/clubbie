@@ -9,6 +9,8 @@ import { words } from '../lib/words/index.svelte.ts';
 import Alert from './Alert.svelte';
 import Button from './Button.svelte';
 import Input from './Input.svelte';
+import Card from './Card.svelte';
+import Section from './Section.svelte';
 import Panel from './Panel.svelte';
 
 /**
@@ -84,29 +86,26 @@ async function disband(teamId: string, named: string): Promise<void> {
 }
 </script>
 
-<section class="mt-6">
-  <h2>{t.teams.title}</h2>
-  {#if size !== null}<p class="mt-1 text-xs text-muted">{t.teams.size(size)}</p>{/if}
-
+<Section title={t.teams.title} hint={size !== null ? t.teams.size(size) : undefined}>
   <Panel query={teams}>
-    {#if teams.data?.teams.length}
-      <ul class="mt-3 flex flex-col gap-2">
+    <Card flush={!!teams.data?.teams.length}>
+      {#if teams.data?.teams.length}
         {#each teams.data.teams as team (team.id)}
           {@const full = size !== null && team.members.length >= size}
-          <li class="rounded-lg border border-line p-3">
+          <div class="stack-tight px-4 py-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="text-sm font-medium">{team.name}</span>
-              <span class="font-mono text-xs text-muted">
+              <span class="text-xs text-muted tabular-nums">
                 {size === null ? team.members.length : `${team.members.length}/${size}`}
               </span>
             </div>
 
-            <p class="mt-1 text-xs text-muted">
+            <p class="text-sm text-muted">
               {team.members.map((one) => one.name).join(', ') || t.teams.empty}
             </p>
 
             {#if open}
-              <div class="mt-2 flex gap-2">
+              <div class="flex gap-2">
                 {#if mine === team.id}
                   <Button disabled={action.busy} onclick={leave}>{t.teams.leave}</Button>
                 {:else if mine === null && !full}
@@ -120,24 +119,22 @@ async function disband(teamId: string, named: string): Promise<void> {
                 {/if}
               </div>
             {/if}
-          </li>
+          </div>
         {/each}
-      </ul>
-    {:else}
-      <p class="mt-3 text-sm text-muted">{t.teams.none}</p>
-    {/if}
+      {:else}
+        <p class="text-sm text-muted">{t.teams.none}</p>
+      {/if}
+    </Card>
 
     {#if may}
-      <form onsubmit={create} class="mt-3 flex gap-2">
+      <form onsubmit={create} class="flex gap-2">
         <Input bind:value={name} placeholder={t.teams.name} maxlength={Team.NAME} />
         <Button type="submit" field disabled={action.busy}>{t.teams.start}</Button>
       </form>
     {:else if !open}
-      <p class="mt-3 text-xs text-muted">{t.teams.settled}</p>
+      <p class="text-sm text-muted">{t.teams.settled}</p>
     {/if}
 
-    {#if action.error}
-      <div class="mt-3"><Alert error={action.error} /></div>
-    {/if}
+    {#if action.error}<Alert error={action.error} />{/if}
   </Panel>
-</section>
+</Section>

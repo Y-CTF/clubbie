@@ -24,7 +24,7 @@ const t = $derived(words.t);
 {#if session.lapsed && session.season}
   {@const season = session.season}
   <div class="border-b border-line bg-sunk">
-    <div class="mx-auto flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3 text-sm">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-sm sm:px-6 lg:px-8">
       <span>
         <span class="font-medium">{t.seasons.renew(season.name)}</span>
         {#if season.renewalAt}
@@ -40,7 +40,7 @@ const t = $derived(words.t);
     </div>
 
     {#if action.error}
-      <div class="mx-auto px-6 pb-3"><Alert error={action.error} /></div>
+      <div class="px-4 pb-3 sm:px-6 lg:px-8"><Alert error={action.error} /></div>
     {/if}
   </div>
 {/if}

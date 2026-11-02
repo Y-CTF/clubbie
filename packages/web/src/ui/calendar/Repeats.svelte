@@ -8,7 +8,6 @@ import { Router } from '../../lib/router.svelte.ts';
 import { words } from '../../lib/words/index.svelte.ts';
 import Alert from '../Alert.svelte';
 import Button from '../Button.svelte';
-import { look } from '../look.ts';
 import Panel from '../Panel.svelte';
 
 /**
@@ -64,7 +63,7 @@ async function fill(id: string): Promise<void> {
         </p>
 
         <div class="mt-2 flex flex-wrap gap-2">
-          <a href={Router.to('Repeat', { id: repeat.id })} class={look('plain')}>{t.common.edit}</a>
+          <Button look="plain" href={Router.to('Repeat', { id: repeat.id })}>{t.common.edit}</Button>
           <Button look="plain" disabled={action.busy} onclick={() => fill(repeat.id)}>
             {t.schedules.fill}
           </Button>

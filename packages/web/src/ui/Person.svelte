@@ -29,7 +29,7 @@ const open = $derived(session.can('member:read'));
 {/snippet}
 
 {#if open}
-  <a href={Router.to('Member', { id })} class="transition-colors hover:text-accent">
+  <a href={Router.to('Member', { id })} class="font-medium underline decoration-line decoration-1 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent">
     {@render body()}
   </a>
 {:else}

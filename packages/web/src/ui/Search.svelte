@@ -41,6 +41,6 @@ const t = $derived(words.t);
   autocapitalize="none"
   autocorrect="off"
   spellcheck="false"
-  class="w-full rounded-lg border border-line bg-transparent px-3 py-2.5 text-base
-         transition-colors hover:border-muted"
+  class="h-10 w-full rounded-lg border border-line bg-paper px-3 text-base
+         transition-colors placeholder:text-muted hover:border-muted focus-visible:border-accent"
 />

@@ -5,6 +5,7 @@ import { Query } from '../lib/query.svelte.ts';
 import { Router } from '../lib/router.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
 import Alert from '../ui/Alert.svelte';
+import Button from '../ui/Button.svelte';
 import Panel from '../ui/Panel.svelte';
 
 /**
@@ -36,25 +37,19 @@ $effect(() => {
 });
 </script>
 
-<main class="mx-auto w-full max-w-[32rem] px-6 py-12">
-  <h1 class="hero">{club.name}</h1>
-  <h2 class="mt-6 text-sm">{t.denied.heading}</h2>
+<div class="stack-page mx-auto w-full max-w-[32rem] sm:py-6">
+  <header class="stack-tight">
+    <h1 class="hero">{club.name}</h1>
+    <h2>{t.denied.heading}</h2>
+  </header>
 
-  <div class="mt-4">
-    <Panel query={failure}>
-      {#if error}
-        <Alert {error} />
-      {:else}
-        <p class="text-sm text-muted">{t.denied.none}</p>
-      {/if}
-    </Panel>
-  </div>
+  <Panel query={failure}>
+    {#if error}
+      <Alert {error} />
+    {:else}
+      <p class="text-sm text-muted">{t.denied.none}</p>
+    {/if}
+  </Panel>
 
-  <a
-    href={Router.to('Home')}
-    class="mt-6 inline-block rounded-lg border border-accent bg-accent px-4 py-3 text-sm font-medium
-           text-paper transition-opacity hover:opacity-90"
-  >
-    {t.denied.back}
-  </a>
-</main>
+  <Button look="solid" field full href={Router.to('Home')}>{t.denied.back}</Button>
+</div>

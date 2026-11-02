@@ -13,6 +13,8 @@ const many = (count: number, one: string, more = `${one}s`): string => `${count}
 export const en: Catalogue = {
   common: {
     save: 'save',
+    saved: 'saved',
+    undo: 'undo',
     create: 'create',
     cancel: 'cancel',
     add: 'add',
@@ -106,6 +108,15 @@ export const en: Catalogue = {
     waiting: 'you are signed in, and waiting to be admitted.',
     waitingWhy: 'an admin has to make you an active member before you can see events.',
     adminOnly: "the club's settings are an admin's to change.",
+    more: 'more',
+    account: 'account',
+    admin: 'admin',
+    club: 'club',
+    skip: 'skip to content',
+    close: 'close',
+    menu: 'menu',
+    jump: 'jump to…',
+    nothing: 'nothing matches.',
   },
 
   teams: {
@@ -287,6 +298,7 @@ export const en: Catalogue = {
   },
 
   seasons: {
+    none: 'no seasons yet.',
     renew: (season) => `you are not on the roster for ${season} yet.`,
     renewBy: (when) => `renewing is yours to do until ${when}.`,
     renewNow: 'renew',
@@ -415,6 +427,7 @@ export const en: Catalogue = {
   },
 
   settings: {
+    general: 'general',
     name: 'name',
     tagline: 'tagline',
     taglineHint: 'one line, shown on the sign-in page',

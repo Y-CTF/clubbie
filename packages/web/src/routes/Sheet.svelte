@@ -10,7 +10,11 @@ import Button from '../ui/Button.svelte';
 import Danger from '../ui/Danger.svelte';
 import Field from '../ui/Field.svelte';
 import Input from '../ui/Input.svelte';
+import Card from '../ui/Card.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
 import Panel from '../ui/Panel.svelte';
+import Section from '../ui/Section.svelte';
+import { Router } from '../lib/router.svelte.ts';
 import Person from '../ui/Person.svelte';
 
 /**
@@ -145,34 +149,31 @@ async function uninvite(guestId: string): Promise<void> {
 }
 </script>
 
-<header class="flex items-baseline justify-between gap-4">
-  <h1 class="font-semibold">{event.data?.title ?? t.sheet.heading}</h1>
-  <a href={Site.Api.sheet(id)} data-external class="text-sm text-muted hover:text-ink">{t.common.csv}</a>
-</header>
+<PageHeader
+  title={event.data?.title ?? t.sheet.heading}
+  sub={event.data ? t.sheet.counts(event.data.attended, event.data.going, event.data.guests) : undefined}
+  back={{ href: Router.to('Event', { id }), label: t.pages.Event }}
+>
+  {#snippet actions()}
+    <Button href={Site.Api.sheet(id)} external>{t.common.csv}</Button>
+  {/snippet}
+</PageHeader>
 
-{#if event.data}
-  <p class="mt-1 text-sm text-muted">
-    {t.sheet.counts(event.data.attended, event.data.going, event.data.guests)}
-  </p>
-{/if}
+<Field label={t.sheet.filter}>
+  <Input bind:value={filter} placeholder={t.sheet.filterHint} />
+</Field>
 
-<div class="mt-4">
-  <Field label={t.sheet.filter}>
-    <Input bind:value={filter} placeholder={t.sheet.filterHint}/>
-  </Field>
-</div>
-
-{#if action.error}<div class="mt-4"><Alert error={action.error} /></div>{/if}
+{#if action.error}<Alert error={action.error} />{/if}
 
 <Panel query={sheet}>
-  <ul class="mt-4 divide-y divide-line">
+  <Card flush>
     {#each answers as entry (entry.memberId)}
-      <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-        <span class="flex min-w-0 items-center gap-2 text-sm">
-          <span class="truncate"><Person id={entry.member.id} name={entry.member.name} /></span>
+      <div class="flex items-center justify-between gap-3 px-4 py-3">
+        <span class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span class="truncate font-medium"><Person id={entry.member.id} name={entry.member.name} /></span>
           <Badge kind={entry.answer}>{t.answers[entry.answer]}</Badge>
         </span>
-        <span class="min-h-11 shrink-0 [&_button]:min-h-11 [&_button]:px-4">
+        <span class="shrink-0">
           <Button
             look={entry.attendedAt ? 'solid' : 'quiet'}
             onclick={() => mark(entry.memberId, !entry.attendedAt)}
@@ -180,16 +181,16 @@ async function uninvite(guestId: string): Promise<void> {
             {entry.attendedAt ? t.sheet.present : t.sheet.markPresent}
           </Button>
         </span>
-      </li>
+      </div>
     {/each}
 
     {#each guests as guest (guest.id)}
-      <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-        <span class="flex min-w-0 items-center gap-2 text-sm">
-          <span class="truncate">{guest.name}</span>
+      <div class="flex items-center justify-between gap-3 px-4 py-3">
+        <span class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span class="truncate font-medium">{guest.name}</span>
           <Badge kind="guest">{t.event.guest}</Badge>
         </span>
-        <span class="flex shrink-0 gap-2 [&_button]:min-h-11 [&_button]:px-4">
+        <span class="flex shrink-0 gap-2">
           <Button
             look={guest.attendedAt ? 'solid' : 'quiet'}
             onclick={() => markGuest(guest.id, !guest.attendedAt)}
@@ -205,19 +206,19 @@ async function uninvite(guestId: string): Promise<void> {
             {t.common.remove}
           </Danger>
         </span>
-      </li>
+      </div>
     {/each}
-  </ul>
+  </Card>
 </Panel>
 
-<section class="mt-8">
-  <h2 class="font-medium">{t.sheet.addGuest}</h2>
-  <!-- One grid: the box and the button beside it share an edge, and the button is its height. -->
-  <div class="mt-2 grid grid-cols-[minmax(0,1fr)_7rem] items-end gap-2">
-    <Field label={t.sheet.guestName}>
-      <Input bind:value={guestName} />
-    </Field>
-    <Button field disabled={action.busy || !guestName} onclick={invite}>{t.common.add}</Button>
-  </div>
-  <p class="mt-1 text-xs text-muted">{t.sheet.guestHint}</p>
-</section>
+<Section title={t.sheet.addGuest} hint={t.sheet.guestHint}>
+  <Card>
+    <!-- One grid: the box and the button beside it share an edge, and the button is its height. -->
+    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+      <Field label={t.sheet.guestName}>
+        <Input bind:value={guestName} />
+      </Field>
+      <Button field look="solid" disabled={action.busy || !guestName} onclick={invite}>{t.common.add}</Button>
+    </div>
+  </Card>
+</Section>

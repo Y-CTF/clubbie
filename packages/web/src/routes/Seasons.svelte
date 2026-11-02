@@ -10,6 +10,9 @@ import Alert from '../ui/Alert.svelte';
 import Button from '../ui/Button.svelte';
 import Field from '../ui/Field.svelte';
 import Input from '../ui/Input.svelte';
+import Card from '../ui/Card.svelte';
+import EmptyState from '../ui/EmptyState.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
 import Panel from '../ui/Panel.svelte';
 import Person from '../ui/Person.svelte';
 
@@ -152,44 +155,50 @@ async function remove(id: string): Promise<void> {
 }
 </script>
 
-<header class="flex items-baseline justify-between">
-  <h1 class="font-semibold">{t.pages.Seasons}</h1>
-  {#if session.can('season:manage')}
-    <Button look="plain" onclick={() => (composing = !composing)}>{composing ? t.common.cancel : t.common.new}</Button>
-  {/if}
-</header>
+<PageHeader title={t.pages.Seasons}>
+  {#snippet actions()}
+    {#if session.can('season:manage')}
+      <Button look={composing ? 'quiet' : 'solid'} onclick={() => (composing = !composing)}>
+        {composing ? t.common.cancel : t.common.new}
+      </Button>
+    {/if}
+  {/snippet}
+</PageHeader>
 
 {#if composing}
-  <div class="mt-4 grid gap-3 rounded-lg border border-line p-4">
+  <Card>
     <Field label={t.seasons.name} hint={t.seasons.nameHint}>
-      <Input bind:value={name}/>
+      <Input bind:value={name} />
     </Field>
-    <div class="grid gap-3 sm:grid-cols-3">
+    <div class="grid gap-4 sm:grid-cols-3">
       <Field label={t.seasons.starts}>
-        <Input type="date" bind:value={startsAt}/>
+        <Input type="date" bind:value={startsAt} />
       </Field>
       <Field label={t.seasons.ends}>
-        <Input type="date" bind:value={endsAt}/>
+        <Input type="date" bind:value={endsAt} />
       </Field>
       <Field label={t.seasons.renewals} hint={t.common.optional}>
-        <Input type="date" bind:value={renewalAt}/>
+        <Input type="date" bind:value={renewalAt} />
       </Field>
     </div>
     <div>
-      <Button look="solid" disabled={action.busy || !name || !startsAt || !endsAt} onclick={create}>
+      <Button look="solid" field disabled={action.busy || !name || !startsAt || !endsAt} onclick={create}>
         {t.seasons.createCurrent}
       </Button>
     </div>
-  </div>
+  </Card>
 {/if}
 
-{#if action.error}<div class="mt-4"><Alert error={action.error} /></div>{/if}
+{#if action.error}<Alert error={action.error} />{/if}
 
 <Panel query={seasons}>
-  <ul class="mt-6 divide-y divide-line">
+  {#if seasons.data?.length === 0}
+    <EmptyState title={t.seasons.none} icon="trophy" />
+  {:else}
+  <Card flush>
     {#each seasons.data ?? [] as season (season.id)}
-      <li class="py-3 text-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="px-4 py-3 text-sm">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <!--
             The row is the way in and out of its own roster. It was a button beside three others,
             which put "look at this" in a row of things that change something, and made the one
@@ -197,15 +206,15 @@ async function remove(id: string): Promise<void> {
           -->
           <button
             type="button"
-            class="flex min-w-0 flex-1 items-center gap-3 text-start hover:text-accent"
+            class="flex min-w-0 flex-1 basis-48 items-center gap-3 text-start hover:text-accent"
             aria-expanded={open === season.id}
             aria-controls="roster-{season.id}"
             onclick={() => (open = open === season.id ? null : season.id)}
           >
             <span class="chevron shrink-0" class:chevron-open={open === season.id}></span>
             <span class="min-w-0">
-              {season.name}
-              <span class="ml-2 font-mono text-xs text-muted">
+              <span class="block font-medium">{season.name}</span>
+              <span class="block text-xs text-muted tabular-nums">
                 {Format.day(season.startsAt)}
                 {t.common.between}
                 {Format.day(season.endsAt)}
@@ -222,7 +231,7 @@ async function remove(id: string): Promise<void> {
                 in a row of buttons and read as the loudest thing on the page: being on the roster
                 is the quiet, expected case, and what it replaces is an offer to join.
               -->
-              <span class="text-xs text-muted">{t.seasons.mine}</span>
+              <span class="text-sm text-muted">{t.seasons.mine}</span>
             {:else}
               <Button disabled={action.busy} onclick={() => join(season.id)}>{t.seasons.join}</Button>
             {/if}
@@ -246,19 +255,22 @@ async function remove(id: string): Promise<void> {
 
         {#if open === season.id}
           <!-- Through `Panel`, or a refused roster read as a season nobody had joined. -->
-          <Panel query={roster}>
-            <p class="mt-3 text-xs text-muted">{t.seasons.count(roster.data?.length ?? 0)}</p>
-            <ul id="roster-{season.id}" class="mt-1 ml-1 border-l border-line pl-3 text-xs text-muted">
-              {#each roster.data ?? [] as member (member.id)}
-                <li class="py-0.5">
-                  <Person id={member.id} name={member.name} note={t.statuses[member.status]} />
-                </li>
-              {/each}
-              {#if roster.data?.length === 0}<li class="py-0.5">{t.seasons.empty}</li>{/if}
-            </ul>
-          </Panel>
+          <div class="stack-tight mt-3 border-t border-line pt-3">
+            <Panel query={roster}>
+              <p class="text-xs text-muted">{t.seasons.count(roster.data?.length ?? 0)}</p>
+              <ul id="roster-{season.id}" class="text-sm">
+                {#each roster.data ?? [] as member (member.id)}
+                  <li class="py-1">
+                    <Person id={member.id} name={member.name} note={t.statuses[member.status]} />
+                  </li>
+                {/each}
+                {#if roster.data?.length === 0}<li class="py-1 text-muted">{t.seasons.empty}</li>{/if}
+              </ul>
+            </Panel>
+          </div>
         {/if}
-      </li>
+      </div>
     {/each}
-  </ul>
+  </Card>
+  {/if}
 </Panel>

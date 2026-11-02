@@ -84,7 +84,15 @@ $effect(() => {
         {url}
       </code>
     {:else}
-      <p class="mt-2 truncate font-mono text-xs text-muted">{masked(url)}</p>
+      <button
+        type="button"
+        title={t.common.copy}
+        onclick={() => copy.put(url)}
+        class="btn mt-2 block w-full truncate rounded-lg border border-dashed border-line bg-sunk px-3 py-2.5
+               text-start font-mono text-xs text-muted transition-colors hover:border-muted hover:text-ink"
+      >
+        {copy.done ? t.common.copied : masked(url)}
+      </button>
     {/if}
 
     <p class="mt-2 text-xs text-muted">{t.profile.calendarWarning}</p>

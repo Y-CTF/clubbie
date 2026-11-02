@@ -60,7 +60,8 @@ function box(block: { top: number; height: number; column: number; columns: numb
 }
 </script>
 
-<div class="calendar overflow-hidden rounded-lg border border-line">
+<div class="overflow-x-auto rounded-xl border border-line">
+<div class="calendar min-w-[40rem]">
   <!-- The gutter is a column of its own so the hour labels and the columns cannot drift apart. -->
   <div class="flex border-b border-line bg-sunk">
     <div class="w-14 shrink-0 border-e border-line"></div>
@@ -142,4 +143,5 @@ function box(block: { top: number; height: number; column: number; columns: numb
       {/each}
     </div>
   </div>
+</div>
 </div>

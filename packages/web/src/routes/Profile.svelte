@@ -12,6 +12,10 @@ import Alert from '../ui/Alert.svelte';
 import Button from '../ui/Button.svelte';
 import Field from '../ui/Field.svelte';
 import Input from '../ui/Input.svelte';
+import Icon from '../ui/Icon.svelte';
+import Card from '../ui/Card.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
+import Section from '../ui/Section.svelte';
 import Panel from '../ui/Panel.svelte';
 import Subscribe from '../ui/calendar/Subscribe.svelte';
 
@@ -70,7 +74,7 @@ async function rename(): Promise<void> {
   const name = named.trim();
   if (name === '' || name === session.member?.name) return;
 
-  if (await action.run(async () => unwrap(await api.me.$patch({ json: { name } })))) {
+  if (await action.run(async () => unwrap(await api.me.$patch({ json: { name } })), t.common.saved)) {
     await session.load();
     named = session.member?.name ?? name;
   }
@@ -109,128 +113,116 @@ async function toggle(key: (typeof SWITCHES)[number], on: boolean): Promise<void
 }
 </script>
 
-<h1 class="font-semibold">{t.pages.Profile}</h1>
+<PageHeader title={t.pages.Profile} sub={session.member?.email ?? undefined} />
 
 {#if session.member}
   {@const member = session.member}
-  <dl class="mt-6 grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
-    <dt class="text-muted">{t.profile.email}</dt>
-    <dd class="font-mono text-xs">{member.email}</dd>
-    <dt class="text-muted">{t.profile.role}</dt>
-    <dd>{t.roles[member.role]} · {t.statuses[member.status]}</dd>
-    <dt class="text-muted">{t.profile.since}</dt>
-    <dd>{Format.day(member.createdAt)}</dd>
-  </dl>
+  <Card>
+    <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
+      <dt class="text-muted">{t.profile.role}</dt>
+      <dd>{t.roles[member.role]} · {t.statuses[member.status]}</dd>
+      <dt class="text-muted">{t.profile.since}</dt>
+      <dd>{Format.day(member.createdAt)}</dd>
+    </dl>
 
-  <div class="mt-6">
     <Field label={t.profile.rename} hint={t.profile.renameHint}>
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex gap-2">
         <div class="min-w-0 flex-1"><Input bind:value={named} disabled={action.busy} /></div>
-        <Button field disabled={action.busy || named.trim() === '' || named.trim() === member.name} onclick={rename}>
+        <Button field look="solid" disabled={action.busy || named.trim() === '' || named.trim() === member.name} onclick={rename}>
           {t.common.save}
         </Button>
       </div>
     </Field>
-  </div>
 
-  <div class="mt-6">
-    <Button disabled={action.busy} onclick={() => hide(!member.hidden)}>
-      {member.hidden ? t.profile.show : t.profile.hide}
-    </Button>
-  </div>
+    <div>
+      <Button disabled={action.busy} onclick={() => hide(!member.hidden)}>
+        {member.hidden ? t.profile.show : t.profile.hide}
+      </Button>
+    </div>
+  </Card>
 {/if}
 
-{#if action.error}<div class="mt-6"><Alert error={action.error} /></div>{/if}
+{#if action.error}<Alert error={action.error} />{/if}
 
-<section class="mt-10">
-  <h2 class="font-medium">{t.profile.notices}</h2>
-
+<Section title={t.profile.notices} hint={t.profile.always}>
   <Panel query={prefs}>
-    <ul class="mt-3 grid gap-2 text-sm">
+    <Card flush>
       {#each SWITCHES as option (option)}
-        <li>
-          <label class="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={prefs.data?.[option] ?? true}
-              disabled={action.busy}
-              onchange={(event) => toggle(option, event.currentTarget.checked)}
-            />
-            {SAYS[option]()}
-          </label>
-        </li>
+        <label class="flex items-center gap-3 px-4 py-3 text-sm">
+          <input
+            type="checkbox"
+            checked={prefs.data?.[option] ?? true}
+            disabled={action.busy}
+            onchange={(event) => toggle(option, event.currentTarget.checked)}
+          />
+          {SAYS[option]()}
+        </label>
       {/each}
-    </ul>
-    <p class="mt-2 text-xs text-muted">{t.profile.always}</p>
+    </Card>
   </Panel>
-</section>
+</Section>
 
-<section class="mt-10">
-  <h2 class="font-medium">{t.profile.calendar}</h2>
+<Section title={t.profile.calendar}>
+  <Card><Subscribe /></Card>
+</Section>
 
-  <div class="mt-2"><Subscribe /></div>
-</section>
-
-<section class="mt-10">
-  <h2 class="font-medium">{t.profile.telegramHeading}</h2>
-
+<Section title={t.profile.telegramHeading}>
   <Panel query={link}>
-    {#if link.data}
-      <p class="mt-2 text-sm text-muted">
-        {t.profile.linked(link.data.username, Format.day(link.data.linkedAt))}
-      </p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <Button disabled={action.busy} onclick={unlink}>{t.profile.unlink}</Button>
-        {#if club.group}
-          <Button disabled={action.busy} onclick={join}>{t.profile.group}</Button>
+    <Card>
+      {#if link.data}
+        <p class="text-sm text-muted">
+          {t.profile.linked(link.data.username, Format.day(link.data.linkedAt))}
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <Button disabled={action.busy} onclick={unlink}>{t.profile.unlink}</Button>
+          {#if club.group}
+            <Button disabled={action.busy} onclick={join}>{t.profile.group}</Button>
+          {/if}
+        </div>
+
+        {#if invite}
+          <p class="text-sm">
+            <Button href={invite} external>{t.profile.groupOpen}<Icon name="external" size={14} /></Button>
+            <span class="mt-1 block text-xs text-muted">{t.profile.groupOnce}</span>
+          </p>
         {/if}
-      </div>
+      {:else if code}
+        {@const message = `/link ${code.token}`}
+        <p class="text-sm text-muted">{bot ? t.profile.linkBot(bot) : t.profile.linkSend}</p>
 
-      {#if invite}
-        <p class="mt-3 text-sm">
-          <a href={invite} target="_blank" rel="noopener" class="text-accent">{t.profile.groupOpen}</a>
-          <span class="mt-1 block text-xs text-muted">{t.profile.groupOnce}</span>
-        </p>
-      {/if}
-    {:else if code}
-      {@const message = `/link ${code.token}`}
-      <p class="mt-2 text-sm text-muted">{bot ? t.profile.linkBot(bot) : t.profile.linkSend}</p>
-
-      <div class="mt-2 flex flex-wrap items-center gap-2">
-        <code
-          class="min-w-0 flex-1 overflow-x-auto rounded-lg border border-line bg-sunk px-3 py-2.5
-                 font-mono text-sm select-all"
-        >
-          {message}
-        </code>
-        <Button field onclick={() => copy.put(message)}>
-          {copy.done ? t.common.copied : t.common.copy}
-        </Button>
-      </div>
-
-      <!--
-        The chat, opened with the code already in it. `?start=<code>` is what Telegram turns into
-        `/start <code>`, which the bot answers with the same handler as `/link`, so the member
-        taps once instead of copying a token into a search box and finding the wrong bot.
-      -->
-      {#if bot}
-        <p class="mt-3">
-          <a
-            href={`https://t.me/${bot}?start=${encodeURIComponent(code.token)}`}
-            target="_blank"
-            rel="noopener"
-            class="text-accent">{t.profile.linkOpen}</a
+        <div class="flex gap-2">
+          <code
+            class="flex h-10 min-w-0 flex-1 items-center overflow-x-auto rounded-lg border border-line bg-sunk
+                   px-3 font-mono text-sm select-all"
           >
-        </p>
-      {/if}
+            {message}
+          </code>
+          <Button field onclick={() => copy.put(message)}>
+            {copy.done ? t.common.copied : t.common.copy}
+          </Button>
+        </div>
 
-      <p class="mt-2 text-xs text-muted">{t.profile.linkStep(Format.since(code.expiresAt))}</p>
-    {:else if bot}
-      <div class="mt-3">
-        <Button disabled={action.busy} onclick={issue}>{t.profile.getCode}</Button>
-      </div>
-    {:else}
-      <p class="mt-2 text-sm text-muted">{t.profile.noBot}</p>
-    {/if}
+        <!--
+          The chat, opened with the code already in it. `?start=<code>` is what Telegram turns into
+          `/start <code>`, which the bot answers with the same handler as `/link`, so the member
+          taps once instead of copying a token into a search box and finding the wrong bot.
+        -->
+        {#if bot}
+          <p>
+            <Button href={`https://t.me/${bot}?start=${encodeURIComponent(code.token)}`} external>
+              {t.profile.linkOpen}<Icon name="external" size={14} />
+            </Button>
+          </p>
+        {/if}
+
+        <p class="text-xs text-muted">{t.profile.linkStep(Format.since(code.expiresAt))}</p>
+      {:else if bot}
+        <div>
+          <Button look="solid" disabled={action.busy} onclick={issue}>{t.profile.getCode}</Button>
+        </div>
+      {:else}
+        <p class="text-sm text-muted">{t.profile.noBot}</p>
+      {/if}
+    </Card>
   </Panel>
-</section>
+</Section>

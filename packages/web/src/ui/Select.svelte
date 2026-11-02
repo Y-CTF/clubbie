@@ -172,10 +172,10 @@ $effect(() => {
     aria-controls={open ? id : undefined}
     onclick={() => (open ? hide() : show())}
     onkeydown={key}
-    class="flex w-full items-center justify-between gap-2 rounded-lg border bg-transparent text-start
+    class="flex w-full items-center justify-between gap-2 rounded-lg border bg-paper text-start
            transition-colors disabled:cursor-not-allowed disabled:opacity-40
            {open ? 'border-accent' : 'border-line hover:border-muted'}
-           {small ? 'py-1 ps-2 pe-2 text-xs' : 'px-3 py-2.5 text-base'}"
+           {small ? 'h-8 ps-2 pe-2 text-sm' : 'h-10 px-3 text-base'}"
   >
     <span class="truncate {value === '' ? 'text-muted' : ''}">{shown}</span>
     <span class="chevron shrink-0" class:chevron-open={open}></span>
@@ -189,8 +189,8 @@ $effect(() => {
       aria-label={label}
       aria-activedescendant="{id}-{active}"
       tabindex="-1"
-      class="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-line bg-paper
-             py-1 shadow-lg"
+      class="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-line bg-paper
+             p-1 shadow-pop"
     >
       {#each choices as option, index (option)}
         <!--
@@ -204,7 +204,7 @@ $effect(() => {
           role="option"
           aria-selected={option === value}
           data-active={index === active}
-          class="cursor-pointer px-3 py-2 text-sm
+          class="cursor-pointer rounded-lg px-3 py-2 text-sm
                  {index === active ? 'bg-sunk text-ink' : 'text-muted'}
                  {option === value ? 'font-medium text-ink' : ''}"
           onmouseenter={() => (active = index)}

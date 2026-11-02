@@ -15,6 +15,8 @@ import Button from '../ui/Button.svelte';
 import Chips from '../ui/Chips.svelte';
 import Danger from '../ui/Danger.svelte';
 import Pager from '../ui/Pager.svelte';
+import EmptyState from '../ui/EmptyState.svelte';
+import PageHeader from '../ui/PageHeader.svelte';
 import Panel from '../ui/Panel.svelte';
 import Select from '../ui/Select.svelte';
 
@@ -120,13 +122,20 @@ function timing(job: { state: JobState; runAt: string; claimedAt: string | null 
 }
 </script>
 
-<div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-  <h1 class="font-semibold">{t.pages.Jobs}</h1>
-  <span class="text-xs text-muted">{t.queue.counted(queue.data?.total ?? 0)}</span>
-</div>
-<p class="mt-1 text-xs text-muted">{t.queue.hint}</p>
+<PageHeader title={t.pages.Jobs} sub="{t.queue.counted(queue.data?.total ?? 0)} · {t.queue.hint}">
+  {#snippet actions()}
+    <!--
+      Watching is a switch rather than a refresh button alone: an admin reading why an announcement
+      failed does not want the list reordering itself under the sentence they are halfway through.
+    -->
+    <Button look="quiet" onclick={() => live.toggle()}>
+      <Badge kind={live.on ? 'live' : 'paused'}>{live.on ? t.queue.live : t.queue.paused}</Badge>
+    </Button>
+    <Button look="quiet" disabled={queue.loading} onclick={() => queue.load()}>{t.queue.refresh}</Button>
+  {/snippet}
+</PageHeader>
 
-<div class="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+<div class="stack-tight">
   <Chips
     bind:value={stage}
     options={['', ...Job.STATES] as (JobState | '')[]}
@@ -134,96 +143,86 @@ function timing(job: { state: JobState; runAt: string; claimedAt: string | null 
     onchange={narrow}
   />
 
-  <!--
-    Watching is a switch rather than a refresh button alone: an admin reading why an announcement
-    failed does not want the list reordering itself under the sentence they are halfway through.
-  -->
-  <div class="flex items-center gap-2 justify-self-start sm:justify-self-end">
-    <Button look="plain" onclick={() => live.toggle()}>
-      <Badge kind={live.on ? 'live' : 'paused'}>{live.on ? t.queue.live : t.queue.paused}</Badge>
-    </Button>
-    <Button look="plain" disabled={queue.loading} onclick={() => queue.load()}>{t.queue.refresh}</Button>
+  <div class="sm:max-w-64">
+    <Select
+      bind:value={kind}
+      options={Job.KINDS}
+      name={(one: JobKind) => t.jobs[one]}
+      empty={t.queue.everyKind}
+      label={t.queue.filterKind}
+      onchange={narrow}
+    />
   </div>
 </div>
 
-<div class="mt-3 grid gap-3 sm:grid-cols-[minmax(0,16rem)_auto] sm:items-center">
-  <Select
-    bind:value={kind}
-    options={Job.KINDS}
-    name={(one: JobKind) => t.jobs[one]}
-    empty={t.queue.everyKind}
-    label={t.queue.filterKind}
-    onchange={narrow}
-  />
-  {#if action.error}<span class="min-w-0"><Alert error={action.error} /></span>{/if}
-</div>
+{#if action.error}<Alert error={action.error} />{/if}
 
 <Panel query={queue}>
-  <ul class="mt-4 grid gap-2">
-    {#each jobs as job (job.id)}
-      <li class="rounded-lg border border-line p-4 text-sm">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <span class="flex flex-wrap items-baseline gap-x-3">
-            <Badge kind={job.state}>{t.queue.states[job.state]}</Badge>
-            <span class="font-medium">{t.jobs[job.kind]}</span>
-          </span>
-          <span class="text-xs text-muted">{timing(job)}</span>
-        </div>
-
-        <!--
-          The payload is ids and nothing else, so every one of them is a link to the thing the job
-          is about. It is rendered from the payload rather than from the kind: a job whose payload
-          names an event is a link to that event whatever the job was going to do with it.
-        -->
-        <p class="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-muted">
-          {#each Object.entries(job.payload) as [key, value] (key)}
-            {@const href = Work.link(key, value)}
-            {#if href}
-              <a class="underline decoration-line hover:text-ink" {href}>{value}</a>
-            {:else}
-              <span>{key}: {String(value)}</span>
-            {/if}
-          {/each}
-          <span>{t.queue.queued(Format.since(job.createdAt))}</span>
-          {#if job.attempts > 0}<span>{t.queue.attempts(job.attempts)}</span>{/if}
-        </p>
-
-        {#if job.error}
-          <!-- The provider's own words. It is the only thing that says why, so it is not hidden. -->
-          <p class="mt-2 rounded-lg bg-sunk p-2 font-mono text-xs break-words text-muted">
-            {job.error}
-          </p>
-        {/if}
-
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          {#if Job.REPLAYABLE.includes(job.state)}
-            <Button disabled={action.busy} onclick={() => retry(job.id)}>
-              {job.state === Job.FAILED ? t.queue.retry : t.queue.now}
-            </Button>
-          {/if}
-
-          {#if Job.DISCARDABLE.includes(job.state)}
-            <Danger
-              question={t.asks.discardJob}
-              detail={t.asks.discardJobWhy}
-              confirm={t.queue.discard}
-              disabled={action.busy}
-              onconfirm={() => discard(job.id)}
-            >
-              {t.queue.discard}
-            </Danger>
-          {/if}
-
-          {#if job.state === Job.RUNNING}
-            <span class="text-xs text-muted">{t.queue.busy}</span>
-          {/if}
-        </div>
-      </li>
-    {/each}
-  </ul>
-
   {#if jobs.length === 0}
-    <p class="mt-3 text-sm text-muted">{t.queue.empty}</p>
+    <EmptyState title={t.queue.empty} icon="clock" />
+  {:else}
+    <div class="stack-tight">
+      {#each jobs as job (job.id)}
+        <div class="card stack-tight !p-4 text-sm">
+          <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <span class="flex flex-wrap items-baseline gap-x-3">
+              <Badge kind={job.state}>{t.queue.states[job.state]}</Badge>
+              <span class="font-medium">{t.jobs[job.kind]}</span>
+            </span>
+            <span class="text-xs text-muted">{timing(job)}</span>
+          </div>
+
+          <!--
+            The payload is ids and nothing else, so every one of them is a link to the thing the job
+            is about. It is rendered from the payload rather than from the kind: a job whose payload
+            names an event is a link to that event whatever the job was going to do with it.
+          -->
+          <p class="flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-muted">
+            {#each Object.entries(job.payload) as [key, value] (key)}
+              {@const href = Work.link(key, value)}
+              {#if href}
+                <a class="rounded-md bg-sunk px-2 py-0.5 text-ink transition-colors hover:bg-line" {href}>{value}</a>
+              {:else}
+                <span>{key}: {String(value)}</span>
+              {/if}
+            {/each}
+            <span>{t.queue.queued(Format.since(job.createdAt))}</span>
+            {#if job.attempts > 0}<span>{t.queue.attempts(job.attempts)}</span>{/if}
+          </p>
+
+          {#if job.error}
+            <!-- The provider's own words. It is the only thing that says why, so it is not hidden. -->
+            <p class="rounded-lg bg-sunk p-2 font-mono text-xs break-words text-muted">{job.error}</p>
+          {/if}
+
+          {#if Job.REPLAYABLE.includes(job.state) || Job.DISCARDABLE.includes(job.state) || job.state === Job.RUNNING}
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              {#if Job.REPLAYABLE.includes(job.state)}
+                <Button disabled={action.busy} onclick={() => retry(job.id)}>
+                  {job.state === Job.FAILED ? t.queue.retry : t.queue.now}
+                </Button>
+              {/if}
+
+              {#if Job.DISCARDABLE.includes(job.state)}
+                <Danger
+                  question={t.asks.discardJob}
+                  detail={t.asks.discardJobWhy}
+                  confirm={t.queue.discard}
+                  disabled={action.busy}
+                  onconfirm={() => discard(job.id)}
+                >
+                  {t.queue.discard}
+                </Danger>
+              {/if}
+
+              {#if job.state === Job.RUNNING}
+                <span class="text-xs text-muted">{t.queue.busy}</span>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </div>
   {/if}
 
   <Pager bind:offset window={Job.WINDOW} total={queue.data?.total ?? 0} />

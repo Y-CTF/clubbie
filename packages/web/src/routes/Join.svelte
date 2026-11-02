@@ -3,6 +3,8 @@ import { club } from '../lib/club.svelte.ts';
 import { Router } from '../lib/router.svelte.ts';
 import { session } from '../lib/session.svelte.ts';
 import { words } from '../lib/words/index.svelte.ts';
+import Button from '../ui/Button.svelte';
+import Card from '../ui/Card.svelte';
 import Upcoming from '../ui/Upcoming.svelte';
 import Ways from '../ui/Ways.svelte';
 
@@ -20,45 +22,45 @@ import Ways from '../ui/Ways.svelte';
 const t = $derived(words.t);
 </script>
 
-<main class="mx-auto w-full max-w-[32rem] px-6 py-12">
-  <h1 class="hero">{club.name}</h1>
-  {#if club.tagline}<p class="mt-2 text-muted">{club.tagline}</p>{/if}
+<div class="stack-page mx-auto w-full max-w-[32rem] sm:py-6">
+  <header class="stack-tight">
+    <h1 class="hero">{club.name}</h1>
+    {#if club.tagline}<p class="text-muted">{club.tagline}</p>{/if}
+  </header>
 
   {#if session.signedIn}
-    <p class="mt-8 text-sm">{t.signIn.signedInAs(session.member?.name ?? '')}</p>
-    <a
-      href={Router.to(session.entry)}
-      class="mt-3 inline-block rounded-lg border border-accent bg-accent px-4 py-3 text-sm
-             font-medium text-paper transition-opacity hover:opacity-90"
-    >
-      {t.signIn.enter}
-    </a>
+    <div class="stack-tight">
+      <p class="text-sm">{t.signIn.signedInAs(session.member?.name ?? '')}</p>
+      <Button look="solid" field full href={Router.to(session.entry)}>{t.signIn.enter}</Button>
+    </div>
   {:else}
-    <div class="mt-8"><Ways /></div>
+    <Ways />
 
     <!--
       Under the box rather than above it. Somebody who arrived from the club's own site has already
       decided to join; what they do not know is whether a person has to let them in afterwards, and
       being told that now is better than wondering about it for a day.
     -->
-    <section class="mt-10 border-t border-line pt-6">
-      <h2 class="text-sm">{t.join.next}</h2>
-      <p class="mt-2 text-sm leading-relaxed text-muted">{t.join.nextLead[club.admission]}</p>
-    </section>
+    <Card>
+      <div class="stack-tight">
+        <h2>{t.join.next}</h2>
+        <p class="text-sm leading-relaxed text-muted">{t.join.nextLead[club.admission]}</p>
+      </div>
 
-    {#if club.doors.length > 0}
-      <section class="mt-6">
-        <h2 class="text-sm">{t.access.heading}</h2>
-        <p class="mt-2 text-sm leading-relaxed text-muted">
-          {t.join.doorsLead(club.doors.join(', '))}
-        </p>
-      </section>
-    {/if}
+      {#if club.doors.length > 0}
+        <div class="stack-tight">
+          <h2>{t.access.heading}</h2>
+          <p class="text-sm leading-relaxed text-muted">
+            {t.join.doorsLead(club.doors.join(', '))}
+          </p>
+        </div>
+      {/if}
+    </Card>
 
     {#if club.blurb}
-      <p class="mt-6 text-sm leading-relaxed text-muted">{club.blurb}</p>
+      <p class="text-sm leading-relaxed text-muted">{club.blurb}</p>
     {/if}
   {/if}
 
   <Upcoming />
-</main>
+</div>

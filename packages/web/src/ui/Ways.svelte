@@ -31,7 +31,7 @@ $effect(() => {
 });
 </script>
 
-<Panel query={providers}>
+<div class="stack"><Panel query={providers}>
   {#if offered.length === 0}
     <p class="text-sm text-muted">
       {t.signIn.noProvider}
@@ -43,13 +43,13 @@ $effect(() => {
     {/if}
 
     {#if elsewhere}
-      <div class="mt-6 flex items-center gap-3">
+      <div class="flex items-center gap-3">
         <span class="h-px flex-1 bg-line"></span>
         <span class="text-xs text-muted">{t.signIn.email.other}</span>
         <span class="h-px flex-1 bg-line"></span>
       </div>
 
-      <div class="mt-4 flex flex-wrap items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         {#if chat}<Chat username={chat} />{/if}
 
         {#each redirected as provider (provider)}
@@ -57,7 +57,7 @@ $effect(() => {
             href={Site.Api.start(provider)}
             data-external
             aria-label={t.signIn.continueWith(Marks.label(provider))}
-            class="flex items-center gap-2 rounded-lg border border-line px-4 py-2.5 text-sm
+            class="flex items-center gap-2 btn rounded-lg border border-line bg-paper px-4 py-2.5 text-sm
                    transition-colors hover:border-accent hover:text-accent"
           >
             <Mark {provider} />
@@ -67,4 +67,4 @@ $effect(() => {
       </div>
     {/if}
   {/if}
-</Panel>
+</Panel></div>

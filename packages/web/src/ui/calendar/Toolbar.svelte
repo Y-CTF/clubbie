@@ -5,16 +5,21 @@ import { kinds } from '../../lib/kinds.svelte.ts';
 import { session } from '../../lib/session.svelte.ts';
 import { words } from '../../lib/words/index.svelte.ts';
 import Button from '../Button.svelte';
-import { look } from '../look.ts';
+import Icon from '../Icon.svelte';
+import Menu from '../Menu.svelte';
+import PageHeader from '../PageHeader.svelte';
 import Search from '../Search.svelte';
+import Segmented from '../Segmented.svelte';
 import Select from '../Select.svelte';
 
 /**
- * Everything above the grid: where you are, how to move, and what you are looking at.
+ * Everything above the grid, in three tiers of decreasing weight.
  *
- * The order is the one every calendar has settled on, and it is worth keeping: today and the
- * arrows on the left, because that is where a hand goes, and the views on the right, because that
- * is a setting rather than a movement.
+ * The page header carries the one primary action (a new event) and puts the rest (subscribe,
+ * repeating events) behind a menu, because they are things you do once. The second row is
+ * movement and view: arrows and "today" on the left, where a hand goes, and the view switch on
+ * the right, because that is a setting rather than a movement. The third is what you are looking
+ * for. Each row is one line at desktop width and wraps cleanly at phone width.
  */
 let {
   calendar,
@@ -31,59 +36,65 @@ let {
 
 const t = $derived(words.t);
 const organiser = $derived(session.can('event:manage'));
+
+const entries = $derived([
+  { label: t.calendar.subscribe, onselect: onsubscribe },
+  ...(organiser ? [{ label: t.calendar.repeats, onselect: onrepeats }] : []),
+]);
 </script>
 
-<header class="flex flex-wrap items-center gap-x-3 gap-y-2">
-  <h1 class="me-1 font-semibold">{t.pages.Events}</h1>
+<div class="stack">
+  <PageHeader title={t.pages.Events}>
+    {#snippet actions()}
+      <Menu {entries} />
+      {#if session.can('event:create')}
+        <Button look="solid" href={Calendar.compose()}>
+          <Icon name="plus" size={16} />{t.common.new}
+        </Button>
+      {/if}
+    {/snippet}
+  </PageHeader>
 
-  <div class="flex items-center gap-1">
-    <Button look="plain" onclick={() => calendar.today()}>{t.calendar.today}</Button>
-    <button
-      type="button"
-      class="rounded-lg px-2 py-1.5 text-muted hover:text-ink"
-      aria-label={t.calendar.previous}
-      onclick={() => calendar.step(-1)}
-    >
-      ‹
-    </button>
-    <button
-      type="button"
-      class="rounded-lg px-2 py-1.5 text-muted hover:text-ink"
-      aria-label={t.calendar.next}
-      onclick={() => calendar.step(1)}
-    >
-      ›
-    </button>
-  </div>
-
-  <p class="min-w-0 truncate text-sm" aria-live="polite">{calendar.title}</p>
-
-  <div class="ms-auto flex flex-wrap items-center gap-1">
-    {#each VIEWS as view (view)}
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+    <div class="flex min-w-0 items-center gap-2">
       <button
         type="button"
-        class="rounded-lg px-2.5 py-1.5 text-sm transition-colors
-               {calendar.view === view ? 'bg-sunk text-ink' : 'text-muted hover:text-ink'}"
-        aria-pressed={calendar.view === view}
-        title={t.calendar.shortcut(t.calendar.views[view], Calendar.shortcut(view))}
-        onclick={() => calendar.show(view)}
+        class="btn grid size-9 place-content-center rounded-lg border border-line bg-paper text-muted hover:border-muted hover:text-ink"
+        aria-label={t.calendar.previous}
+        onclick={() => calendar.step(-1)}
       >
-        {t.calendar.views[view]}
+        <Icon name="back" size={18} />
       </button>
-    {/each}
-  </div>
-</header>
+      <button
+        type="button"
+        class="btn grid size-9 place-content-center rounded-lg border border-line bg-paper text-muted hover:border-muted hover:text-ink"
+        aria-label={t.calendar.next}
+        onclick={() => calendar.step(1)}
+      >
+        <Icon name="forward" size={18} />
+      </button>
+      <Button look="quiet" onclick={() => calendar.today()}>{t.calendar.today}</Button>
+      <p class="ms-1 min-w-0 truncate font-medium" aria-live="polite">{calendar.title}</p>
+    </div>
 
-<div class="mt-3 flex flex-wrap items-center gap-2">
-  <div bind:this={box} class="min-w-56 flex-1">
-    <Search
-      typed={calendar.typed}
-      placeholder={t.events.find}
-      onstart={() => calendar.show(View.Agenda)}
+    <Segmented
+      value={calendar.view}
+      options={VIEWS}
+      name={(view) => t.calendar.views[view]}
+      title={(view) => t.calendar.shortcut(t.calendar.views[view], Calendar.shortcut(view))}
+      onselect={(view) => calendar.show(view)}
     />
   </div>
 
-  <div class="w-44">
+  <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
+    <div bind:this={box}>
+      <Search
+        typed={calendar.typed}
+        placeholder={t.events.find}
+        onstart={() => calendar.show(View.Agenda)}
+      />
+    </div>
+
     <Select
       bind:value={calendar.kind}
       options={kinds.ids}
@@ -92,15 +103,4 @@ const organiser = $derived(session.can('event:manage'));
       label={t.compose.kind}
     />
   </div>
-
-  <!-- Field-sized, not row-sized: they stand beside the search box and the menu, not in a list. -->
-  <Button look="plain" field onclick={onsubscribe}>{t.calendar.subscribe}</Button>
-
-  {#if organiser}
-    <Button look="plain" field onclick={onrepeats}>{t.calendar.repeats}</Button>
-  {/if}
-
-  {#if session.can('event:create')}
-    <a href={Calendar.compose()} class={look('solid', true)}>{t.common.new}</a>
-  {/if}
 </div>

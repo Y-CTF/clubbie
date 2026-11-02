@@ -29,7 +29,7 @@ const pages = $derived(Math.max(1, Math.ceil(total / size)));
 </script>
 
 {#if total > size}
-  <div class="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+  <div class="flex items-center justify-between gap-3 text-sm text-muted">
     <Button look="plain" disabled={offset === 0} onclick={() => (offset = Math.max(0, offset - size))}>
       {t.common.back}
     </Button>
